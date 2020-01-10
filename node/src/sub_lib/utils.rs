@@ -138,6 +138,11 @@ pub fn node_descriptor_delimiter(chain_id: u8) -> char {
     NODE_DESCRIPTOR_DELIMITERS[chain_id as usize]
 }
 
+pub fn process_is_privileged() -> bool {
+
+    unimplemented!()
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -273,5 +278,10 @@ pub mod tests {
     #[test]
     fn node_mailbox_capacity_is_unbound() {
         assert_eq!(NODE_MAILBOX_CAPACITY, 0)
+    }
+
+    #[test]
+    fn unit_tests_should_run_unprivileged() {
+        assert_eq! (process_is_privileged(), false);
     }
 }

@@ -15,6 +15,7 @@ use std::time::{Duration, SystemTime};
 use utils::CommandConfig;
 use utils::MASQNode;
 use utils::UiConnection;
+use node_lib::sub_lib::utils::process_is_privileged;
 
 #[test]
 fn clap_help_does_not_initialize_database_integration() {
@@ -31,6 +32,11 @@ fn clap_help_does_not_initialize_database_integration() {
     node.wait_for_exit().unwrap();
     let failure = std::fs::File::open(DATABASE_FILE);
     assert_eq!(failure.err().unwrap().kind(), std::io::ErrorKind::NotFound);
+}
+
+#[test]
+fn tests_should_run_privileged_in_integration() {
+    assert_eq! (process_is_privileged(), true);
 }
 
 #[test]
