@@ -44,7 +44,7 @@ impl Debug for AccountantSubs {
     }
 }
 
-#[derive(Clone, PartialEq, Debug, Message)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct ReportRoutingServiceProvidedMessage {
     pub paying_wallet: Wallet,
     pub payload_size: usize,
@@ -52,7 +52,11 @@ pub struct ReportRoutingServiceProvidedMessage {
     pub byte_rate: u64,
 }
 
-#[derive(Clone, PartialEq, Debug, Message)]
+impl Message for ReportRoutingServiceProvidedMessage {
+    type Result = ();
+}
+
+#[derive(Clone, PartialEq, Debug)]
 pub struct ReportExitServiceProvidedMessage {
     pub paying_wallet: Wallet,
     pub payload_size: usize,
@@ -60,7 +64,11 @@ pub struct ReportExitServiceProvidedMessage {
     pub byte_rate: u64,
 }
 
-#[derive(Clone, PartialEq, Debug, Message)]
+impl Message for ReportExitServiceProvidedMessage {
+    type Result = ();
+}
+
+#[derive(Clone, PartialEq, Debug)]
 pub struct ReportRoutingServiceConsumedMessage {
     pub earning_wallet: Wallet,
     pub payload_size: usize,
@@ -68,7 +76,11 @@ pub struct ReportRoutingServiceConsumedMessage {
     pub byte_rate: u64,
 }
 
-#[derive(Clone, PartialEq, Debug, Message)]
+impl Message for ReportRoutingServiceConsumedMessage {
+    type Result = ();
+}
+
+#[derive(Clone, PartialEq, Debug)]
 pub struct ReportExitServiceConsumedMessage {
     pub earning_wallet: Wallet,
     pub payload_size: usize,
@@ -76,16 +88,28 @@ pub struct ReportExitServiceConsumedMessage {
     pub byte_rate: u64,
 }
 
-#[derive(Clone, PartialEq, Debug, Message)]
+impl Message for ReportExitServiceConsumedMessage {
+    type Result = ();
+}
+
+#[derive(Clone, PartialEq, Debug)]
 pub struct GetFinancialStatisticsMessage {
     pub client_id: u64,
 }
 
-#[derive(Clone, PartialEq, Debug, Message, Serialize, Deserialize)]
+impl Message for GetFinancialStatisticsMessage {
+    type Result = ();
+}
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FinancialStatisticsMessage {
     pub pending_credit: i64,
     pub pending_debt: i64,
+}
+
+impl Message for FinancialStatisticsMessage {
+    type Result = ();
 }
 
 #[cfg(test)]

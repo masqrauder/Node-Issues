@@ -103,14 +103,22 @@ impl Actor for Accountant {
     type Context = Context<Self>;
 }
 
-#[derive(Debug, Eq, Message, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ReceivedPayments {
     payments: Vec<Transaction>,
 }
 
-#[derive(Debug, Eq, Message, PartialEq)]
+impl Message for ReceivedPayments {
+    type Result = ();
+}
+
+#[derive(Debug, Eq, PartialEq)]
 pub struct SentPayments {
     pub payments: Vec<Result<Payment, BlockchainError>>,
+}
+
+impl Message for SentPayments {
+    type Result = ();
 }
 
 impl Handler<BindMessage> for Accountant {

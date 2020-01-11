@@ -30,13 +30,21 @@ impl Debug for PeerActors {
     }
 }
 
-#[derive(Debug, Message, Clone)]
+#[derive(Debug, Clone)]
 pub struct BindMessage {
     pub peer_actors: PeerActors,
 }
 
-#[derive(Message, Clone)]
+impl Message for BindMessage {
+    type Result = ();
+}
+
+#[derive(Clone)]
 pub struct StartMessage {}
+
+impl Message for StartMessage {
+    type Result = ();
+}
 
 #[cfg(test)]
 mod tests {

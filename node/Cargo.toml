@@ -11,7 +11,7 @@ edition = "2018"
 members = ["../multinode_integration_tests"]
 
 [dependencies]
-actix = "= 0.7.9"
+actix = "= 0.9.0"
 backtrace = "0.3.35"
 base64 = "0.10.1"
 bytes = "0.4.12"

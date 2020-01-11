@@ -285,12 +285,13 @@ impl NodeQueryResponseMetadata {
     }
 }
 
-#[derive(Clone, Debug, Message, PartialEq)]
-pub struct BootstrapNeighborhoodNowMessage {}
-
-#[derive(Clone, Debug, Message, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct NeighborhoodDotGraphRequest {
     pub client_id: u64,
+}
+
+impl Message for NeighborhoodDotGraphRequest {
+    type Result = ();
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -303,11 +304,15 @@ impl Message for NodeQueryMessage {
     type Result = Option<NodeQueryResponseMetadata>;
 }
 
-#[derive(Message, Clone)]
+#[derive(Clone)]
 pub struct DispatcherNodeQueryMessage {
     pub query: NodeQueryMessage,
     pub context: TransmitDataMsg,
     pub recipient: Recipient<DispatcherNodeQueryResponse>,
+}
+
+impl Message for DispatcherNodeQueryMessage {
+    type Result = ();
 }
 
 #[derive(Debug, PartialEq)]
@@ -352,14 +357,22 @@ pub struct RouteQueryResponse {
     pub expected_services: ExpectedServices,
 }
 
-#[derive(Clone, Debug, Message, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct RemoveNeighborMessage {
     pub public_key: PublicKey,
 }
 
-#[derive(Clone, Debug, Message, PartialEq)]
+impl Message for RemoveNeighborMessage {
+    type Result = ();
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum NodeRecordMetadataMessage {
     Desirable(PublicKey, bool),
+}
+
+impl Message for NodeRecordMetadataMessage {
+    type Result = ();
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]

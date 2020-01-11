@@ -111,7 +111,7 @@ pub enum DispatcherError {
     NeighborhoodPanicked,
 }
 
-#[derive(PartialEq, Clone, Message)]
+#[derive(PartialEq, Clone)]
 pub struct InboundClientData {
     pub peer_addr: SocketAddr,
     pub reception_port: Option<u16>,
@@ -119,6 +119,10 @@ pub struct InboundClientData {
     pub is_clandestine: bool,
     pub sequence_number: Option<u64>,
     pub data: Vec<u8>,
+}
+
+impl Message for InboundClientData {
+    type Result = ();
 }
 
 impl Debug for InboundClientData {
@@ -149,11 +153,15 @@ impl InboundClientData {
     }
 }
 
-#[derive(PartialEq, Clone, Message, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct StreamShutdownMsg {
     pub peer_addr: SocketAddr,
     pub stream_type: RemovedStreamType,
     pub report_to_counterpart: bool,
+}
+
+impl Message for StreamShutdownMsg {
+    type Result = ();
 }
 
 pub struct DispatcherSubs {

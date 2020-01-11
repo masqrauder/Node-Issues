@@ -31,10 +31,14 @@ impl Debug for UiGatewaySubs {
     }
 }
 
-#[derive(Message, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct UiCarrierMessage {
     pub client_id: u64,
     pub data: UiMessage,
+}
+
+impl Message for UiCarrierMessage {
+    type Result = ();
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -52,10 +56,14 @@ pub enum UiMessage {
     ShutdownMessage,
 }
 
-#[derive(Message, PartialEq, Debug)]
+#[derive(PartialEq, Debug)]
 pub struct FromUiMessage {
     pub client_id: u64,
     pub json: String,
+}
+
+impl Message for FromUiMessage {
+    type Result = ();
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -77,16 +85,24 @@ pub struct MessageBody {
     pub payload: Result<String, (u64, String)>, // <success payload as JSON, (error code, error message)>
 }
 
-#[derive(Message, PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct NodeFromUiMessage {
     pub client_id: u64,
     pub body: MessageBody,
 }
 
-#[derive(Message, PartialEq, Clone, Debug)]
+impl Message for NodeFromUiMessage {
+    type Result = ();
+}
+
+#[derive(PartialEq, Clone, Debug)]
 pub struct NodeToUiMessage {
     pub target: MessageTarget,
     pub body: MessageBody,
+}
+
+impl Message for NodeToUiMessage {
+    type Result = ();
 }
 
 #[cfg(test)]

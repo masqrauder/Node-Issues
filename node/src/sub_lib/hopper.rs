@@ -30,11 +30,15 @@ use std::net::SocketAddr;
 /// verified. We can't use a regular IncipientCoresPackage for this, because it uses a Route full
 /// of PublicKeys destined to be looked up in the database by the Dispatcher.
 /// This struct can be used only for single-hop traffic.
-#[derive(Clone, Debug, PartialEq, Message)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct NoLookupIncipientCoresPackage {
     pub public_key: PublicKey,
     pub node_addr: NodeAddr,
     pub payload: CryptData,
+}
+
+impl Message for NoLookupIncipientCoresPackage {
+    type Result = ();
 }
 
 impl NoLookupIncipientCoresPackage {
@@ -57,10 +61,14 @@ impl NoLookupIncipientCoresPackage {
 }
 
 /// New CORES package about to be sent to the Hopper and thence put on the MASQ Network
-#[derive(Clone, Debug, PartialEq, Message)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct IncipientCoresPackage {
     pub route: Route,
     pub payload: CryptData,
+}
+
+impl Message for IncipientCoresPackage {
+    type Result = ();
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -92,13 +100,17 @@ impl IncipientCoresPackage {
 }
 
 /// CORES package that has traversed the MASQ Network and is arriving at its destination
-#[derive(Clone, Debug, PartialEq, Message)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ExpiredCoresPackage<T> {
     pub immediate_neighbor: SocketAddr,
     pub paying_wallet: Option<Wallet>,
     pub remaining_route: Route, // This is topped by the hop that brought the package here, not the next hop
     pub payload: T,
     pub payload_len: usize,
+}
+
+impl<T> Message for ExpiredCoresPackage<T> {
+    type Result = ();
 }
 
 impl<T> ExpiredCoresPackage<T> {

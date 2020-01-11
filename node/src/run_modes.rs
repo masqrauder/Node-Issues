@@ -56,7 +56,8 @@ fn run_service(args: &Vec<String>, streams: &mut StdStreams<'_>) -> i32 {
         System::current().stop_with_code(1);
     }));
 
-    system.run()
+    let _ = system.run();
+    1
 }
 
 fn generate_wallet(args: &Vec<String>, streams: &mut StdStreams<'_>) -> i32 {

@@ -105,12 +105,17 @@ const TRANSFER_METHOD_ID: [u8; 4] = [0xa9, 0x05, 0x9c, 0xbb];
 pub const DEFAULT_GAS_PRICE: &str = "1";
 pub const DEFAULT_CHAIN_NAME: &str = "mainnet";
 
-#[derive(Clone, Debug, Eq, Message, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Transaction {
     pub block_number: u64,
     pub from: Wallet,
     pub gwei_amount: u64,
 }
+
+impl Message for Transaction {
+    type Result = ();
+}
+
 
 impl fmt::Display for Transaction {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {

@@ -10,11 +10,14 @@ use std::fmt::Debug;
 use std::fmt::Formatter;
 use std::net::SocketAddr;
 
-#[derive(Message)]
 pub struct AddStreamMsg {
     pub connection_info: ConnectionInfo,
     pub origin_port: Option<u16>,
     pub port_configuration: PortConfiguration,
+}
+
+impl Message for AddStreamMsg {
+    type Result = ();
 }
 
 impl AddStreamMsg {
@@ -43,12 +46,16 @@ pub enum RemovedStreamType {
     NonClandestine(NonClandestineAttributes),
 }
 
-#[derive(PartialEq, Message)]
+#[derive(PartialEq)]
 pub struct RemoveStreamMsg {
     pub local_addr: SocketAddr,
     pub peer_addr: SocketAddr,
     pub stream_type: RemovedStreamType,
     pub sub: Recipient<StreamShutdownMsg>,
+}
+
+impl Message for RemoveStreamMsg {
+    type Result = ();
 }
 
 impl Debug for RemoveStreamMsg {
@@ -61,11 +68,15 @@ impl Debug for RemoveStreamMsg {
     }
 }
 
-#[derive(Message, Clone)]
+#[derive(Clone)]
 pub struct PoolBindMessage {
     pub dispatcher_subs: DispatcherSubs,
     pub stream_handler_pool_subs: StreamHandlerPoolSubs,
     pub neighborhood_subs: NeighborhoodSubs,
+}
+
+impl Message for PoolBindMessage {
+    type Result = ();
 }
 
 impl Debug for PoolBindMessage {

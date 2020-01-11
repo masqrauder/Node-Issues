@@ -3,7 +3,7 @@ use crate::sub_lib::dispatcher::Endpoint;
 use crate::sub_lib::neighborhood::NodeQueryResponseMetadata;
 use actix::Message;
 
-#[derive(PartialEq, Debug, Message, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct TransmitDataMsg {
     pub endpoint: Endpoint,
     pub last_data: bool,
@@ -11,8 +11,16 @@ pub struct TransmitDataMsg {
     pub data: Vec<u8>,
 }
 
-#[derive(Message, Clone)]
+impl Message for TransmitDataMsg {
+    type Result = ();
+}
+
+#[derive(Clone)]
 pub struct DispatcherNodeQueryResponse {
     pub result: Option<NodeQueryResponseMetadata>,
     pub context: TransmitDataMsg,
+}
+
+impl Message for DispatcherNodeQueryResponse {
+    type Result = ();
 }

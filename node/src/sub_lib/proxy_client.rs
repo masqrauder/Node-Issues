@@ -33,10 +33,14 @@ pub struct ClientResponsePayload_0v1 {
     pub sequenced_packet: SequencedPacket,
 }
 
-#[derive(Message, Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[allow(non_camel_case_types)]
 pub struct DnsResolveFailure_0v1 {
     pub stream_key: StreamKey,
+}
+
+impl Message for DnsResolveFailure_0v1 {
+    type Result = ();
 }
 
 impl DnsResolveFailure_0v1 {
@@ -90,13 +94,17 @@ impl ClientResponsePayload_0v1 {
     }
 }
 
-#[derive(PartialEq, Clone, Message, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct InboundServerData {
     pub stream_key: StreamKey,
     pub last_data: bool,
     pub sequence_number: u64,
     pub source: SocketAddr,
     pub data: Vec<u8>,
+}
+
+impl Message for InboundServerData {
+    type Result = ();
 }
 
 #[cfg(test)]

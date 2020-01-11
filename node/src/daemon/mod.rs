@@ -57,11 +57,15 @@ pub trait Launcher {
     fn launch(&self, params: HashMap<String, String>) -> Result<Option<LaunchSuccess>, String>;
 }
 
-#[derive(Message, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub struct DaemonBindMessage {
     pub to_ui_message_recipient: Recipient<NodeToUiMessage>, // for everybody to send UI-bound messages to
     pub from_ui_message_recipient: Recipient<NodeFromUiMessage>, // for the WebsocketSupervisor to send inbound UI messages to the UiGateway
     pub from_ui_message_recipients: Vec<Recipient<NodeFromUiMessage>>, // for the UiGateway to relay inbound UI messages to everybody
+}
+
+impl Message for DaemonBindMessage {
+    type Result = ();
 }
 
 pub struct Daemon {

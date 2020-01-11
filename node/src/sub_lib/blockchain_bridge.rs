@@ -36,16 +36,24 @@ pub struct ReportAccountsPayable {
     pub accounts: Vec<PayableAccount>,
 }
 
-#[derive(Clone, PartialEq, Debug, Message)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct SetDbPasswordMsg {
     pub client_id: u64,
     pub password: String,
 }
 
-#[derive(Clone, PartialEq, Debug, Message)]
+impl Message for SetDbPasswordMsg {
+    type Result = ();
+}
+
+#[derive(Clone, PartialEq, Debug)]
 pub struct SetGasPriceMsg {
     pub client_id: u64,
     pub gas_price: String,
+}
+
+impl Message for SetGasPriceMsg {
+    type Result = ();
 }
 
 impl Message for ReportAccountsPayable {
