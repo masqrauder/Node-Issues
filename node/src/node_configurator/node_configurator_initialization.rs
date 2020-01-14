@@ -7,7 +7,6 @@ use crate::node_configurator::{
 };
 use crate::persistent_configuration::{HIGHEST_USABLE_PORT, LOWEST_USABLE_INSECURE_PORT};
 use masq_lib::command::StdStreams;
-use crate::sub_lib::ui_gateway::DEFAULT_UI_PORT;
 use clap::{App, Arg};
 use lazy_static::lazy_static;
 use std::path::PathBuf;
@@ -71,6 +70,7 @@ mod initialization {
     use crate::multi_config::MultiConfig;
     use crate::node_configurator::real_user_data_directory_and_chain_id;
     use clap::value_t;
+    use masq_lib::ui_gateway::DEFAULT_UI_PORT;
 
     pub fn parse_args(
         multi_config: &MultiConfig,
@@ -101,6 +101,7 @@ mod tests {
     use std::io::Write;
     use std::path::PathBuf;
     use std::str::FromStr;
+    use masq_lib::ui_gateway::DEFAULT_UI_PORT;
 
     #[test]
     fn can_read_parameters_from_config_file() {

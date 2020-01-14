@@ -1,12 +1,12 @@
 // Copyright (c) 2019, MASQ (https://masq.ai). All rights reserved.
 
-use crate::sub_lib::ui_gateway::MessageBody;
-use crate::sub_lib::ui_gateway::MessagePath::{OneWay, TwoWay};
 use crate::ui_gateway::messages::UiMessageError::{
     BadOpcode, BadPath, DeserializationError, PayloadError,
 };
 use serde::de::DeserializeOwned;
 use serde_derive::{Deserialize, Serialize};
+use masq_lib::ui_gateway::{MessageBody};
+use masq_lib::ui_gateway::MessagePath::{OneWay, TwoWay};
 
 pub const NODE_LAUNCH_ERROR: u64 = 0x8000_0000_0000_0001;
 pub const NODE_NOT_RUNNING_ERROR: u64 = 0x8000_0000_0000_0002;
@@ -209,10 +209,10 @@ one_way_message!(UiUnmarshalError, "unmarshalError");
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sub_lib::ui_gateway::MessagePath::{OneWay, TwoWay};
     use crate::ui_gateway::messages::UiMessageError::{
         BadOpcode, BadPath, DeserializationError, PayloadError,
     };
+    use masq_lib::ui_gateway::MessagePath::{TwoWay, OneWay};
 
     #[test]
     fn can_serialize_ui_financials_response() {

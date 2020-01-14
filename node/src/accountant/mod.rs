@@ -22,8 +22,7 @@ use crate::sub_lib::accountant::{AccountantSubs, FinancialStatisticsMessage};
 use crate::sub_lib::blockchain_bridge::ReportAccountsPayable;
 use crate::sub_lib::logger::Logger;
 use crate::sub_lib::peer_actors::{BindMessage, StartMessage};
-use crate::sub_lib::ui_gateway::MessageTarget::ClientId;
-use crate::sub_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage, UiCarrierMessage, UiMessage};
+use crate::sub_lib::ui_gateway::{UiCarrierMessage, UiMessage};
 use crate::sub_lib::utils::NODE_MAILBOX_CAPACITY;
 use crate::sub_lib::wallet::Wallet;
 use crate::ui_gateway::messages::UiMessageError::BadOpcode;
@@ -45,6 +44,8 @@ use payable_dao::PayableDao;
 use receivable_dao::ReceivableDao;
 use std::thread;
 use std::time::{Duration, SystemTime};
+use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
+use masq_lib::ui_gateway::MessageTarget::ClientId;
 
 pub const DEFAULT_PAYABLE_SCAN_INTERVAL: u64 = 3600; // one hour
 pub const DEFAULT_PAYMENT_RECEIVED_SCAN_INTERVAL: u64 = 3600; // one hour
@@ -662,9 +663,7 @@ pub mod tests {
         FinancialStatisticsMessage, ReportRoutingServiceConsumedMessage,
     };
     use crate::sub_lib::blockchain_bridge::ReportAccountsPayable;
-    use crate::sub_lib::ui_gateway::MessagePath::{OneWay, TwoWay};
-    use crate::sub_lib::ui_gateway::{
-        MessageBody, MessageTarget, NodeFromUiMessage, UiCarrierMessage, UiMessage,
+    use crate::sub_lib::ui_gateway::{UiCarrierMessage, UiMessage,
     };
     use crate::sub_lib::wallet::Wallet;
     use crate::test_utils::logging::init_test_logging;
@@ -690,6 +689,8 @@ pub mod tests {
     use std::time::SystemTime;
     use web3::types::H256;
     use web3::types::U256;
+    use masq_lib::ui_gateway::{NodeToUiMessage, MessageTarget, MessageBody, NodeFromUiMessage};
+    use masq_lib::ui_gateway::MessagePath::{TwoWay, OneWay};
 
     #[derive(Debug, Default)]
     pub struct PayableDaoMock {

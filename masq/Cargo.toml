@@ -11,6 +11,7 @@ workspace = "../node"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+masq_lib = { path = "../masq_lib" }
 
 [[bin]]
 name = "masq"

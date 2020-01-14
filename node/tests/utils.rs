@@ -1,7 +1,5 @@
 // Copyright (c) 2017-2019, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 
-use node_lib::sub_lib::ui_gateway::MessageTarget::ClientId;
-use node_lib::sub_lib::ui_gateway::NodeFromUiMessage;
 use node_lib::sub_lib::utils::localhost;
 use node_lib::test_utils::TEST_DEFAULT_CHAIN_NAME;
 use node_lib::ui_gateway::messages::{FromMessageBody, ToMessageBody, UiMessageError};
@@ -18,6 +16,8 @@ use std::time::Duration;
 use std::time::Instant;
 use websocket::client::sync::Client;
 use websocket::{ClientBuilder, OwnedMessage};
+use masq_lib::ui_gateway::MessageTarget::ClientId;
+use masq_lib::ui_gateway::NodeFromUiMessage;
 
 pub struct MASQNode {
     pub logfile_contents: String,

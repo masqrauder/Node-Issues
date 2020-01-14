@@ -1,15 +1,15 @@
 // Copyright (c) 2017-2018, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 
-use crate::sub_lib::ui_gateway::MessagePath::{OneWay, TwoWay};
-use crate::sub_lib::ui_gateway::{
-    MessageBody, MessageTarget, NodeFromUiMessage, NodeToUiMessage, UiMessage,
-};
+use crate::sub_lib::ui_gateway::UiMessage;
 use crate::ui_gateway::ui_traffic_converter::TrafficConversionError::{
     FieldTypeError, JsonSyntaxError, MissingFieldError, NotJsonObjectError,
 };
 use crate::ui_gateway::ui_traffic_converter::UnmarshalError::{Critical, NonCritical};
 use serde_json::Value;
 use std::fmt::Display;
+use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage, MessageTarget, MessageBody};
+use masq_lib::ui_gateway::MessagePath::OneWay;
+use masq_lib::ui_gateway::MessagePath::TwoWay;
 
 #[allow(dead_code)]
 pub const BROADCAST: u64 = 0xFFFF_FFFF_FFFF_FFFF;
@@ -258,12 +258,11 @@ impl UiTrafficConverterReal {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sub_lib::ui_gateway::MessagePath::OneWay;
-    use crate::sub_lib::ui_gateway::{MessageBody, MessageTarget};
     use crate::ui_gateway::ui_traffic_converter::TrafficConversionError::{
         FieldTypeError, JsonSyntaxError, MissingFieldError, NotJsonObjectError,
     };
     use serde_json::Number;
+    use masq_lib::ui_gateway::MessagePath::OneWay;
 
     #[test]
     fn a_shutdown_message_is_properly_marshalled_and_unmarshalled() {

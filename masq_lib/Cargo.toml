@@ -9,6 +9,7 @@ edition = "2018"
 workspace = "../node"
 
 [dependencies]
+actix = "0.7.9"
 
 [lib]
 name = "masq_lib"

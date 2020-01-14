@@ -3,9 +3,8 @@
 pub mod utils;
 
 use futures::future::*;
-use node_lib::sub_lib::ui_gateway::MessagePath::TwoWay;
 use node_lib::sub_lib::ui_gateway::{
-    MessageBody, MessageTarget, NodeFromUiMessage, NodeToUiMessage, UiMessage, DEFAULT_UI_PORT,
+    UiMessage,
 };
 use node_lib::sub_lib::utils::localhost;
 use node_lib::test_utils::assert_matches;
@@ -16,6 +15,8 @@ use tokio::prelude::*;
 use tokio::runtime::Runtime;
 use websocket::ClientBuilder;
 use websocket::OwnedMessage;
+use masq_lib::ui_gateway::{DEFAULT_UI_PORT, NodeFromUiMessage, MessageBody, NodeToUiMessage, MessageTarget};
+use masq_lib::ui_gateway::MessagePath::TwoWay;
 
 #[test]
 fn ui_gateway_message_integration() {

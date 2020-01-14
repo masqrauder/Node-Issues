@@ -6,9 +6,6 @@ mod launch_verifier_mock;
 mod launcher;
 
 use crate::sub_lib::logger::Logger;
-use crate::sub_lib::ui_gateway::MessagePath::{OneWay, TwoWay};
-use crate::sub_lib::ui_gateway::MessageTarget::ClientId;
-use crate::sub_lib::ui_gateway::{MessageBody, NodeFromUiMessage, NodeToUiMessage};
 use crate::sub_lib::utils::NODE_MAILBOX_CAPACITY;
 use crate::ui_gateway::messages::UiMessageError::BadOpcode;
 use crate::ui_gateway::messages::{
@@ -20,6 +17,9 @@ use actix::{Actor, Context, Handler, Message};
 use std::collections::HashMap;
 use std::iter::FromIterator;
 use std::sync::mpsc::{Receiver, Sender};
+use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage, MessageBody};
+use masq_lib::ui_gateway::MessageTarget::ClientId;
+use masq_lib::ui_gateway::MessagePath::{TwoWay, OneWay};
 
 pub struct Recipients {
     ui_gateway_from_sub: Recipient<NodeFromUiMessage>,
@@ -283,7 +283,6 @@ impl Daemon {
 mod tests {
     use super::*;
     use crate::daemon::LaunchSuccess;
-    use crate::sub_lib::ui_gateway::MessageTarget::ClientId;
     use crate::test_utils::recorder::{make_recorder, Recorder};
     use crate::ui_gateway::messages::{
         UiFinancialsRequest, UiRedirect, UiSetup, UiShutdownOrder, UiStartOrder, UiStartResponse,

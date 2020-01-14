@@ -1,10 +1,5 @@
 // Copyright (c) 2017-2018, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 use crate::sub_lib::logger::Logger;
-use crate::sub_lib::ui_gateway::MessagePath::TwoWay;
-use crate::sub_lib::ui_gateway::MessageTarget::ClientId;
-use crate::sub_lib::ui_gateway::{
-    FromUiMessage, MessageBody, MessageTarget, NodeFromUiMessage, NodeToUiMessage,
-};
 use crate::sub_lib::utils::localhost;
 use crate::ui_gateway::messages::ToMessageBody;
 use crate::ui_gateway::messages::{UiUnmarshalError, UNMARSHAL_ERROR};
@@ -34,6 +29,10 @@ use websocket::server::r#async::Server;
 use websocket::server::upgrade::WsUpgrade;
 use websocket::OwnedMessage;
 use websocket::WebSocketError;
+use masq_lib::ui_gateway::{NodeToUiMessage, MessageTarget, MessageBody, NodeFromUiMessage};
+use crate::sub_lib::ui_gateway::FromUiMessage;
+use masq_lib::ui_gateway::MessageTarget::ClientId;
+use masq_lib::ui_gateway::MessagePath::TwoWay;
 
 trait ClientWrapper: Send + Any {
     fn as_any(&self) -> &dyn Any;
@@ -484,10 +483,8 @@ impl WebSocketSupervisorReal {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sub_lib::ui_gateway::MessagePath::{OneWay, TwoWay};
-    use crate::sub_lib::ui_gateway::MessageTarget::ClientId;
     use crate::sub_lib::ui_gateway::{
-        FromUiMessage, MessageBody, MessageTarget, NodeFromUiMessage, UiMessage,
+        FromUiMessage, UiMessage,
     };
     use crate::test_utils::logging::init_test_logging;
     use crate::test_utils::logging::TestLogHandler;
@@ -512,6 +509,8 @@ mod tests {
     use websocket::stream::sync::TcpStream;
     use websocket::ClientBuilder;
     use websocket::Message;
+    use masq_lib::ui_gateway::NodeFromUiMessage;
+    use masq_lib::ui_gateway::MessagePath::OneWay;
 
     impl WebSocketSupervisorReal {
         fn inject_mock_client(&self, mock_client: ClientWrapperMock, old_client: bool) -> u64 {

@@ -10,7 +10,7 @@ use crate::node_configurator::{
 use crate::persistent_configuration::{HIGHEST_USABLE_PORT, LOWEST_USABLE_INSECURE_PORT};
 use crate::sub_lib::crash_point::CrashPoint;
 use masq_lib::command::StdStreams;
-use crate::sub_lib::ui_gateway::DEFAULT_UI_PORT;
+use masq_lib::ui_gateway::DEFAULT_UI_PORT;
 use clap::{App, Arg};
 use indoc::indoc;
 use lazy_static::lazy_static;

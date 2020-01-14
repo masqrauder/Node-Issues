@@ -1276,10 +1276,16 @@ dependencies = [
 [[package]]
 name = "masq"
 version = "1.0.0"
+dependencies = [
+ "masq_lib 1.0.0",
+]
 
 [[package]]
 name = "masq_lib"
 version = "1.0.0"
+dependencies = [
+ "actix 0.7.9 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "matches"

@@ -40,9 +40,10 @@ use crate::sub_lib::stream_handler_pool::DispatcherNodeQueryResponse;
 use crate::sub_lib::stream_handler_pool::TransmitDataMsg;
 use crate::sub_lib::ui_gateway::UiGatewaySubs;
 use crate::sub_lib::ui_gateway::{
-    FromUiMessage, NodeFromUiMessage, NodeToUiMessage, UiCarrierMessage,
+    FromUiMessage, UiCarrierMessage,
 };
 use crate::test_utils::to_millis;
+use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
 use actix::Actor;
 use actix::Addr;
 use actix::Context;
