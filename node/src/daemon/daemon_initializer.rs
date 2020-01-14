@@ -7,7 +7,8 @@ use crate::daemon::{
 };
 use crate::node_configurator::node_configurator_initialization::InitializationConfig;
 use crate::server_initializer::{LoggerInitializerWrapper, LoggerInitializerWrapperReal};
-use crate::sub_lib::main_tools::{main_with_args, Command, StdStreams};
+use crate::sub_lib::main_tools::{main_with_args};
+use masq_lib::command::{Command, StdStreams};
 use crate::sub_lib::ui_gateway::UiGatewayConfig;
 use crate::ui_gateway::UiGateway;
 use actix::{Actor, System, SystemRunner};
@@ -76,7 +77,7 @@ pub struct DaemonInitializer {
 }
 
 impl Command for DaemonInitializer {
-    fn go(&mut self, _streams: &mut StdStreams<'_>, _args: &Vec<String>) -> u8 {
+    fn go(&mut self, _streams: &mut StdStreams<'_>, _args: &[String]) -> u8 {
         let system = System::new("daemon");
         let (sender, receiver) = self.channel_factory.make();
 

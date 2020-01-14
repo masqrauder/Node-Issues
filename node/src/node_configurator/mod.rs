@@ -16,7 +16,7 @@ use crate::persistent_configuration::{
     PersistentConfigError, PersistentConfiguration, PersistentConfigurationReal,
 };
 use crate::sub_lib::cryptde::PlainData;
-use crate::sub_lib::main_tools::StdStreams;
+use masq_lib::command::StdStreams;
 use crate::sub_lib::wallet::Wallet;
 use crate::sub_lib::wallet::{DEFAULT_CONSUMING_DERIVATION_PATH, DEFAULT_EARNING_DERIVATION_PATH};
 use bip39::Language;
@@ -27,10 +27,10 @@ use rpassword::read_password_with_reader;
 use rustc_hex::FromHex;
 use std::fmt::Debug;
 use std::io;
-use std::io::Read;
 use std::path::PathBuf;
 use std::str::FromStr;
 use tiny_hderive::bip44::DerivationPath;
+use std::io::Read;
 
 pub trait NodeConfigurator<T> {
     fn configure(&self, args: &Vec<String>, streams: &mut StdStreams<'_>) -> T;

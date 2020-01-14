@@ -13,7 +13,7 @@ use crate::node_configurator::{
 };
 use crate::persistent_configuration::PersistentConfiguration;
 use crate::sub_lib::cryptde::PlainData;
-use crate::sub_lib::main_tools::StdStreams;
+use masq_lib::command::StdStreams;
 use crate::sub_lib::wallet::Wallet;
 use bip39::{Language, Mnemonic, MnemonicType};
 use clap::{value_t, App, Arg};

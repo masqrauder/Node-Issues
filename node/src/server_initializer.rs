@@ -7,8 +7,8 @@ use crate::entry_dns::dns_socket_server::DnsSocketServer;
 use crate::node_configurator::node_configurator_standard::NodeConfiguratorStandardPrivileged;
 use crate::node_configurator::NodeConfigurator;
 use crate::sub_lib;
-use crate::sub_lib::main_tools::Command;
-use crate::sub_lib::main_tools::StdStreams;
+use masq_lib::command::Command;
+use masq_lib::command::StdStreams;
 use crate::sub_lib::socket_server::SocketServer;
 use backtrace::Backtrace;
 use chrono::{DateTime, Local};
@@ -31,11 +31,11 @@ pub struct ServerInitializer {
 }
 
 impl Command for ServerInitializer {
-    fn go(&mut self, streams: &mut StdStreams<'_>, args: &Vec<String>) -> u8 {
+    fn go(&mut self, streams: &mut StdStreams<'_>, args: &[String]) -> u8 {
         if args.contains(&"--help".to_string()) || args.contains(&"--version".to_string()) {
             self.privilege_dropper
                 .drop_privileges(&RealUser::null().populate());
-            NodeConfiguratorStandardPrivileged {}.configure(args, streams);
+            NodeConfiguratorStandardPrivileged {}.configure(&args.to_vec(), streams);
             0
         } else {
             self.dns_socket_server
@@ -341,12 +341,12 @@ pub mod tests {
             &self.configuration
         }
 
-        fn initialize_as_privileged(&mut self, _args: &Vec<String>, _streams: &mut StdStreams<'_>) {
+        fn initialize_as_privileged(&mut self, _args: &[String], _streams: &mut StdStreams<'_>) {
         }
 
         fn initialize_as_unprivileged(
             &mut self,
-            _args: &Vec<String>,
+            _args: &[String],
             _streams: &mut StdStreams<'_>,
         ) {
         }
@@ -375,18 +375,18 @@ pub mod tests {
             &self.get_configuration_result
         }
 
-        fn initialize_as_privileged(&mut self, args: &Vec<String>, _streams: &mut StdStreams) {
+        fn initialize_as_privileged(&mut self, args: &[String], _streams: &mut StdStreams) {
             self.initialize_as_privileged_params
                 .lock()
                 .unwrap()
-                .push(args.clone());
+                .push(args.to_vec());
         }
 
-        fn initialize_as_unprivileged(&mut self, args: &Vec<String>, _streams: &mut StdStreams) {
+        fn initialize_as_unprivileged(&mut self, args: &[String], _streams: &mut StdStreams) {
             self.initialize_as_unprivileged_params
                 .lock()
                 .unwrap()
-                .push(args.clone());
+                .push(args.to_vec());
         }
     }
 

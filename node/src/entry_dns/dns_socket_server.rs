@@ -1,6 +1,6 @@
 // Copyright (c) 2017-2019, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 use crate::sub_lib::logger::Logger;
-use crate::sub_lib::main_tools::StdStreams;
+use masq_lib::command::StdStreams;
 use crate::sub_lib::socket_server::SocketServer;
 use std::net::IpAddr::V4;
 use std::net::Ipv4Addr;
@@ -55,7 +55,7 @@ impl SocketServer<()> for DnsSocketServer {
         &()
     }
 
-    fn initialize_as_privileged(&mut self, _args: &Vec<String>, _streams: &mut StdStreams<'_>) {
+    fn initialize_as_privileged(&mut self, _args: &[String], _streams: &mut StdStreams<'_>) {
         let socket_addr = SocketAddr::new(V4(Ipv4Addr::from(0)), DNS_PORT);
         // The following expect() will cause an appropriate panic if the port can't be opened
         self.socket_wrapper
@@ -63,7 +63,7 @@ impl SocketServer<()> for DnsSocketServer {
             .unwrap_or_else(|_| panic!("Cannot bind socket to {:?}", socket_addr));
     }
 
-    fn initialize_as_unprivileged(&mut self, _args: &Vec<String>, _streams: &mut StdStreams<'_>) {
+    fn initialize_as_unprivileged(&mut self, _args: &[String], _streams: &mut StdStreams<'_>) {
         self.buf = [0; 65536];
     }
 }

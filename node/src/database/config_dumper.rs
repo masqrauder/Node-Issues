@@ -6,7 +6,7 @@ use crate::database::db_initializer::{DbInitializer, DbInitializerReal, DATABASE
 use crate::multi_config::{CommandLineVcl, EnvironmentVcl, MultiConfig, VirtualCommandLine};
 use crate::node_configurator::{app_head, chain_arg, data_directory_arg, real_user_arg};
 use crate::privilege_drop::{PrivilegeDropper, PrivilegeDropperReal};
-use crate::sub_lib::main_tools::StdStreams;
+use masq_lib::command::StdStreams;
 use clap::Arg;
 use heck::MixedCase;
 use serde_json::json;

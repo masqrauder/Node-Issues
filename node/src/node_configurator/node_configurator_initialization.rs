@@ -6,7 +6,7 @@ use crate::node_configurator::{
     NodeConfigurator, CONFIG_FILE_HELP, DB_PASSWORD_HELP,
 };
 use crate::persistent_configuration::{HIGHEST_USABLE_PORT, LOWEST_USABLE_INSECURE_PORT};
-use crate::sub_lib::main_tools::StdStreams;
+use masq_lib::command::StdStreams;
 use crate::sub_lib::ui_gateway::DEFAULT_UI_PORT;
 use clap::{App, Arg};
 use lazy_static::lazy_static;

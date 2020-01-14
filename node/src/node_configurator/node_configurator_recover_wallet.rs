@@ -12,7 +12,7 @@ use crate::node_configurator::{
 };
 use crate::persistent_configuration::PersistentConfiguration;
 use crate::sub_lib::cryptde::PlainData;
-use crate::sub_lib::main_tools::StdStreams;
+use masq_lib::command::StdStreams;
 use bip39::{Language, Mnemonic};
 use clap::{value_t, values_t, App, Arg};
 use indoc::indoc;

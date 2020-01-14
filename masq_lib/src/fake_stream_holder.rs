@@ -1,6 +1,6 @@
 // Copyright (c) 2017-2019, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 
-use crate::main_tools::StdStreams;
+use crate::command::StdStreams;
 use std::cmp::min;
 use std::io;
 use std::io::Error;
@@ -12,13 +12,19 @@ pub struct ByteArrayWriter {
     pub next_error: Option<Error>,
 }
 
-impl ByteArrayWriter {
-    pub fn new() -> ByteArrayWriter {
+impl Default for ByteArrayWriter {
+    fn default() -> Self {
         let vec = Vec::new();
         ByteArrayWriter {
             byte_array: vec,
             next_error: None,
         }
+    }
+}
+
+impl ByteArrayWriter {
+    pub fn new() -> ByteArrayWriter {
+        Self::default()
     }
 
     pub fn get_bytes(&self) -> &[u8] {
@@ -35,14 +41,14 @@ impl ByteArrayWriter {
 
 impl Write for ByteArrayWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let next_error_opt = self.next_error.take();
-        if next_error_opt.is_none() {
+        if let Some(next_error) = self.next_error.take() {
+            Err(next_error)
+        }
+        else {
             for byte in buf {
                 self.byte_array.push(*byte)
             }
             Ok(buf.len())
-        } else {
-            Err(next_error_opt.unwrap())
         }
     }
 
@@ -68,6 +74,7 @@ impl ByteArrayReader {
 impl Read for ByteArrayReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let to_copy = min(buf.len(), self.byte_array.len() - self.position);
+        #[allow (clippy::needless_range_loop)]
         for idx in 0..to_copy {
             buf[idx] = self.byte_array[self.position + idx]
         }
@@ -82,13 +89,19 @@ pub struct FakeStreamHolder {
     pub stderr: ByteArrayWriter,
 }
 
-impl FakeStreamHolder {
-    pub fn new() -> FakeStreamHolder {
+impl Default for FakeStreamHolder {
+    fn default() -> Self {
         FakeStreamHolder {
             stdin: ByteArrayReader::new(&[0; 0]),
             stdout: ByteArrayWriter::new(),
             stderr: ByteArrayWriter::new(),
         }
+    }
+}
+
+impl FakeStreamHolder {
+    pub fn new() -> FakeStreamHolder {
+        Self::default()
     }
 
     pub fn streams(&mut self) -> StdStreams<'_> {

@@ -27,7 +27,7 @@ use crate::sub_lib::cryptde::CryptDE;
 use crate::sub_lib::cryptde_null::CryptDENull;
 use crate::sub_lib::cryptde_real::CryptDEReal;
 use crate::sub_lib::logger::Logger;
-use crate::sub_lib::main_tools::StdStreams;
+use masq_lib::command::StdStreams;
 use crate::sub_lib::neighborhood::NodeDescriptor;
 use crate::sub_lib::neighborhood::{NeighborhoodConfig, NeighborhoodMode};
 use crate::sub_lib::node_addr::NodeAddr;
@@ -361,8 +361,8 @@ impl SocketServer<BootstrapperConfig> for Bootstrapper {
         &self.config
     }
 
-    fn initialize_as_privileged(&mut self, args: &Vec<String>, streams: &mut StdStreams) {
-        self.config = NodeConfiguratorStandardPrivileged {}.configure(args, streams);
+    fn initialize_as_privileged(&mut self, args: &[String], streams: &mut StdStreams) {
+        self.config = NodeConfiguratorStandardPrivileged {}.configure(&args.to_vec(), streams);
 
         self.logger_initializer.init(
             self.config.data_directory.clone(),
@@ -388,11 +388,11 @@ impl SocketServer<BootstrapperConfig> for Bootstrapper {
             });
     }
 
-    fn initialize_as_unprivileged(&mut self, args: &Vec<String>, streams: &mut StdStreams) {
+    fn initialize_as_unprivileged(&mut self, args: &[String], streams: &mut StdStreams) {
         // NOTE: The following line of code is not covered by unit tests
         fdlimit::raise_fd_limit();
         let unprivileged_config =
-            NodeConfiguratorStandardUnprivileged::new(&self.config).configure(args, streams);
+            NodeConfiguratorStandardUnprivileged::new(&self.config).configure(&args.to_vec(), streams);
         self.config.merge_unprivileged(unprivileged_config);
         self.establish_clandestine_port();
         let (cryptde_ref, _) = Bootstrapper::initialize_cryptdes(
@@ -877,13 +877,15 @@ mod tests {
         ));
         let mut subject = Bootstrapper::new(Box::new(logger_initializer));
         subject.listener_handler_factory = Box::new(listener_handler_factory);
-        let args = ArgsBuilder::new()
+        let args: Vec<String> = ArgsBuilder::new()
             .param("--data-directory", data_dir.to_str().unwrap())
             .param("--dns-servers", "1.1.1.1")
             .param("--ip", "2.2.2.2")
-            .param("--real-user", "123:456:/home/booga");
+            .param("--real-user", "123:456:/home/booga")
+            .into();
+        let args_slice: &[String] = args.as_slice();
 
-        subject.initialize_as_privileged(&args.into(), &mut FakeStreamHolder::new().streams());
+        subject.initialize_as_privileged(args_slice, &mut FakeStreamHolder::new().streams());
 
         let init_params = init_params_arc.lock().unwrap();
         assert_eq!(
