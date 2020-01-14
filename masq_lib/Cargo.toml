@@ -1,0 +1,17 @@
+[package]
+name = "masq_lib"
+version = "1.0.0"
+authors = ["Dan Wiebe <dnwiebe@gmail.com>", "MASQ"]
+license = "GPL-3.0-only"
+copyright = "Copyright (c) 2019-2020, MASQ (https://masq.ai) and/or its affiliates. All rights reserved."
+description = "Code common to Node and masq; also, temporarily, to dns_utility"
+edition = "2018"
+workspace = "../node"
+
+[dependencies]
+
+[lib]
+name = "masq_lib"
+path = "src/lib.rs"
+
+[dev-dependencies]
