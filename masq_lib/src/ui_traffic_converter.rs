@@ -1,15 +1,12 @@
 // Copyright (c) 2017-2018, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 
 use crate::sub_lib::ui_gateway::UiMessage;
-use crate::ui_gateway::ui_traffic_converter::TrafficConversionError::{
-    FieldTypeError, JsonSyntaxError, MissingFieldError, NotJsonObjectError,
-};
-use crate::ui_gateway::ui_traffic_converter::UnmarshalError::{Critical, NonCritical};
 use serde_json::Value;
 use std::fmt::Display;
-use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage, MessageTarget, MessageBody};
-use masq_lib::ui_gateway::MessagePath::OneWay;
-use masq_lib::ui_gateway::MessagePath::TwoWay;
+use crate::ui_traffic_converter::UnmarshalError::{NonCritical, Critical};
+use crate::ui_traffic_converter::TrafficConversionError::{MissingFieldError, FieldTypeError, NotJsonObjectError, JsonSyntaxError};
+use crate::ui_gateway::{MessageTarget, MessageBody, NodeToUiMessage, NodeFromUiMessage};
+use crate::ui_gateway::MessagePath::{TwoWay, OneWay};
 
 #[allow(dead_code)]
 pub const BROADCAST: u64 = 0xFFFF_FFFF_FFFF_FFFF;
@@ -262,7 +259,6 @@ mod tests {
         FieldTypeError, JsonSyntaxError, MissingFieldError, NotJsonObjectError,
     };
     use serde_json::Number;
-    use masq_lib::ui_gateway::MessagePath::OneWay;
 
     #[test]
     fn a_shutdown_message_is_properly_marshalled_and_unmarshalled() {
