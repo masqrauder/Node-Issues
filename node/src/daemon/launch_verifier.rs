@@ -1,4 +1,4 @@
-// Copyright (c) 2019, MASQ (https://masq.ai). All rights reserved.
+// Copyright (c) 2019-2020, MASQ (https://masq.ai). All rights reserved.
 
 use crate::daemon::launch_verifier::LaunchVerification::{
     CleanFailure, DirtyFailure, InterventionRequired, Launched,
@@ -183,14 +183,13 @@ mod tests {
     use crate::daemon::launch_verifier::LaunchVerification::{
         CleanFailure, InterventionRequired, Launched,
     };
-    use crate::sub_lib::utils::localhost;
-    use crate::test_utils::find_free_port;
     use std::cell::RefCell;
     use std::net::SocketAddr;
     use std::process::{Child, Command};
     use std::sync::{Arc, Mutex};
     use std::time::Instant;
     use websocket::server::sync::Server;
+    use masq_lib::utils::{find_free_port, localhost};
 
     struct VerifierToolsMock {
         can_connect_to_ui_gateway_params: Arc<Mutex<Vec<u16>>>,

@@ -6,7 +6,6 @@ use futures::future::*;
 use node_lib::sub_lib::ui_gateway::{
     UiMessage,
 };
-use node_lib::sub_lib::utils::localhost;
 use node_lib::test_utils::assert_matches;
 use node_lib::ui_gateway::ui_traffic_converter::{UiTrafficConverterOld, UiTrafficConverterOldReal};
 use std::time::Duration;
@@ -18,6 +17,7 @@ use masq_lib::ui_gateway::{DEFAULT_UI_PORT, NodeFromUiMessage, MessageBody, Node
 use masq_lib::ui_gateway::MessagePath::TwoWay;
 use masq_lib::messages::{UiFinancialsResponse, UiFinancialsRequest};
 use masq_lib::ui_traffic_converter::UiTrafficConverter;
+use masq_lib::utils::localhost;
 
 #[test]
 fn ui_gateway_message_integration() {

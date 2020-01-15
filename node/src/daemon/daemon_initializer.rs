@@ -1,4 +1,4 @@
-// Copyright (c) 2019, MASQ (https://masq.ai). All rights reserved.
+// Copyright (c) 2019-2020, MASQ (https://masq.ai). All rights reserved.
 
 use crate::blockchain::blockchain_interface::chain_name_from_id;
 use crate::daemon::launcher::LauncherReal;

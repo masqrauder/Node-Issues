@@ -1,6 +1,5 @@
 // Copyright (c) 2017-2018, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 use crate::sub_lib::logger::Logger;
-use crate::sub_lib::utils::localhost;
 use actix::Recipient;
 use bytes::BytesMut;
 use futures::future::FutureResult;
@@ -32,6 +31,7 @@ use masq_lib::ui_gateway::MessagePath::TwoWay;
 use masq_lib::ui_traffic_converter::UiTrafficConverter;
 use masq_lib::ui_traffic_converter::UnmarshalError::{NonCritical, Critical};
 use masq_lib::messages::{UiUnmarshalError, UNMARSHAL_ERROR, ToMessageBody};
+use masq_lib::utils::localhost;
 
 trait ClientWrapper: Send + Any {
     fn as_any(&self) -> &dyn Any;
@@ -490,7 +490,7 @@ mod tests {
     use crate::test_utils::recorder::make_recorder;
     use crate::test_utils::recorder::Recorder;
     use crate::test_utils::wait_for;
-    use crate::test_utils::{assert_contains, find_free_port};
+    use crate::test_utils::{assert_contains};
     use crate::ui_gateway::ui_traffic_converter::{UiTrafficConverterOld, UiTrafficConverterOldReal};
     use actix::Actor;
     use actix::Addr;
@@ -510,6 +510,7 @@ mod tests {
     use masq_lib::ui_gateway::MessagePath::OneWay;
     use masq_lib::ui_traffic_converter::UiTrafficConverter;
     use masq_lib::messages::{UNMARSHAL_ERROR, UiUnmarshalError, FromMessageBody};
+    use masq_lib::utils::{find_free_port, localhost};
 
     impl WebSocketSupervisorReal {
         fn inject_mock_client(&self, mock_client: ClientWrapperMock, old_client: bool) -> u64 {

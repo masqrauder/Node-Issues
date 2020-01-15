@@ -153,8 +153,6 @@ impl StreamConnector for StreamConnectorReal {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::sub_lib::utils::localhost;
-    use crate::test_utils::find_free_port;
     use crate::test_utils::little_tcp_server::LittleTcpServer;
     use crate::test_utils::logging::init_test_logging;
     use crate::test_utils::logging::TestLogHandler;
@@ -169,6 +167,7 @@ mod tests {
     use std::time::Duration;
     use tokio;
     use tokio::io::ErrorKind;
+    use masq_lib::utils::{localhost, find_free_port};
 
     #[test]
     fn stream_connector_can_fail_to_connect() {

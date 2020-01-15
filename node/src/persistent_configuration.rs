@@ -449,13 +449,14 @@ mod tests {
     use crate::database::db_initializer::{DbInitializer, DbInitializerReal};
     use crate::test_utils::config_dao_mock::ConfigDaoMock;
     use crate::test_utils::{
-        ensure_node_home_directory_exists, find_free_port, main_cryptde, DEFAULT_CHAIN_ID,
+        ensure_node_home_directory_exists, main_cryptde, DEFAULT_CHAIN_ID,
     };
     use bip39::{Language, Mnemonic, MnemonicType, Seed};
     use rustc_hex::FromHex;
     use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener};
     use std::str::FromStr;
     use std::sync::{Arc, Mutex};
+    use masq_lib::utils::find_free_port;
 
     #[test]
     #[should_panic(expected = "Can't continue; current schema version is inaccessible: NotPresent")]

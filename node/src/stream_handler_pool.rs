@@ -28,7 +28,6 @@ use crate::sub_lib::stream_handler_pool::DispatcherNodeQueryResponse;
 use crate::sub_lib::stream_handler_pool::TransmitDataMsg;
 use crate::sub_lib::tokio_wrappers::ReadHalfWrapper;
 use crate::sub_lib::tokio_wrappers::WriteHalfWrapper;
-use crate::sub_lib::utils::localhost;
 use crate::sub_lib::utils::NODE_MAILBOX_CAPACITY;
 use actix::Actor;
 use actix::Addr;
@@ -42,6 +41,7 @@ use std::thread;
 use std::time::Duration;
 use tokio;
 use tokio::prelude::Future;
+use masq_lib::utils::localhost;
 
 // IMPORTANT: Nothing at or below the level of StreamHandlerPool should know about StreamKeys.
 // StreamKeys should exist solely between ProxyServer and ProxyClient. Many of the streams

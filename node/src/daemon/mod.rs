@@ -1,4 +1,4 @@
-// Copyright (c) 2019, MASQ (https://masq.ai). All rights reserved.
+// Copyright (c) 2019-2020, MASQ (https://masq.ai). All rights reserved.
 
 pub mod daemon_initializer;
 pub mod launch_verifier;

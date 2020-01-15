@@ -294,7 +294,6 @@ mod tests {
     use crate::sub_lib::accountant::{FinancialStatisticsMessage, GetFinancialStatisticsMessage};
     use crate::sub_lib::blockchain_bridge::SetDbPasswordMsg;
     use crate::sub_lib::ui_gateway::{UiMessage};
-    use crate::test_utils::find_free_port;
     use crate::test_utils::logging::init_test_logging;
     use crate::test_utils::logging::TestLogHandler;
     use crate::test_utils::recorder::peer_actors_builder;
@@ -308,6 +307,7 @@ mod tests {
     use std::thread;
     use masq_lib::ui_gateway::{MessageTarget, MessageBody};
     use masq_lib::ui_gateway::MessagePath::OneWay;
+    use masq_lib::utils::find_free_port;
 
     impl Default for UiGatewayOutSubs {
         fn default() -> Self {

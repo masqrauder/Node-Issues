@@ -37,7 +37,6 @@ use crate::sub_lib::route::Route;
 use crate::sub_lib::route::RouteSegment;
 use crate::sub_lib::sequence_buffer::SequencedPacket;
 use crate::sub_lib::stream_key::StreamKey;
-use crate::sub_lib::utils::localhost;
 use crate::sub_lib::wallet::Wallet;
 use crate::test_utils::persistent_configuration_mock::PersistentConfigurationMock;
 use ethsign_crypto::Keccak256;
@@ -55,7 +54,7 @@ use std::io::Write;
 use std::io::{Error, ErrorKind};
 use std::iter::repeat;
 use std::net::{Shutdown, TcpStream};
-use std::net::{SocketAddr, TcpListener};
+use std::net::{SocketAddr};
 use std::path::PathBuf;
 use std::str::from_utf8;
 use std::str::FromStr;
@@ -416,35 +415,6 @@ pub fn rate_pack(base_rate: u64) -> RatePack {
         routing_service_rate: rate_pack_routing(base_rate),
         exit_byte_rate: rate_pack_exit_byte(base_rate),
         exit_service_rate: rate_pack_exit(base_rate),
-    }
-}
-
-const FIND_FREE_PORT_LOWEST: u16 = 32768;
-const FIND_FREE_PORT_HIGHEST: u16 = 65535;
-
-lazy_static! {
-    static ref FIND_FREE_PORT_NEXT: Arc<Mutex<u16>> = Arc::new(Mutex::new(FIND_FREE_PORT_LOWEST));
-}
-
-fn next_port(port: u16) -> u16 {
-    match port {
-        p if p < FIND_FREE_PORT_HIGHEST => p + 1,
-        _ => FIND_FREE_PORT_LOWEST,
-    }
-}
-
-pub fn find_free_port() -> u16 {
-    let mut candidate = FIND_FREE_PORT_NEXT.lock().unwrap();
-    loop {
-        match TcpListener::bind(SocketAddr::new(localhost(), *candidate)) {
-            Err(ref e) if e.kind() == ErrorKind::AddrInUse => *candidate = next_port(*candidate),
-            Err(e) => panic!("Couldn't find free port: {:?}", e),
-            Ok(_listener) => {
-                let result = *candidate;
-                *candidate = next_port(*candidate);
-                return result;
-            }
-        }
     }
 }
 

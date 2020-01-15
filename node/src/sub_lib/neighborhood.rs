@@ -410,11 +410,11 @@ impl fmt::Display for GossipFailure_0v1 {
 mod tests {
     use super::*;
     use crate::sub_lib::cryptde_real::CryptDEReal;
-    use crate::sub_lib::utils::localhost;
     use crate::test_utils::recorder::Recorder;
     use crate::test_utils::{main_cryptde, DEFAULT_CHAIN_ID};
     use actix::Actor;
     use std::str::FromStr;
+    use masq_lib::utils::localhost;
 
     pub fn rate_pack(base_rate: u64) -> RatePack {
         RatePack {

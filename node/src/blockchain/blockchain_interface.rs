@@ -430,7 +430,7 @@ where
 mod tests {
     use super::*;
     use crate::sub_lib::wallet::Wallet;
-    use crate::test_utils::{find_free_port, make_paying_wallet, make_wallet, DEFAULT_CHAIN_ID};
+    use crate::test_utils::{make_paying_wallet, make_wallet, DEFAULT_CHAIN_ID};
     use ethereum_types::BigEndianHash;
     use ethsign_crypto::Keccak256;
     use jsonrpc_core as rpc;
@@ -445,6 +445,7 @@ mod tests {
     use std::sync::mpsc;
     use std::thread;
     use web3::{transports::Http, Error, RequestId, Transport};
+    use masq_lib::utils::find_free_port;
 
     #[derive(Debug, Default, Clone)]
     pub struct TestTransport {
