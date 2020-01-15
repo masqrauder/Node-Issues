@@ -2,8 +2,6 @@
 
 use node_lib::sub_lib::utils::localhost;
 use node_lib::test_utils::TEST_DEFAULT_CHAIN_NAME;
-use node_lib::ui_gateway::messages::{FromMessageBody, ToMessageBody, UiMessageError};
-use node_lib::ui_gateway::ui_traffic_converter::{UiTrafficConverter, UiTrafficConverterReal};
 use std::env;
 use std::io;
 use std::net::TcpStream;
@@ -18,6 +16,8 @@ use websocket::client::sync::Client;
 use websocket::{ClientBuilder, OwnedMessage};
 use masq_lib::ui_gateway::MessageTarget::ClientId;
 use masq_lib::ui_gateway::NodeFromUiMessage;
+use masq_lib::messages::{FromMessageBody, ToMessageBody, UiMessageError};
+use masq_lib::ui_traffic_converter::UiTrafficConverter;
 
 pub struct MASQNode {
     pub logfile_contents: String,
@@ -357,7 +357,6 @@ fn node_command() -> String {
 pub struct UiConnection {
     context_id: u64,
     client: Client<TcpStream>,
-    converter: UiTrafficConverterReal,
 }
 
 impl UiConnection {
@@ -370,7 +369,6 @@ impl UiConnection {
         UiConnection {
             client,
             context_id: 0,
-            converter: UiTrafficConverterReal {},
         }
     }
 
@@ -385,7 +383,7 @@ impl UiConnection {
             client_id: 0, // irrelevant: will be replaced on the other end
             body: payload.tmb(context_id),
         };
-        let outgoing_msg_json = self.converter.new_marshal_from_ui(outgoing_msg);
+        let outgoing_msg_json = UiTrafficConverter::new_marshal_from_ui(outgoing_msg);
         self.client
             .send_message(&OwnedMessage::Text(outgoing_msg_json))
             .unwrap();
@@ -396,9 +394,7 @@ impl UiConnection {
             Ok(OwnedMessage::Text(json)) => json,
             x => panic!("Expected text; received {:?}", x),
         };
-        let incoming_msg = self
-            .converter
-            .new_unmarshal_to_ui(&incoming_msg_json, ClientId(0))
+        let incoming_msg = UiTrafficConverter::new_unmarshal_to_ui(&incoming_msg_json, ClientId(0))
             .expect("Deserialization problem");
         let opcode = incoming_msg.body.opcode.clone();
         let result: Result<(T, u64), UiMessageError> = T::fmb(incoming_msg.body);

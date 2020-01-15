@@ -8,8 +8,7 @@ use node_lib::sub_lib::ui_gateway::{
 };
 use node_lib::sub_lib::utils::localhost;
 use node_lib::test_utils::assert_matches;
-use node_lib::ui_gateway::messages::{UiFinancialsRequest, UiFinancialsResponse};
-use node_lib::ui_gateway::ui_traffic_converter::{UiTrafficConverter, UiTrafficConverterReal};
+use node_lib::ui_gateway::ui_traffic_converter::{UiTrafficConverterOld, UiTrafficConverterOldReal};
 use std::time::Duration;
 use tokio::prelude::*;
 use tokio::runtime::Runtime;
@@ -17,13 +16,15 @@ use websocket::ClientBuilder;
 use websocket::OwnedMessage;
 use masq_lib::ui_gateway::{DEFAULT_UI_PORT, NodeFromUiMessage, MessageBody, NodeToUiMessage, MessageTarget};
 use masq_lib::ui_gateway::MessagePath::TwoWay;
+use masq_lib::messages::{UiFinancialsResponse, UiFinancialsRequest};
+use masq_lib::ui_traffic_converter::UiTrafficConverter;
 
 #[test]
 fn ui_gateway_message_integration() {
     fdlimit::raise_fd_limit();
     let mut node = utils::MASQNode::start_standard(None);
     node.wait_for_log("UIGateway bound", Some(5000));
-    let converter = UiTrafficConverterReal::new();
+    let converter = UiTrafficConverterOldReal::new();
     let msg = converter
         .marshal(UiMessage::GetNodeDescriptor)
         .expect("Couldn't marshal GetNodeDescriptor message");
@@ -71,7 +72,7 @@ fn ui_gateway_dot_graph_message_integration() {
     let mut node = utils::MASQNode::start_standard(None);
     node.wait_for_log("UIGateway bound", Some(5000));
 
-    let converter = UiTrafficConverterReal::new();
+    let converter = UiTrafficConverterOldReal::new();
     let msg = converter
         .marshal(UiMessage::NeighborhoodDotGraphRequest)
         .unwrap();
@@ -128,8 +129,7 @@ fn request_financial_information_integration() {
         receivable_minimum_amount: 0,
         receivable_maximum_age: 1_000_000_000_000,
     };
-    let converter = UiTrafficConverterReal::new();
-    let request_msg = converter.new_marshal_from_ui(NodeFromUiMessage {
+    let request_msg = UiTrafficConverter::new_marshal_from_ui(NodeFromUiMessage {
         client_id: 1234,
         body: MessageBody {
             opcode: "financials".to_string(),
@@ -147,8 +147,7 @@ fn request_financial_information_integration() {
             .and_then(|s| s.into_future().map_err(|e| e.0))
             .map(|(m, _)| match m {
                 Some(OwnedMessage::Text(response_json)) => {
-                    let response_msg: NodeToUiMessage = UiTrafficConverterReal::new()
-                        .new_unmarshal_to_ui(&response_json, MessageTarget::ClientId(1234))
+                    let response_msg: NodeToUiMessage = UiTrafficConverter::new_unmarshal_to_ui(&response_json, MessageTarget::ClientId(1234))
                         .unwrap();
                     assert_eq!(response_msg.target, MessageTarget::ClientId(1234));
                     assert_eq!(response_msg.body.opcode, "financials".to_string());
@@ -165,7 +164,7 @@ fn request_financial_information_integration() {
             .timeout(Duration::from_millis(2000))
             .map_err(|e| panic!("failed to get response by timeout {:?}", e));
 
-    let shutdown_msg = converter
+    let shutdown_msg = UiTrafficConverterOldReal::new()
         .marshal(UiMessage::ShutdownMessage)
         .expect("Couldn't marshal ShutdownMessage");
 

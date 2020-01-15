@@ -1,15 +1,11 @@
 // Copyright (c) 2017-2018, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 
-use crate::sub_lib::ui_gateway::UiMessage;
 use serde_json::Value;
 use std::fmt::Display;
 use crate::ui_traffic_converter::UnmarshalError::{NonCritical, Critical};
 use crate::ui_traffic_converter::TrafficConversionError::{MissingFieldError, FieldTypeError, NotJsonObjectError, JsonSyntaxError};
 use crate::ui_gateway::{MessageTarget, MessageBody, NodeToUiMessage, NodeFromUiMessage};
 use crate::ui_gateway::MessagePath::{TwoWay, OneWay};
-
-#[allow(dead_code)]
-pub const BROADCAST: u64 = 0xFFFF_FFFF_FFFF_FFFF;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TrafficConversionError {
@@ -57,76 +53,43 @@ impl Display for UnmarshalError {
     }
 }
 
-pub trait UiTrafficConverter: Send {
-    fn marshal(&self, ui_message: UiMessage) -> Result<String, String>;
-    fn unmarshal(&self, json: &str) -> Result<UiMessage, String>;
+pub struct UiTrafficConverter {}
 
-    fn new_marshal_from_ui(&self, msg: NodeFromUiMessage) -> String;
-    fn new_marshal_to_ui(&self, msg: NodeToUiMessage) -> String;
-    fn new_unmarshal_from_ui(
-        &self,
-        json: &str,
-        client_id: u64,
-    ) -> Result<NodeFromUiMessage, UnmarshalError>;
-    fn new_unmarshal_to_ui(
-        &self,
-        json: &str,
-        target: MessageTarget,
-    ) -> Result<NodeToUiMessage, UnmarshalError>;
-}
+impl UiTrafficConverter {
 
-#[derive(Default)]
-pub struct UiTrafficConverterReal {}
-
-impl UiTrafficConverter for UiTrafficConverterReal {
-    // TODO: After these methods are obsoleted and removed, get rid of the trait and make the
-    // remaining methods into static functions, or possibly TryFrom and TryInto implementations for
-    // NodeFromUiMessage and NodeToUiMessage.
-    fn marshal(&self, ui_message: UiMessage) -> Result<String, String> {
-        serde_json::to_string(&ui_message).map_err(|e| e.to_string())
+    pub fn new() -> Self {
+        Self {}
     }
 
-    fn unmarshal(&self, _json: &str) -> Result<UiMessage, String> {
-        serde_json::from_str(_json).map_err(|e| e.to_string())
+    pub fn new_marshal_from_ui(msg: NodeFromUiMessage) -> String {
+        Self::new_marshal(msg.body)
     }
 
-    fn new_marshal_from_ui(&self, msg: NodeFromUiMessage) -> String {
-        self.new_marshal(msg.body)
+    pub fn new_marshal_to_ui(msg: NodeToUiMessage) -> String {
+        Self::new_marshal(msg.body)
     }
 
-    fn new_marshal_to_ui(&self, msg: NodeToUiMessage) -> String {
-        self.new_marshal(msg.body)
-    }
-
-    fn new_unmarshal_from_ui(
-        &self,
+    pub fn new_unmarshal_from_ui(
         json: &str,
         client_id: u64,
     ) -> Result<NodeFromUiMessage, UnmarshalError> {
-        match self.new_unmarshal(json) {
+        match Self::new_unmarshal(json) {
             Ok(body) => Ok(NodeFromUiMessage { client_id, body }),
             Err(e) => Err(e),
         }
     }
 
-    fn new_unmarshal_to_ui(
-        &self,
+    pub fn new_unmarshal_to_ui(
         json: &str,
         target: MessageTarget,
     ) -> Result<NodeToUiMessage, UnmarshalError> {
-        match self.new_unmarshal(json) {
+        match Self::new_unmarshal(json) {
             Ok(body) => Ok(NodeToUiMessage { target, body }),
             Err(e) => Err(e),
         }
     }
-}
 
-impl UiTrafficConverterReal {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    fn new_marshal(&self, body: MessageBody) -> String {
+    fn new_marshal(body: MessageBody) -> String {
         let opcode_section = format!("\"opcode\": \"{}\", ", body.opcode);
         let path_section = match body.path {
             OneWay => "".to_string(),
@@ -142,7 +105,7 @@ impl UiTrafficConverterReal {
         format!("{{{}{}{}}}", opcode_section, path_section, payload_section)
     }
 
-    fn new_unmarshal(&self, json: &str) -> Result<MessageBody, UnmarshalError> {
+    fn new_unmarshal(json: &str) -> Result<MessageBody, UnmarshalError> {
         match serde_json::from_str(json) {
             Ok(Value::Object(map)) => {
                 let opcode = match Self::get_string(&map, "opcode") {
@@ -255,34 +218,11 @@ impl UiTrafficConverterReal {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ui_gateway::ui_traffic_converter::TrafficConversionError::{
-        FieldTypeError, JsonSyntaxError, MissingFieldError, NotJsonObjectError,
-    };
     use serde_json::Number;
-
-    #[test]
-    fn a_shutdown_message_is_properly_marshalled_and_unmarshalled() {
-        let subject = UiTrafficConverterReal::new();
-
-        let marshalled = serde_json::to_string(&UiMessage::ShutdownMessage).unwrap();
-        let unmarshalled = subject.unmarshal(&marshalled);
-
-        assert_eq!(unmarshalled, Ok(UiMessage::ShutdownMessage));
-    }
-
-    #[test]
-    fn a_neighborhood_dot_graph_request_is_properly_marshaled_and_unmarshaled() {
-        let subject = UiTrafficConverterReal::new();
-
-        let marshaled = serde_json::to_string(&UiMessage::NeighborhoodDotGraphRequest).unwrap();
-        let unmarshaled = subject.unmarshal(&marshaled);
-
-        assert_eq!(unmarshaled, Ok(UiMessage::NeighborhoodDotGraphRequest));
-    }
+    use crate::ui_traffic_converter::TrafficConversionError::{MissingFieldError, FieldTypeError, NotJsonObjectError, JsonSyntaxError};
 
     #[test]
     fn new_marshaling_and_unmarshaling_works_from_ui_one_way_for_success() {
-        let subject = UiTrafficConverterReal::new();
         let ui_msg = NodeFromUiMessage {
             client_id: 4321,
             body: MessageBody {
@@ -295,9 +235,9 @@ mod tests {
             },
         };
 
-        let json = subject.new_marshal_from_ui(ui_msg);
+        let json = UiTrafficConverter::new_marshal_from_ui(ui_msg);
 
-        let ui_msg = subject.new_unmarshal_from_ui(&json, 1234).unwrap();
+        let ui_msg = UiTrafficConverter::new_unmarshal_from_ui(&json, 1234).unwrap();
         assert_eq!(ui_msg.client_id, 1234);
         assert_eq!(ui_msg.body.opcode, "opcode".to_string());
         assert_eq!(ui_msg.body.path, OneWay);
@@ -317,7 +257,6 @@ mod tests {
 
     #[test]
     fn new_marshaling_and_unmarshaling_works_to_ui_one_way_for_success() {
-        let subject = UiTrafficConverterReal::new();
         let ui_msg = NodeToUiMessage {
             target: MessageTarget::ClientId(4321),
             body: MessageBody {
@@ -330,10 +269,9 @@ mod tests {
             },
         };
 
-        let json = subject.new_marshal_to_ui(ui_msg);
+        let json = UiTrafficConverter::new_marshal_to_ui(ui_msg);
 
-        let ui_msg = subject
-            .new_unmarshal_to_ui(&json, MessageTarget::ClientId(1234))
+        let ui_msg = UiTrafficConverter::new_unmarshal_to_ui(&json, MessageTarget::ClientId(1234))
             .unwrap();
         assert_eq!(ui_msg.target, MessageTarget::ClientId(1234));
         assert_eq!(ui_msg.body.opcode, "opcode".to_string());
@@ -354,7 +292,6 @@ mod tests {
 
     #[test]
     fn new_marshaling_and_unmarshaling_works_from_ui_one_way_for_failure() {
-        let subject = UiTrafficConverterReal::new();
         let ui_msg = NodeFromUiMessage {
             client_id: 4321,
             body: MessageBody {
@@ -364,9 +301,9 @@ mod tests {
             },
         };
 
-        let json = subject.new_marshal_from_ui(ui_msg);
+        let json = UiTrafficConverter::new_marshal_from_ui(ui_msg);
 
-        let ui_msg = subject.new_unmarshal_from_ui(&json, 1234).unwrap();
+        let ui_msg = UiTrafficConverter::new_unmarshal_from_ui(&json, 1234).unwrap();
         assert_eq!(ui_msg.client_id, 1234);
         assert_eq!(ui_msg.body.opcode, "opcode".to_string());
         assert_eq!(ui_msg.body.path, OneWay);
@@ -378,7 +315,6 @@ mod tests {
 
     #[test]
     fn new_marshaling_and_unmarshaling_works_to_ui_one_way_for_failure() {
-        let subject = UiTrafficConverterReal::new();
         let ui_msg = NodeToUiMessage {
             target: MessageTarget::ClientId(4321),
             body: MessageBody {
@@ -388,10 +324,9 @@ mod tests {
             },
         };
 
-        let json = subject.new_marshal_to_ui(ui_msg);
+        let json = UiTrafficConverter::new_marshal_to_ui(ui_msg);
 
-        let ui_msg = subject
-            .new_unmarshal_to_ui(&json, MessageTarget::ClientId(1234))
+        let ui_msg = UiTrafficConverter::new_unmarshal_to_ui(&json, MessageTarget::ClientId(1234))
             .unwrap();
         assert_eq!(ui_msg.target, MessageTarget::ClientId(1234));
         assert_eq!(ui_msg.body.opcode, "opcode".to_string());
@@ -404,7 +339,6 @@ mod tests {
 
     #[test]
     fn new_marshaling_and_unmarshaling_works_from_ui_two_way_for_success() {
-        let subject = UiTrafficConverterReal::new();
         let ui_msg = NodeFromUiMessage {
             client_id: 4321,
             body: MessageBody {
@@ -417,9 +351,9 @@ mod tests {
             },
         };
 
-        let json = subject.new_marshal_from_ui(ui_msg);
+        let json = UiTrafficConverter::new_marshal_from_ui(ui_msg);
 
-        let ui_msg = subject.new_unmarshal_from_ui(&json, 1234).unwrap();
+        let ui_msg = UiTrafficConverter::new_unmarshal_from_ui(&json, 1234).unwrap();
         assert_eq!(ui_msg.client_id, 1234);
         assert_eq!(ui_msg.body.opcode, "opcode".to_string());
         assert_eq!(ui_msg.body.path, TwoWay(2222));
@@ -439,7 +373,6 @@ mod tests {
 
     #[test]
     fn new_marshaling_and_unmarshaling_works_to_ui_two_way_for_success() {
-        let subject = UiTrafficConverterReal::new();
         let ui_msg = NodeToUiMessage {
             target: MessageTarget::ClientId(4321),
             body: MessageBody {
@@ -452,10 +385,9 @@ mod tests {
             },
         };
 
-        let json = subject.new_marshal_to_ui(ui_msg);
+        let json = UiTrafficConverter::new_marshal_to_ui(ui_msg);
 
-        let ui_msg = subject
-            .new_unmarshal_to_ui(&json, MessageTarget::ClientId(1234))
+        let ui_msg = UiTrafficConverter::new_unmarshal_to_ui(&json, MessageTarget::ClientId(1234))
             .unwrap();
         assert_eq!(ui_msg.target, MessageTarget::ClientId(1234));
         assert_eq!(ui_msg.body.opcode, "opcode".to_string());
@@ -476,7 +408,6 @@ mod tests {
 
     #[test]
     fn new_marshaling_and_unmarshaling_works_from_ui_two_way_for_failure() {
-        let subject = UiTrafficConverterReal::new();
         let ui_msg = NodeFromUiMessage {
             client_id: 4321,
             body: MessageBody {
@@ -486,9 +417,9 @@ mod tests {
             },
         };
 
-        let json = subject.new_marshal_from_ui(ui_msg);
+        let json = UiTrafficConverter::new_marshal_from_ui(ui_msg);
 
-        let ui_msg = subject.new_unmarshal_from_ui(&json, 1234).unwrap();
+        let ui_msg = UiTrafficConverter::new_unmarshal_from_ui(&json, 1234).unwrap();
         assert_eq!(ui_msg.client_id, 1234);
         assert_eq!(ui_msg.body.opcode, "opcode".to_string());
         assert_eq!(ui_msg.body.path, TwoWay(2222));
@@ -500,7 +431,6 @@ mod tests {
 
     #[test]
     fn new_marshaling_and_unmarshaling_works_to_ui_two_way_for_failure() {
-        let subject = UiTrafficConverterReal::new();
         let ui_msg = NodeToUiMessage {
             target: MessageTarget::ClientId(4321),
             body: MessageBody {
@@ -510,10 +440,9 @@ mod tests {
             },
         };
 
-        let json = subject.new_marshal_to_ui(ui_msg);
+        let json = UiTrafficConverter::new_marshal_to_ui(ui_msg);
 
-        let ui_msg = subject
-            .new_unmarshal_to_ui(&json, MessageTarget::ClientId(1234))
+        let ui_msg = UiTrafficConverter::new_unmarshal_to_ui(&json, MessageTarget::ClientId(1234))
             .unwrap();
         assert_eq!(ui_msg.target, MessageTarget::ClientId(1234));
         assert_eq!(ui_msg.body.opcode, "opcode".to_string());
@@ -526,10 +455,9 @@ mod tests {
 
     #[test]
     fn new_unmarshaling_handles_missing_opcode() {
-        let subject = UiTrafficConverterReal::new();
         let json = r#"{"payload": {}}"#;
 
-        let result = subject.new_unmarshal_from_ui(json, 1234);
+        let result = UiTrafficConverter::new_unmarshal_from_ui(json, 1234);
 
         assert_eq!(
             result,
@@ -539,10 +467,9 @@ mod tests {
 
     #[test]
     fn new_unmarshaling_handles_badly_typed_opcode() {
-        let subject = UiTrafficConverterReal::new();
         let json = r#"{"opcode": false, "payload": {}}"#;
 
-        let result = subject.new_unmarshal_to_ui(json, MessageTarget::ClientId(1234));
+        let result = UiTrafficConverter::new_unmarshal_to_ui(json, MessageTarget::ClientId(1234));
 
         assert_eq!(
             result,
@@ -556,10 +483,9 @@ mod tests {
 
     #[test]
     fn new_unmarshaling_handles_missing_payload_and_error() {
-        let subject = UiTrafficConverterReal::new();
         let json = r#"{"opcode": "whomp"}"#;
 
-        let result = subject.new_unmarshal_from_ui(json, 1234);
+        let result = UiTrafficConverter::new_unmarshal_from_ui(json, 1234);
 
         assert_eq!(
             result,
@@ -573,10 +499,9 @@ mod tests {
 
     #[test]
     fn new_unmarshaling_handles_badly_typed_payload() {
-        let subject = UiTrafficConverterReal::new();
         let json = r#"{"opcode": "whomp", "contextId": 4321, "payload": 1}"#;
 
-        let result = subject.new_unmarshal_to_ui(json, MessageTarget::ClientId(1234));
+        let result = UiTrafficConverter::new_unmarshal_to_ui(json, MessageTarget::ClientId(1234));
 
         assert_eq!(
             result,
@@ -594,10 +519,9 @@ mod tests {
 
     #[test]
     fn new_unmarshaling_handles_badly_typed_error() {
-        let subject = UiTrafficConverterReal::new();
         let json = r#"{"opcode": "whomp", "error": 1}"#;
 
-        let result = subject.new_unmarshal_to_ui(json, MessageTarget::ClientId(1234));
+        let result = UiTrafficConverter::new_unmarshal_to_ui(json, MessageTarget::ClientId(1234));
 
         assert_eq!(
             result,
@@ -611,10 +535,9 @@ mod tests {
 
     #[test]
     fn new_unmarshaling_handles_badly_typed_json() {
-        let subject = UiTrafficConverterReal::new();
         let json = r#"[1, 2, 3, 4]"#;
 
-        let result = subject.new_unmarshal_from_ui(json, 1234);
+        let result = UiTrafficConverter::new_unmarshal_from_ui(json, 1234);
 
         assert_eq!(
             result,
@@ -624,10 +547,9 @@ mod tests {
 
     #[test]
     fn new_unmarshaling_handles_unparseable_json() {
-        let subject = UiTrafficConverterReal::new();
         let json = r#"}--{"#;
 
-        let result = subject.new_unmarshal_to_ui(json, MessageTarget::ClientId(1234));
+        let result = UiTrafficConverter::new_unmarshal_to_ui(json, MessageTarget::ClientId(1234));
 
         assert_eq!(
             result,
@@ -642,7 +564,7 @@ mod tests {
         let json = r#"{"bad_u64": -47}"#;
         let map = serde_json::from_str(json).unwrap();
 
-        let result = UiTrafficConverterReal::get_u64(&map, "bad_u64");
+        let result = UiTrafficConverter::get_u64(&map, "bad_u64");
 
         assert_eq!(
             result,

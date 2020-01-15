@@ -1,10 +1,6 @@
 // Copyright (c) 2017-2018, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 use crate::sub_lib::logger::Logger;
 use crate::sub_lib::utils::localhost;
-use crate::ui_gateway::messages::ToMessageBody;
-use crate::ui_gateway::messages::{UiUnmarshalError, UNMARSHAL_ERROR};
-use crate::ui_gateway::ui_traffic_converter::UnmarshalError::{Critical, NonCritical};
-use crate::ui_gateway::ui_traffic_converter::{UiTrafficConverter, UiTrafficConverterReal};
 use actix::Recipient;
 use bytes::BytesMut;
 use futures::future::FutureResult;
@@ -33,6 +29,9 @@ use masq_lib::ui_gateway::{NodeToUiMessage, MessageTarget, MessageBody, NodeFrom
 use crate::sub_lib::ui_gateway::FromUiMessage;
 use masq_lib::ui_gateway::MessageTarget::ClientId;
 use masq_lib::ui_gateway::MessagePath::TwoWay;
+use masq_lib::ui_traffic_converter::UiTrafficConverter;
+use masq_lib::ui_traffic_converter::UnmarshalError::{NonCritical, Critical};
+use masq_lib::messages::{UiUnmarshalError, UNMARSHAL_ERROR, ToMessageBody};
 
 trait ClientWrapper: Send + Any {
     fn as_any(&self) -> &dyn Any;
@@ -141,7 +140,7 @@ impl WebSocketSupervisorReal {
             MessageTarget::ClientId(n) => vec![n],
             MessageTarget::AllClients => locked_inner.client_by_id.keys().copied().collect_vec(),
         };
-        let json = UiTrafficConverterReal::new().new_marshal_to_ui(msg);
+        let json = UiTrafficConverter::new_marshal_to_ui(msg);
         Self::send_to_clients(locked_inner, client_ids, json);
     }
 
@@ -316,7 +315,7 @@ impl WebSocketSupervisorReal {
                 })
                 .expect("UiGateway is dead");
         } else {
-            match UiTrafficConverterReal::new().new_unmarshal_from_ui(message, client_id) {
+            match UiTrafficConverter::new_unmarshal_from_ui(message, client_id) {
                 Ok(from_ui_message) => {
                     locked_inner
                         .from_ui_message_sub
@@ -492,9 +491,7 @@ mod tests {
     use crate::test_utils::recorder::Recorder;
     use crate::test_utils::wait_for;
     use crate::test_utils::{assert_contains, find_free_port};
-    use crate::ui_gateway::messages::FromMessageBody;
-    use crate::ui_gateway::messages::{UiUnmarshalError, UNMARSHAL_ERROR};
-    use crate::ui_gateway::ui_traffic_converter::{UiTrafficConverter, UiTrafficConverterReal};
+    use crate::ui_gateway::ui_traffic_converter::{UiTrafficConverterOld, UiTrafficConverterOldReal};
     use actix::Actor;
     use actix::Addr;
     use actix::System;
@@ -511,6 +508,8 @@ mod tests {
     use websocket::Message;
     use masq_lib::ui_gateway::NodeFromUiMessage;
     use masq_lib::ui_gateway::MessagePath::OneWay;
+    use masq_lib::ui_traffic_converter::UiTrafficConverter;
+    use masq_lib::messages::{UNMARSHAL_ERROR, UiUnmarshalError, FromMessageBody};
 
     impl WebSocketSupervisorReal {
         fn inject_mock_client(&self, mock_client: ClientWrapperMock, old_client: bool) -> u64 {
@@ -959,8 +958,7 @@ mod tests {
             OwnedMessage::Text(s) => s,
             x => panic!("Expected OwnedMessage::Text, got {:?}", x),
         };
-        let actual_struct = UiTrafficConverterReal::new()
-            .new_unmarshal_to_ui(&actual_json, ClientId(0))
+        let actual_struct = UiTrafficConverter::new_unmarshal_to_ui(&actual_json, ClientId(0))
             .unwrap();
         assert_eq!(actual_struct.target, ClientId(0));
         assert_eq!(
@@ -1029,8 +1027,7 @@ mod tests {
             OwnedMessage::Text(s) => s,
             x => panic!("Expected OwnedMessage::Text, got {:?}", x),
         };
-        let actual_struct = UiTrafficConverterReal::new()
-            .new_unmarshal_to_ui(&actual_json, ClientId(0))
+        let actual_struct = UiTrafficConverter::new_unmarshal_to_ui(&actual_json, ClientId(0))
             .unwrap();
         assert_eq!(actual_struct.target, ClientId(0));
         assert_eq!(
@@ -1099,8 +1096,7 @@ mod tests {
             OwnedMessage::Text(s) => s,
             x => panic!("Expected OwnedMessage::Text, got {:?}", x),
         };
-        let actual_struct = UiTrafficConverterReal::new()
-            .new_unmarshal_to_ui(&actual_json, ClientId(0))
+        let actual_struct = UiTrafficConverter::new_unmarshal_to_ui(&actual_json, ClientId(0))
             .unwrap();
         assert_eq!(
             actual_struct,
@@ -1196,7 +1192,7 @@ mod tests {
                 .flush_result(Ok(()));
             client_id = subject.inject_mock_client(mock_client, true);
 
-            let json_string = UiTrafficConverterReal::new()
+            let json_string = UiTrafficConverterOldReal::new()
                 .marshal(UiMessage::NeighborhoodDotGraphResponse(String::from(
                     "digraph db { }",
                 )))
@@ -1357,7 +1353,7 @@ mod tests {
 
             let one_mock_client_ref = subject.get_mock_client(one_client_id);
             let actual_message = match one_mock_client_ref.send_params.lock().unwrap().get(0) {
-                Some(OwnedMessage::Text(json)) => UiTrafficConverterReal::new().new_unmarshal_to_ui(json.as_str(), MessageTarget::ClientId(one_client_id)).unwrap(),
+                Some(OwnedMessage::Text(json)) => UiTrafficConverter::new_unmarshal_to_ui(json.as_str(), MessageTarget::ClientId(one_client_id)).unwrap(),
                 Some(x) => panic! ("send should have been called with OwnedMessage::Text, but was called with {:?} instead", x),
                 None => panic! ("send should have been called, but wasn't"),
             };
@@ -1401,14 +1397,14 @@ mod tests {
             let one_mock_client_ref = subject.get_mock_client(one_client_id);
             let actual_message = match one_mock_client_ref.send_params.lock().unwrap().get(0) {
                 Some(OwnedMessage::Text(json)) =>
-                    UiTrafficConverterReal::new().new_unmarshal_to_ui(json.as_str(), MessageTarget::AllClients).unwrap(),
+                    UiTrafficConverter::new_unmarshal_to_ui(json.as_str(), MessageTarget::AllClients).unwrap(),
                 Some(x) => panic! ("send should have been called with OwnedMessage::Text, but was called with {:?} instead", x),
                 None => panic! ("send should have been called, but wasn't"),
             };
             assert_eq!(actual_message, msg);
             let another_mock_client_ref = subject.get_mock_client(another_client_id);
             let actual_message = match another_mock_client_ref.send_params.lock().unwrap().get(0) {
-                Some(OwnedMessage::Text(json)) => UiTrafficConverterReal::new().new_unmarshal_to_ui(json.as_str(), MessageTarget::AllClients).unwrap(),
+                Some(OwnedMessage::Text(json)) => UiTrafficConverter::new_unmarshal_to_ui(json.as_str(), MessageTarget::AllClients).unwrap(),
                 Some(x) => panic! ("send should have been called with OwnedMessage::Text, but was called with {:?} instead", x),
                 None => panic! ("send should have been called, but wasn't"),
             };

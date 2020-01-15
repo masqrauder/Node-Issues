@@ -12,6 +12,7 @@ workspace = "../node"
 actix = "0.7.9"
 serde = "1.0.99"
 serde_derive = "1.0.99"
+serde_json = "1.0.40"
 
 [lib]
 name = "masq_lib"

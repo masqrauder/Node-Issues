@@ -25,11 +25,6 @@ use crate::sub_lib::peer_actors::{BindMessage, StartMessage};
 use crate::sub_lib::ui_gateway::{UiCarrierMessage, UiMessage};
 use crate::sub_lib::utils::NODE_MAILBOX_CAPACITY;
 use crate::sub_lib::wallet::Wallet;
-use crate::ui_gateway::messages::UiMessageError::BadOpcode;
-use crate::ui_gateway::messages::{
-    FromMessageBody, ToMessageBody, UiFinancialsRequest, UiFinancialsResponse, UiMessageError,
-    UiPayableAccount, UiReceivableAccount,
-};
 use actix::Actor;
 use actix::Addr;
 use actix::AsyncContext;
@@ -46,6 +41,9 @@ use std::thread;
 use std::time::{Duration, SystemTime};
 use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
 use masq_lib::ui_gateway::MessageTarget::ClientId;
+use masq_lib::messages::UiMessageError::BadOpcode;
+use masq_lib::messages::{UiFinancialsRequest, UiMessageError, FromMessageBody, ToMessageBody};
+use masq_lib::messages::{UiReceivableAccount, UiPayableAccount, UiFinancialsResponse};
 
 pub const DEFAULT_PAYABLE_SCAN_INTERVAL: u64 = 3600; // one hour
 pub const DEFAULT_PAYMENT_RECEIVED_SCAN_INTERVAL: u64 = 3600; // one hour
@@ -673,9 +671,6 @@ pub mod tests {
     use crate::test_utils::recorder::make_recorder;
     use crate::test_utils::recorder::peer_actors_builder;
     use crate::test_utils::recorder::Recorder;
-    use crate::ui_gateway::messages::{
-        UiFinancialsResponse, UiPayableAccount, UiReceivableAccount,
-    };
     use actix::System;
     use ethereum_types::BigEndianHash;
     use ethsign_crypto::Keccak256;

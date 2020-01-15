@@ -2,7 +2,9 @@
 
 use serde::de::DeserializeOwned;
 use serde_derive::{Deserialize, Serialize};
-use crate::ui_gateway::MessageBody;
+use crate::messages::UiMessageError::{BadOpcode, BadPath, PayloadError, DeserializationError};
+use crate::ui_gateway::{MessageBody};
+use crate::ui_gateway::MessagePath::{OneWay, TwoWay};
 
 pub const NODE_LAUNCH_ERROR: u64 = 0x8000_0000_0000_0001;
 pub const NODE_NOT_RUNNING_ERROR: u64 = 0x8000_0000_0000_0002;
@@ -205,10 +207,6 @@ one_way_message!(UiUnmarshalError, "unmarshalError");
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ui_gateway::messages::UiMessageError::{
-        BadOpcode, BadPath, DeserializationError, PayloadError,
-    };
-    use masq_lib::ui_gateway::MessagePath::{TwoWay, OneWay};
     use crate::ui_gateway::MessagePath::{TwoWay, OneWay};
     use crate::messages::UiMessageError::{BadOpcode, BadPath, PayloadError, DeserializationError};
 

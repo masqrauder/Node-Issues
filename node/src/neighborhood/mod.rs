@@ -47,8 +47,6 @@ use crate::sub_lib::ui_gateway::{UiCarrierMessage, UiMessage};
 use crate::sub_lib::utils::NODE_MAILBOX_CAPACITY;
 use crate::sub_lib::versioned_data::VersionedData;
 use crate::sub_lib::wallet::Wallet;
-use crate::ui_gateway::messages::UiMessageError::BadOpcode;
-use crate::ui_gateway::messages::{FromMessageBody, UiMessageError, UiShutdownOrder};
 use actix::Addr;
 use actix::Context;
 use actix::Handler;
@@ -67,6 +65,9 @@ use std::convert::TryFrom;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use masq_lib::ui_gateway::{NodeToUiMessage, NodeFromUiMessage};
+use masq_lib::messages::UiMessageError::BadOpcode;
+use masq_lib::messages::{UiShutdownOrder, UiMessageError};
+use masq_lib::messages::{FromMessageBody};
 
 pub struct Neighborhood {
     cryptde: &'static dyn CryptDE,

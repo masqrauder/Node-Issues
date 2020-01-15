@@ -5,8 +5,8 @@ pub mod utils;
 use node_lib::daemon::launch_verifier::{VerifierTools, VerifierToolsReal};
 use node_lib::database::db_initializer::DATABASE_FILE;
 use node_lib::test_utils::find_free_port;
-use node_lib::ui_gateway::messages::ToMessageBody;
-use node_lib::ui_gateway::messages::{
+use masq_lib::messages::ToMessageBody;
+use masq_lib::messages::{
     UiFinancialsRequest, UiRedirect, UiSetup, UiShutdownOrder, UiStartOrder, UiStartResponse,
     NODE_NOT_RUNNING_ERROR,
 };
