@@ -1,4 +1,4 @@
-// Copyright (c) 2019, MASQ (https://masq.ai). All rights reserved.
+// Copyright (c) 2019-2020, MASQ (https://masq.ai). All rights reserved.
 
 use serde::de::DeserializeOwned;
 use serde_derive::{Deserialize, Serialize};
@@ -135,7 +135,7 @@ pub struct UiFinancialsResponse {
 }
 two_way_message!(UiFinancialsResponse, "financials");
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct UiSetupValue {
     pub name: String,
     pub value: String,
@@ -150,7 +150,7 @@ impl UiSetupValue {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct UiSetup {
     pub values: Vec<UiSetupValue>,
 }

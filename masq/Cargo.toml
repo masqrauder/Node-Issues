@@ -12,6 +12,7 @@ workspace = "../node"
 
 [dependencies]
 masq_lib = { path = "../masq_lib" }
+websocket = {version = "0.23.0", default-features = false, features = ["sync"]}
 
 [[bin]]
 name = "masq"
