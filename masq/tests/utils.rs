@@ -6,6 +6,9 @@ use websocket::sync::Server;
 use std::net::{SocketAddr, TcpListener};
 use masq_lib::utils::localhost;
 use std::sync::{Arc, Mutex};
+use std::thread::JoinHandle;
+use std::thread;
+use websocket::OwnedMessage;
 
 pub struct MockWebSocketsServer {
     port: u16,
@@ -13,8 +16,10 @@ pub struct MockWebSocketsServer {
 }
 
 pub struct StopHandle {
-    server: Arc<Mutex<WsServer<NoTlsAcceptor, TcpListener>>>,
-    mock: MockWebSocketsServer
+    server_arc: Arc<Mutex<WsServer<NoTlsAcceptor, TcpListener>>>,
+    requests_arc: Arc<Mutex<Vec<Result<NodeFromUiMessage, String>>>>,
+    mock: MockWebSocketsServer,
+    join_handle: JoinHandle<()>,
 }
 
 impl MockWebSocketsServer {
@@ -36,17 +41,41 @@ impl MockWebSocketsServer {
     }
 
     pub fn start (mut self) -> StopHandle {
-        let handle = StopHandle {
-            server: Arc::new(Mutex::new(Server::bind(SocketAddr::new(localhost(), self.port)).unwrap())),
-            mock: self
-        };
-        unimplemented!()
+        let server_arc = Arc::new(Mutex::new(Server::bind(SocketAddr::new(localhost(), self.port)).unwrap()));
+        let inner_server_arc = server_arc.clone();
+        let requests_arc = Arc::new(Mutex::new(vec![]));
+        let inner_requests_arc = requests_arc.clone();
+        let join_handle = thread::spawn (move || {
+            let mut server = inner_server_arc.lock().unwrap();
+            let mut requests = inner_requests_arc.lock().unwrap();
+            let upgrade = server.accept().unwrap();
+            let mut client = upgrade.accept().unwrap();
+            loop {
+                match client.recv_message().unwrap() {
+                    OwnedMessage::Text(json) => {
+                        requests.push (match UiTrafficConverter::new_unmarshal_from_ui(json, 0) {
+                            Ok(msg) => Ok(msg),
+                            Err(e) => Err(json),
+                        })
+                    },
+                    x => requests.push (Err(format!("{:?}", x))),
+                }
+            }
+        });
+        StopHandle {
+            server_arc,
+            requests_arc,
+            mock: self,
+            join_handle,
+        }
     }
 }
 
 impl StopHandle {
     pub fn stop (self) -> Vec<Result<NodeFromUiMessage, String>> {
-        unimplemented!()
+        // send stop signal here somehow
+        let _ = self.join_handle.join();
+        self.requests_arc.lock().unwrap().clone()
     }
 }
 
