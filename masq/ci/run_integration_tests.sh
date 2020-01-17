@@ -12,8 +12,5 @@ export RUSTFLAGS="-D warnings"
 pushd "$CI_DIR/.."
 cargo test --release -- --nocapture "_integration"
 BUILD_RESULT=$?
-if [[ "$(id -u)" == "0" ]]; then
-    chmod -R 777 "$CI_DIR/../target"
-fi
-exit "$BUILD_RESULT"
 popd
+exit "$BUILD_RESULT"

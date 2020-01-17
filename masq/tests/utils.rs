@@ -91,8 +91,6 @@ impl MockWebSocketsServer {
                     let outgoing: String = inner_responses_arc.lock().unwrap().remove(0);
                     client.send_message (&OwnedMessage::Text(outgoing)).unwrap()
                 }
-                else {
-                }
                 if stop_rx.try_recv().is_ok() {
                     client.send_message (&OwnedMessage::Close(None)).unwrap();
                     break;
@@ -133,7 +131,6 @@ impl MasqProcess {
         #[cfg(target_os = "windows")]
         let executable_name = "masq.exe";
         let executable_path = std::env::current_dir().unwrap().join ("target").join ("release").join(executable_name);
-        eprintln! ("Path: {:?}", executable_path);
         let mut command = Command::new(executable_path);
         let command = command.args(params);
         let child = command.stdout (Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
@@ -149,11 +146,12 @@ impl MasqProcessStopHandle {
     pub fn stop (self) -> (String, String, i32) {
         let output = self.child.wait_with_output ();
         match output {
-            Ok(output) => (
-                String::from_utf8_lossy(&output.stdout).to_string(),
-                String::from_utf8_lossy(&output.stderr).to_string(),
-                output.status.code().unwrap()
-            ),
+            Ok(output) => {
+                let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+                let exit_code = output.status.code().unwrap();
+                (stdout, stderr, exit_code)
+            },
             Err(e) => {
                 eprintln! ("Couldn't get output from masq: {:?}", e);
                 (String::new(), String::new(), -1)
