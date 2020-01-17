@@ -46,12 +46,13 @@ impl UiConnection {
 
     pub fn send_string(&mut self, string: String) {
         self.client
-            .send_message(&OwnedMessage::Text(string))
+            .send_message(&OwnedMessage::Text(string.clone()))
             .unwrap();
     }
 
     pub fn receive<T: FromMessageBody>(&mut self) -> Result<T, (u64, String)> {
-        let incoming_msg_json = match self.client.recv_message() {
+        let incoming_msg = self.client.recv_message();
+        let incoming_msg_json = match incoming_msg {
             Ok(OwnedMessage::Text(json)) => json,
             x => panic!("Expected text; received {:?}", x),
         };
