@@ -12,6 +12,7 @@ use masq_lib::messages::ToMessageBody;
 #[test]
 fn handles_setup_integration() {
     let port = find_free_port();
+    let port_str = format!("{}", port);
     let server_handle = MockWebSocketsServer::new(port)
         .queue_response (NodeToUiMessage {
             target: ClientId(0),
@@ -25,7 +26,7 @@ fn handles_setup_integration() {
         .start();
 
     let masq_handle = MasqProcess::new()
-        .start_noninteractive ("setup", vec!["firstname=firstvalue", "secondname=second value", "third name=thirdvalue"]);
+        .start_noninteractive (vec!["--ui-port", &port_str, "setup", "firstname=firstvalue", "secondname=second value", "third name=thirdvalue"]);
 
     let (stdout, stderr, exit_code) = masq_handle.stop();
     let requests = server_handle.stop();
