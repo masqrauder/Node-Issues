@@ -1,29 +1,57 @@
 // Copyright (c) 2019-2020, MASQ (https://masq.ai) and/or its affiliates. All rights reserved.
 
-use masq_lib::command::{StdStreams};
 use clap::ArgMatches;
-use crate::command_processor::{Command, CommandContext, CommandError};
+use crate::command_processor::{Command, CommandContextReal, CommandError, CommandContext};
 
-pub struct CommandFactory {
+#[derive(Debug, PartialEq)]
+pub enum CommandFactoryError {
 
 }
 
-impl CommandFactory {
+pub trait CommandFactory {
+    fn make(&self, pieces: Vec<String>) -> Result<Box<dyn Command>, CommandFactoryError>;
+}
+
+pub struct CommandFactoryReal {
+
+}
+
+impl CommandFactory for CommandFactoryReal {
+    fn make(&self, pieces: Vec<String>) -> Result<Box<dyn Command>, CommandFactoryError> {
+        unimplemented!()
+    }
+}
+
+impl CommandFactoryReal {
     pub fn new() -> Self {
-        unimplemented!()
-    }
+        Self {
 
-    pub fn make(matches: ArgMatches) -> Box<dyn Command> {
-        unimplemented!()
+        }
     }
 }
 
-struct SetupCommand {
+#[derive (Debug, PartialEq)]
+pub struct SetupValue {
+    name: String,
+    value: String,
+}
 
+impl SetupValue {
+    pub fn new(name: &str, value: &str) -> Self {
+        Self {
+            name: name.to_string(),
+            value: value.to_string(),
+        }
+    }
+}
+
+#[derive (Debug, PartialEq)]
+pub struct SetupCommand {
+    pub values: Vec<SetupValue>,
 }
 
 impl Command for SetupCommand {
-    fn execute(context: &mut CommandContext) -> Result<(), CommandError> {
+    fn execute(&self, context: &Box<dyn CommandContext>) -> Result<(), CommandError> {
         unimplemented!()
     }
 }

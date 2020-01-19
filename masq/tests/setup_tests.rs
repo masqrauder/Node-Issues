@@ -29,6 +29,8 @@ fn handles_setup_integration() {
         .start_noninteractive (vec!["--ui-port", &port_str, "setup", "firstname=firstvalue", "secondname=second value", "third name=thirdvalue"]);
 
     let (stdout, stderr, exit_code) = masq_handle.stop();
+
+    assert_eq! (exit_code, 0);
     let requests = server_handle.stop();
     assert_eq! (requests, vec! [Ok(
         NodeFromUiMessage {
@@ -45,4 +47,5 @@ fn handles_setup_integration() {
     assert_eq! (&stdout,
         "NAME                      VALUE\nfourthname                fourthvalue\nfifthname                 fifthvalue\n"
     );
+    assert_eq! (&stderr, "");
 }

@@ -291,7 +291,6 @@ pub mod standard {
     use crate::blockchain::blockchain_interface::chain_id_from_name;
     use crate::bootstrapper::PortConfiguration;
     use crate::http_request_start_finder::HttpRequestDiscriminatorFactory;
-    use crate::multi_config::{CommandLineVcl, ConfigFileVcl, EnvironmentVcl, MultiConfig};
     use crate::node_configurator::{
         determine_config_file_path, mnemonic_seed_exists, real_user_data_directory_and_chain_id,
         request_existing_db_password,
@@ -312,6 +311,7 @@ pub mod standard {
     use rustc_hex::{FromHex, ToHex};
     use std::convert::TryInto;
     use std::str::FromStr;
+    use masq_lib::multi_config::{MultiConfig, ConfigFileVcl, EnvironmentVcl, CommandLineVcl};
 
     pub fn make_service_mode_multi_config<'a>(app: &'a App, args: &Vec<String>) -> MultiConfig<'a> {
         let (config_file_path, user_specified) = determine_config_file_path(app, args);
@@ -773,10 +773,6 @@ mod tests {
     use crate::bootstrapper::RealUser;
     use crate::config_dao::{ConfigDao, ConfigDaoReal};
     use crate::database::db_initializer::{DbInitializer, DbInitializerReal};
-    use crate::multi_config::tests::FauxEnvironmentVcl;
-    use crate::multi_config::{
-        CommandLineVcl, ConfigFileVcl, MultiConfig, NameValueVclArg, VclArg, VirtualCommandLine,
-    };
     use crate::persistent_configuration::{PersistentConfigError, PersistentConfigurationReal};
     use crate::sub_lib::accountant::DEFAULT_EARNING_WALLET;
     use crate::sub_lib::crash_point::CrashPoint;
@@ -788,10 +784,9 @@ mod tests {
     };
     use crate::sub_lib::node_addr::NodeAddr;
     use crate::sub_lib::wallet::Wallet;
-    use crate::test_utils::environment_guard::EnvironmentGuard;
     use crate::test_utils::persistent_configuration_mock::PersistentConfigurationMock;
     use crate::test_utils::{
-        ensure_node_home_directory_exists, main_cryptde, ArgsBuilder, TEST_DEFAULT_CHAIN_NAME,
+        main_cryptde, ArgsBuilder, TEST_DEFAULT_CHAIN_NAME,
     };
     use crate::test_utils::{make_default_persistent_configuration, DEFAULT_CHAIN_ID};
     use crate::test_utils::{ByteArrayWriter, FakeStreamHolder};
@@ -804,6 +799,10 @@ mod tests {
     use std::path::PathBuf;
     use std::str::FromStr;
     use std::sync::{Arc, Mutex};
+    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
+    use masq_lib::multi_config::{NameValueVclArg, VclArg, MultiConfig, CommandLineVcl, VirtualCommandLine, ConfigFileVcl};
+    use masq_lib::environment_guard::EnvironmentGuard;
+
 
     fn make_default_cli_params() -> ArgsBuilder {
         ArgsBuilder::new()
@@ -2114,7 +2113,7 @@ mod tests {
             &"not valid hex",
         ))];
 
-        let faux_environment = FauxEnvironmentVcl { vcl_args };
+        let faux_environment = CommandLineVcl::from(vcl_args);
 
         let mut config = BootstrapperConfig::new();
         let vcls: Vec<Box<dyn VirtualCommandLine>> = vec![
@@ -2148,7 +2147,7 @@ mod tests {
             &"cc46befe8d169b89db447bd725fc2368b12542113555302598430cb5d5c74ea9",
         ))];
 
-        let faux_environment = FauxEnvironmentVcl { vcl_args };
+        let faux_environment = CommandLineVcl::from(vcl_args);
 
         let mut config = BootstrapperConfig::new();
         config.db_password_opt = Some("password".to_string());

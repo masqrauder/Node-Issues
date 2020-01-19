@@ -2,7 +2,6 @@
 
 use crate::blockchain::bip32::Bip32ECKeyPair;
 use crate::blockchain::bip39::Bip39;
-use crate::multi_config::MultiConfig;
 use crate::node_configurator::{
     app_head, chain_arg, common_validators, consuming_wallet_arg, create_wallet,
     data_directory_arg, db_password_arg, earning_wallet_arg, flushed_write, language_arg,
@@ -20,6 +19,7 @@ use clap::{value_t, App, Arg};
 use indoc::indoc;
 use std::str::FromStr;
 use unindent::unindent;
+use masq_lib::multi_config::MultiConfig;
 
 pub struct NodeConfiguratorGenerateWallet {
     app: App<'static, 'static>,
@@ -325,7 +325,6 @@ mod tests {
     use crate::config_dao::ConfigDaoReal;
     use crate::database::db_initializer;
     use crate::database::db_initializer::DbInitializer;
-    use crate::multi_config::{CommandLineVcl, VirtualCommandLine};
     use crate::node_configurator::{initialize_database, DerivationPathWalletInfo};
     use crate::persistent_configuration::PersistentConfigurationReal;
     use crate::sub_lib::cryptde::PlainData;
@@ -337,6 +336,8 @@ mod tests {
     use std::cell::RefCell;
     use std::io::Cursor;
     use std::sync::{Arc, Mutex};
+    use masq_lib::multi_config::{MultiConfig, CommandLineVcl, VirtualCommandLine};
+    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
 
     struct MnemonicFactoryMock {
         make_parameters: Arc<Mutex<Vec<(MnemonicType, Language)>>>,

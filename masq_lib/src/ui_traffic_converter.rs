@@ -55,10 +55,16 @@ impl Display for UnmarshalError {
 
 pub struct UiTrafficConverter {}
 
+impl Default for UiTrafficConverter {
+    fn default() -> Self {
+        Self{}
+    }
+}
+
 impl UiTrafficConverter {
 
     pub fn new() -> Self {
-        Self {}
+        Self::default()
     }
 
     pub fn new_marshal_from_ui(msg: NodeFromUiMessage) -> String {

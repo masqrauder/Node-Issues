@@ -5,7 +5,6 @@ pub mod channel_wrapper_mocks;
 pub mod config_dao_mock;
 pub mod data_hunk;
 pub mod data_hunk_framer;
-pub mod environment_guard;
 pub mod little_tcp_server;
 pub mod logging;
 pub mod neighborhood_test_utils;
@@ -55,7 +54,6 @@ use std::io::{Error, ErrorKind};
 use std::iter::repeat;
 use std::net::{Shutdown, TcpStream};
 use std::net::{SocketAddr};
-use std::path::PathBuf;
 use std::str::from_utf8;
 use std::str::FromStr;
 use std::sync::mpsc;
@@ -66,7 +64,7 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
-use std::{fs, io};
+use std::io;
 
 pub const DEFAULT_CHAIN_ID: u8 = 3u8; //For testing only
 pub const TEST_DEFAULT_CHAIN_NAME: &str = "ropsten"; //For testing only
@@ -502,26 +500,6 @@ where
 {
     let set: BTreeSet<T> = vec.into_iter().collect();
     set
-}
-
-pub const BASE_TEST_DIR: &str = "generated/test";
-
-pub fn node_home_directory(module: &str, name: &str) -> PathBuf {
-    let home_dir_string = format!("{}/{}/{}/home", BASE_TEST_DIR, module, name);
-    PathBuf::from(home_dir_string.as_str())
-}
-
-pub fn ensure_node_home_directory_does_not_exist(module: &str, name: &str) -> PathBuf {
-    let home_dir = node_home_directory(module, name);
-    let _ = fs::remove_dir_all(&home_dir);
-    home_dir
-}
-
-pub fn ensure_node_home_directory_exists(module: &str, name: &str) -> PathBuf {
-    let home_dir = node_home_directory(module, name);
-    let _ = fs::remove_dir_all(&home_dir);
-    let _ = fs::create_dir_all(&home_dir);
-    home_dir
 }
 
 pub fn read_until_timeout(stream: &mut dyn Read) -> Vec<u8> {

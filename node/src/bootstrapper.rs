@@ -558,7 +558,7 @@ mod tests {
     use crate::test_utils::tokio_wrapper_mocks::ReadHalfWrapperMock;
     use crate::test_utils::tokio_wrapper_mocks::WriteHalfWrapperMock;
     use crate::test_utils::{
-        assert_contains, ensure_node_home_directory_exists, rate_pack, ArgsBuilder,
+        assert_contains, rate_pack, ArgsBuilder,
     };
     use crate::test_utils::{main_cryptde, FakeStreamHolder, DEFAULT_CHAIN_ID};
     use actix::Recipient;
@@ -578,6 +578,7 @@ mod tests {
     use std::thread;
     use tokio;
     use tokio::prelude::Async;
+    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
 
     lazy_static! {
         static ref INITIALIZATION: Mutex<bool> = Mutex::new(false);

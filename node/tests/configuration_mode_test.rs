@@ -11,12 +11,12 @@ use node_lib::persistent_configuration::{PersistentConfiguration, PersistentConf
 use node_lib::sub_lib::wallet::{
     Wallet, DEFAULT_CONSUMING_DERIVATION_PATH, DEFAULT_EARNING_DERIVATION_PATH,
 };
-use node_lib::test_utils::environment_guard::EnvironmentGuard;
 use node_lib::test_utils::{assert_string_contains, DEFAULT_CHAIN_ID};
 use regex::Regex;
 use std::str::FromStr;
 use utils::CommandConfig;
 use utils::MASQNode;
+use masq_lib::environment_guard::EnvironmentGuard;
 
 const PHRASE: &str =
     "snake gorilla marine couch wheel decline stamp glass aunt antenna transfer exit";

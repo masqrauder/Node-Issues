@@ -3,7 +3,6 @@
 use crate::bootstrapper::RealUser;
 use crate::config_dao::{ConfigDao, ConfigDaoReal};
 use crate::database::db_initializer::{DbInitializer, DbInitializerReal, DATABASE_FILE};
-use crate::multi_config::{CommandLineVcl, EnvironmentVcl, MultiConfig, VirtualCommandLine};
 use crate::node_configurator::{app_head, chain_arg, data_directory_arg, real_user_arg};
 use crate::privilege_drop::{PrivilegeDropper, PrivilegeDropperReal};
 use masq_lib::command::StdStreams;
@@ -12,6 +11,7 @@ use heck::MixedCase;
 use serde_json::json;
 use serde_json::{Map, Value};
 use std::path::PathBuf;
+use masq_lib::multi_config::{MultiConfig, EnvironmentVcl, CommandLineVcl, VirtualCommandLine};
 
 const DUMP_CONFIG_HELP: &str =
     "Dump the configuration of MASQ Node to stdout in JSON. Used chiefly by UIs.";
@@ -95,9 +95,10 @@ mod tests {
     use crate::persistent_configuration::{PersistentConfiguration, PersistentConfigurationReal};
     use crate::sub_lib::cryptde::PlainData;
     use crate::test_utils::{
-        ensure_node_home_directory_exists, ArgsBuilder, FakeStreamHolder, DEFAULT_CHAIN_ID,
+        ArgsBuilder, FakeStreamHolder, DEFAULT_CHAIN_ID,
         TEST_DEFAULT_CHAIN_NAME,
     };
+    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
 
     #[test]
     fn dump_config_creates_database_if_nonexistent() {

@@ -519,7 +519,6 @@ mod tests {
     use crate::sub_lib::route::{Route, RouteSegment};
     use crate::sub_lib::versioned_data::VersionedData;
     use crate::sub_lib::wallet::Wallet;
-    use crate::test_utils::environment_guard::EnvironmentGuard;
     use crate::test_utils::logging::{init_test_logging, TestLogHandler};
     use crate::test_utils::recorder::{make_recorder, peer_actors_builder};
     use crate::test_utils::{
@@ -531,6 +530,7 @@ mod tests {
     use actix::System;
     use std::net::SocketAddr;
     use std::str::FromStr;
+    use masq_lib::environment_guard::EnvironmentGuard;
 
     #[test]
     fn dns_resolution_failures_are_reported_to_the_proxy_server() {

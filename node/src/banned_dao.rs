@@ -138,10 +138,10 @@ mod tests {
     use super::*;
     use crate::database::db_initializer::{DbInitializer, DbInitializerReal};
     use crate::test_utils::{
-        ensure_node_home_directory_does_not_exist, ensure_node_home_directory_exists,
         make_paying_wallet, make_wallet, DEFAULT_CHAIN_ID,
     };
     use rusqlite::NO_PARAMS;
+    use masq_lib::test_utils::utils::{ensure_node_home_directory_does_not_exist, ensure_node_home_directory_exists};
 
     #[test]
     fn banned_dao_can_ban_a_wallet_address() {

@@ -1265,7 +1265,7 @@ mod tests {
     use crate::test_utils::vec_to_set;
     use crate::test_utils::{assert_contains, make_wallet};
     use crate::test_utils::{assert_matches, make_meaningless_route};
-    use crate::test_utils::{ensure_node_home_directory_exists, rate_pack};
+    use crate::test_utils::{rate_pack};
     use crate::test_utils::{main_cryptde, make_paying_wallet, DEFAULT_CHAIN_ID};
     use actix::dev::{MessageResponse, ResponseChannel};
     use actix::Message;
@@ -1282,6 +1282,7 @@ mod tests {
     use tokio::prelude::Future;
     use masq_lib::ui_gateway::MessageBody;
     use masq_lib::ui_gateway::MessagePath::OneWay;
+    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
 
     #[test]
     #[should_panic(expected = "Neighbor AQIDBA:1.2.3.4:1234 is not on the mainnet blockchain")]

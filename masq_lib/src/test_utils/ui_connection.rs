@@ -46,7 +46,7 @@ impl UiConnection {
 
     pub fn send_string(&mut self, string: String) {
         self.client
-            .send_message(&OwnedMessage::Text(string.clone()))
+            .send_message(&OwnedMessage::Text(string))
             .unwrap();
     }
 

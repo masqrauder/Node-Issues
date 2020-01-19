@@ -10,7 +10,6 @@ use crate::blockchain::bip39::Bip39;
 use crate::blockchain::blockchain_interface::{chain_id_from_name, DEFAULT_CHAIN_NAME};
 use crate::bootstrapper::RealUser;
 use crate::database::db_initializer::{DbInitializer, DbInitializerReal, DATABASE_FILE};
-use crate::multi_config::{merge, CommandLineVcl, EnvironmentVcl, MultiConfig, VclArg};
 use crate::node_configurator::node_configurator_standard::DEFAULT_UI_PORT_VALUE;
 use crate::persistent_configuration::{
     PersistentConfigError, PersistentConfiguration, PersistentConfigurationReal,
@@ -31,6 +30,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use tiny_hderive::bip44::DerivationPath;
 use std::io::Read;
+use masq_lib::multi_config::{MultiConfig, EnvironmentVcl, CommandLineVcl, merge, VclArg};
 
 pub trait NodeConfigurator<T> {
     fn configure(&self, args: &Vec<String>, streams: &mut StdStreams<'_>) -> T;
@@ -768,16 +768,18 @@ mod tests {
     use crate::blockchain::bip32::Bip32ECKeyPair;
     use crate::node_test_utils::MockDirsWrapper;
     use crate::sub_lib::wallet::{Wallet, DEFAULT_EARNING_DERIVATION_PATH};
-    use crate::test_utils::environment_guard::EnvironmentGuard;
     use crate::test_utils::persistent_configuration_mock::PersistentConfigurationMock;
     use crate::test_utils::{
-        ensure_node_home_directory_exists, ArgsBuilder, ByteArrayWriter, DEFAULT_CHAIN_ID,
+        ArgsBuilder, ByteArrayWriter, DEFAULT_CHAIN_ID,
         TEST_DEFAULT_CHAIN_NAME,
     };
     use bip39::{Mnemonic, MnemonicType, Seed};
     use std::io::Cursor;
     use std::sync::{Arc, Mutex};
     use tiny_hderive::bip44::DerivationPath;
+    use masq_lib::multi_config::MultiConfig;
+    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
+    use masq_lib::environment_guard::EnvironmentGuard;
 
     #[test]
     fn validate_ethereum_address_requires_an_address_that_is_42_characters_long() {

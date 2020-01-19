@@ -14,9 +14,7 @@ use websocket::server::NoTlsAcceptor;
 use websocket::result::WebSocketError;
 use std::sync::mpsc::Sender;
 use std::time::Duration;
-use std::path::PathBuf;
 use std::process::{Command, Child, Stdio};
-use std::rc::Rc;
 
 pub struct MockWebSocketsServer {
     port: u16,
@@ -27,7 +25,6 @@ pub struct MockWebSocketsServerStopHandle {
     server_arc: Arc<Mutex<WsServer<NoTlsAcceptor, TcpListener>>>,
     requests_arc: Arc<Mutex<Vec<Result<NodeFromUiMessage, String>>>>,
     stop_tx: Sender<()>,
-    mock: MockWebSocketsServer,
     join_handle: JoinHandle<()>,
 }
 
@@ -49,7 +46,7 @@ impl MockWebSocketsServer {
         self
     }
 
-    pub fn start (mut self) -> MockWebSocketsServerStopHandle {
+    pub fn start (self) -> MockWebSocketsServerStopHandle {
         let server_arc = Arc::new(Mutex::new(Server::bind(SocketAddr::new(localhost(), self.port)).unwrap()));
         let inner_server_arc = server_arc.clone();
         let requests_arc = Arc::new(Mutex::new(vec![]));
@@ -79,7 +76,7 @@ impl MockWebSocketsServer {
                     Ok (OwnedMessage::Text(json)) => {
                         Some (match UiTrafficConverter::new_unmarshal_from_ui(&json, 0) {
                             Ok(msg) => Ok(msg),
-                            Err(e) => Err(json),
+                            Err(_) => Err(json),
                         })
                     },
                     Ok(x) => {
@@ -104,7 +101,6 @@ impl MockWebSocketsServer {
             server_arc,
             requests_arc,
             stop_tx,
-            mock: self,
             join_handle,
         }
     }
@@ -165,7 +161,7 @@ mod tests {
     use super::*;
     use masq_lib::ui_gateway::MessageTarget::ClientId;
     use masq_lib::messages::{UiSetup, UiSetupValue, UiShutdownOrder};
-    use masq_lib::ui_connection::UiConnection;
+    use masq_lib::test_utils::ui_connection::UiConnection;
     use masq_lib::utils::find_free_port;
     use masq_lib::messages::{FromMessageBody, ToMessageBody};
 

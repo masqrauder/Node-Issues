@@ -1,7 +1,6 @@
 // Copyright (c) 2017-2019, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 
 use crate::blockchain::bip39::Bip39;
-use crate::multi_config::MultiConfig;
 use crate::node_configurator::{
     app_head, chain_arg, common_validators, consuming_wallet_arg, create_wallet,
     data_directory_arg, db_password_arg, earning_wallet_arg, exit, flushed_write, language_arg,
@@ -16,6 +15,7 @@ use masq_lib::command::StdStreams;
 use bip39::{Language, Mnemonic};
 use clap::{value_t, values_t, App, Arg};
 use indoc::indoc;
+use masq_lib::multi_config::MultiConfig;
 
 pub struct NodeConfiguratorRecoverWallet {
     app: App<'static, 'static>,
@@ -239,17 +239,17 @@ mod tests {
     use crate::config_dao::ConfigDaoReal;
     use crate::database::db_initializer;
     use crate::database::db_initializer::DbInitializer;
-    use crate::multi_config::{CommandLineVcl, VirtualCommandLine};
     use crate::node_configurator::{initialize_database, DerivationPathWalletInfo};
     use crate::persistent_configuration::PersistentConfigurationReal;
     use crate::sub_lib::cryptde::PlainData;
     use crate::sub_lib::wallet::{
         Wallet, DEFAULT_CONSUMING_DERIVATION_PATH, DEFAULT_EARNING_DERIVATION_PATH,
     };
-    use crate::test_utils::ensure_node_home_directory_exists;
     use crate::test_utils::*;
     use bip39::Seed;
     use std::io::Cursor;
+    use masq_lib::multi_config::{MultiConfig, CommandLineVcl, VirtualCommandLine};
+    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
 
     #[test]
     fn validate_mnemonic_words_if_provided_in_chinese_simplified() {
