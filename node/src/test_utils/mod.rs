@@ -149,36 +149,6 @@ impl Read for ByteArrayReader {
     }
 }
 
-pub struct FakeStreamHolder {
-    pub stdin: ByteArrayReader,
-    pub stdout: ByteArrayWriter,
-    pub stderr: ByteArrayWriter,
-}
-
-impl Default for FakeStreamHolder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl FakeStreamHolder {
-    pub fn new() -> FakeStreamHolder {
-        FakeStreamHolder {
-            stdin: ByteArrayReader::new(&[0; 0]),
-            stdout: ByteArrayWriter::new(),
-            stderr: ByteArrayWriter::new(),
-        }
-    }
-
-    pub fn streams(&mut self) -> StdStreams<'_> {
-        StdStreams {
-            stdin: &mut self.stdin,
-            stdout: &mut self.stdout,
-            stderr: &mut self.stderr,
-        }
-    }
-}
-
 pub struct ArgsBuilder {
     args: Vec<String>,
 }

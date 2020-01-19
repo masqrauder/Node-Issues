@@ -29,14 +29,16 @@ struct Main {
 
 impl command::Command for Main {
     fn go(&mut self, streams: &mut StdStreams<'_>, args: &[String]) -> u8 {
-        let args_vec = args.iter().map(|s| s.clone()).collect();
-        let processor = self.processor_factory.make (&args_vec);
-        let command = self.command_factory.make (args_vec.into_iter().skip(1).collect());
-
-        // initialize, replace CommandProcessor
-        // Tear off first parameter (executed command), make a command with the factory, and send it to the CommandProcessor
-        // Shut down the CommandProcessor (or the CommandContext, whichever makes more sense)
-        1
+        let mut processor = self.processor_factory.make (streams, args);
+        let command = match self.command_factory.make (args.into_iter().map(|s| s.clone()).skip(1).collect()) {
+            Ok(c) => c,
+            Err(e) => unimplemented!("{:?}", e),
+        };
+        if let Err(e) = processor.process (command) {
+            unimplemented! ("{:?}", e)
+        }
+        processor.shutdown();
+        0
     }
 }
 
@@ -53,8 +55,8 @@ impl Main {
 mod tests {
     use super::*;
     use std::sync::{Mutex, Arc};
-    use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
-    use crate::command_processor::{CommandError, CommandProcessorFactory, CommandContextReal, CommandContext};
+    use masq_lib::test_utils::fake_stream_holder::{FakeStreamHolder};
+    use crate::command_processor::{CommandError, CommandProcessorFactory, CommandContext};
     use std::cell::RefCell;
     use crate::command_factory::{CommandFactoryError};
     use masq_lib::ui_traffic_converter::UnmarshalError;
@@ -62,6 +64,7 @@ mod tests {
     use masq_lib::messages::{UiShutdownOrder, UiSetup};
     use lazy_static::lazy_static;
     use masq_lib::messages::ToMessageBody;
+    use std::io::{Read, Write};
 
     lazy_static! {
         static ref ONE_WAY_MESSAGE: NodeFromUiMessage = NodeFromUiMessage {
@@ -74,31 +77,37 @@ mod tests {
         };
     }
 
-    struct CommandContextMock {
+    struct CommandContextMock<'a> {
         transact_params: Arc<Mutex<Vec<NodeFromUiMessage>>>,
-        transact_results: RefCell<Vec<Result<Option<NodeToUiMessage>, UnmarshalError>>>,
+        transact_results: Vec<Result<Option<NodeToUiMessage>, UnmarshalError>>,
+        streams: StdStreams<'a>,
     }
 
-    impl CommandContext for CommandContextMock {
-        fn transact(&self, message: NodeFromUiMessage) -> Result<Option<NodeToUiMessage>, UnmarshalError> {
+    impl<'a> CommandContext for CommandContextMock<'a> {
+        fn transact(&mut self, message: NodeFromUiMessage) -> Result<Option<NodeToUiMessage>, UnmarshalError> {
             self.transact_params.lock().unwrap().push (message);
-            self.transact_results.borrow_mut().remove (0)
+            self.transact_results.remove (0)
         }
 
-        fn console_out(&self, output: String) {
-            unimplemented!()
+        fn stdin(&mut self) -> &mut (dyn Read) {
+            self.streams.stdin
         }
 
-        fn console_err(&self, output: String) {
-            unimplemented!()
+        fn stdout(&mut self) -> &mut (dyn Write) {
+            self.streams.stdout
+        }
+
+        fn stderr(&mut self) -> &mut (dyn Write) {
+            self.streams.stderr
         }
     }
 
-    impl CommandContextMock {
-        fn new () -> Self {
+    impl<'a> CommandContextMock<'a> {
+        fn new (streams: StdStreams<'a>) -> Self {
             Self {
                 transact_params: Arc::new(Mutex::new(vec![])),
-                transact_results: RefCell::new(vec![])
+                transact_results: vec![],
+                streams,
             }
         }
 
@@ -107,8 +116,8 @@ mod tests {
             self
         }
 
-        fn transact_result (self, result: Result<Option<NodeToUiMessage>, UnmarshalError>) -> Self {
-            self.transact_results.borrow_mut().push (result);
+        fn transact_result (mut self, result: Result<Option<NodeToUiMessage>, UnmarshalError>) -> Self {
+            self.transact_results.push (result);
             self
         }
     }
@@ -145,47 +154,74 @@ mod tests {
     }
 
     struct CommandProcessorMock {
-        context: Box<dyn CommandContext>,
+        process_params: Arc<Mutex<Vec<Box<dyn command_processor::Command>>>>,
+        process_results: RefCell<Vec<Result<(), CommandError>>>,
+        shutdown_params: Arc<Mutex<Vec<()>>>,
     }
 
     impl CommandProcessor for CommandProcessorMock {
-        fn process(&self, command: Box<dyn command_processor::Command>) -> Result<(), CommandError> {
-            command.execute (&self.context)
+        fn process(&mut self, command: Box<dyn command_processor::Command>) -> Result<(), CommandError> {
+            self.process_params.lock().unwrap().push (command);
+            self.process_results.borrow_mut().remove(0)
+        }
+
+        fn shutdown(&mut self) {
+            self.shutdown_params.lock().unwrap().push (());
         }
     }
 
     impl CommandProcessorMock {
-        fn new(context: CommandContextMock) -> Self {
+        fn new() -> Self {
             Self {
-                context: Box::new (context),
+                process_params: Arc::new (Mutex::new (vec![])),
+                process_results: RefCell::new (vec![]),
+                shutdown_params: Arc::new (Mutex::new (vec![])),
             }
+        }
+
+        fn process_params (mut self, params: &Arc<Mutex<Vec<Box<dyn command_processor::Command>>>>) -> Self {
+            self.process_params = params.clone();
+            self
+        }
+
+        fn process_result (self, result: Result<(), CommandError>) -> Self {
+            self.process_results.borrow_mut().push (result);
+            self
+        }
+
+        fn shutdown_params (mut self, params: &Arc<Mutex<Vec<()>>>) -> Self {
+            self.shutdown_params = params.clone();
+            self
         }
     }
 
     struct CommandProcessorFactoryMock {
-        make_result: RefCell<Option<CommandProcessorMock>>,
-        make_params: Arc<Mutex<Vec<String>>>,
+        make_params: Arc<Mutex<Vec<Vec<String>>>>,
+        make_results: RefCell<Vec<Box<dyn CommandProcessor>>>,
     }
 
     impl CommandProcessorFactory for CommandProcessorFactoryMock {
-        fn make(&self, args: &Vec<String>) -> Box<dyn CommandProcessor> {
-            let mut args_ref = self.make_params.lock().unwrap();
-            args_ref.clear();
-            args_ref.extend (args.clone());
-            Box::new (self.make_result.borrow_mut().take().unwrap())
+        fn make(&self, streams: &mut StdStreams<'_>, args: &[String]) -> Box<dyn CommandProcessor> {
+            self.make_params.lock().unwrap().push (args.iter().map(|s| s.clone()).collect());
+            self.make_results.borrow_mut().remove(0)
         }
     }
 
     impl CommandProcessorFactoryMock {
-        pub fn new (processor: CommandProcessorMock) -> Self {
+        pub fn new () -> Self {
             Self {
-                make_result: RefCell::new (Some(processor)),
                 make_params: Arc::new (Mutex::new (vec![])),
+                make_results: RefCell::new (vec![]),
             }
         }
 
-        pub fn make_params(mut self, params: &Arc<Mutex<Vec<String>>>) -> Self {
+        pub fn make_params(mut self, params: &Arc<Mutex<Vec<Vec<String>>>>) -> Self {
             self.make_params = params.clone();
+            self
+        }
+
+        pub fn make_result(self, result: Box<dyn CommandProcessor>) -> Self {
+            self.make_results.borrow_mut().push (result);
             self
         }
     }
@@ -202,14 +238,14 @@ mod tests {
     }
 
     impl command_processor::Command for MockCommand {
-        fn execute(&self, context: &Box<dyn CommandContext>) -> Result<(), CommandError> {
+        fn execute(&self, context: &mut Box<dyn CommandContext>) -> Result<(), CommandError> {
             match context.transact (self.message.clone()) {
                 Ok(_) => (),
                 Err(e) => return Err(CommandError::Transaction(e)),
             }
-            context.console_out (format!("MockCommand output"));
-            context.console_err (format!("MockCommand error"));
-            Ok(())
+            writeln!(context.stdout(), "MockCommand output").unwrap();
+            writeln!(context.stderr(), "MockCommand error").unwrap();
+            self.execute_results.borrow_mut().remove (0)
         }
     }
 
@@ -220,40 +256,88 @@ mod tests {
                 execute_results: RefCell::new (vec![]),
             }
         }
+
+        pub fn execute_result (self, result: Result<(), CommandError>) -> Self {
+            self.execute_results.borrow_mut().push (result);
+            self
+        }
     }
 
+    /*
+    fn go(&mut self, streams: &mut StdStreams<'_>, args: &[String]) -> u8 {
+        let mut processor = self.processor_factory.make (streams, args);
+        let command = match self.command_factory.make (args.into_iter().skip(1).collect()) {
+            Ok(c) => c,
+            Err(e) => unimplemented!("{:?}", e),
+        };
+        if let Err(e) = processor.process (command) {
+            unimplemented! ("{:?}", e)
+        }
+        processor.shutdown();
+        0
+    }
+    */
+
     #[test]
-    fn successful_setup_is_processed() {
-        let expected_command = MockCommand::new(ONE_WAY_MESSAGE.clone());
-        let make_params_arc = Arc::new (Mutex::new (vec![]));
+    fn go_works() {
+        let command = MockCommand::new (ONE_WAY_MESSAGE.clone())
+            .execute_result (Ok(()));
+        let c_make_params_arc = Arc::new (Mutex::new (vec![]));
         let command_factory = CommandFactoryMock::new()
-            .make_params(&make_params_arc)
-            .make_result(Ok(Box::new (expected_command)));
-        let transact_params_arc = Arc::new (Mutex::new (vec![]));
-        let context = CommandContextMock::new()
-            .transact_params(&transact_params_arc)
-            .transact_result(Ok(None));
-        let processor = CommandProcessorMock::new(context);
-        let make_params_arc = Arc::new (Mutex::new(vec![]));
-        let processor_factory = CommandProcessorFactoryMock::new(processor)
-            .make_params (&make_params_arc);
+            .make_params(&c_make_params_arc)
+            .make_result(Ok(Box::new (command)));
+        let process_params_arc = Arc::new (Mutex::new (vec![]));
+        let processor = CommandProcessorMock::new()
+            .process_params (&process_params_arc)
+            .process_result(Ok(()));
+        let p_make_params_arc = Arc::new (Mutex::new(vec![]));
+        let processor_factory = CommandProcessorFactoryMock::new()
+            .make_params (&p_make_params_arc)
+            .make_result (Box::new (processor));
         let mut subject = Main {
             command_factory: Box::new(command_factory),
             processor_factory: Box::new (processor_factory),
         };
-        let mut streams = FakeStreamHolder::new();
-        let args = vec![
-            "".to_string(),
-            "--ui-port".to_string(), "12345".to_string(),
-            "setup".to_string(),
-            "name=value".to_string(),
-            "configure=me".to_string(),
-        ];
+        let mut stream_holder = FakeStreamHolder::new();
 
-        let exit_code = subject.go (&mut streams.streams(), &args);
+        let result = subject.go(&mut stream_holder.streams(), &[
+            "command".to_string(),
+            "--param1".to_string(),
+            "value1".to_string(),
+            "--param2".to_string(),
+            "value2".to_string(),
+            "subcommand".to_string(),
+            "--param3".to_string(),
+            "--value3".to_string(),
+            "param4".to_string(),
+            "param5".to_string(),
+        ]);
 
-        assert_eq! (exit_code, 0);
-        let mut transact_params = transact_params_arc.lock().unwrap();
-        unimplemented!()
+        assert_eq! (result, 0);
+        assert_eq! (stream_holder.stdout.get_string(), "MockCommand output".to_string());
+        assert_eq! (stream_holder.stderr.get_string(), "MockCommand error".to_string());
+        let c_make_params = c_make_params_arc.lock().unwrap();
+        assert_eq! (*c_make_params, vec![
+            vec!["subcommand".to_string(), "--param3".to_string(), "value3".to_string(),
+                "param4".to_string(), "param5".to_string()],
+        ]);
+        let p_make_params = p_make_params_arc.lock().unwrap();
+        assert_eq! (*p_make_params, vec![vec![
+            "command".to_string(),
+            "--param1".to_string(),
+            "value1".to_string(),
+            "--param2".to_string(),
+            "value2".to_string(),
+            "subcommand".to_string(),
+            "--param3".to_string(),
+            "--value3".to_string(),
+            "param4".to_string(),
+            "param5".to_string(),
+        ]]);
+        let process_params = process_params_arc.lock().unwrap();
+        assert_eq! (*process_params, vec![
+            Box::new (MockCommand::new(ONE_WAY_MESSAGE.clone()))
+        ]);
+        unimplemented! ("Check transaction too");
     }
 }

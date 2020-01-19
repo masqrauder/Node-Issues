@@ -1,7 +1,7 @@
 // Copyright (c) 2019-2020, MASQ (https://masq.ai) and/or its affiliates. All rights reserved.
 
 use clap::ArgMatches;
-use crate::command_processor::{Command, CommandContextReal, CommandError, CommandContext};
+use crate::command_processor::{Command, CommandError, CommandContext};
 
 #[derive(Debug, PartialEq)]
 pub enum CommandFactoryError {
@@ -51,7 +51,7 @@ pub struct SetupCommand {
 }
 
 impl Command for SetupCommand {
-    fn execute(&self, context: &Box<dyn CommandContext>) -> Result<(), CommandError> {
+    fn execute(&self, context: &mut Box<dyn CommandContext>) -> Result<(), CommandError> {
         unimplemented!()
     }
 }

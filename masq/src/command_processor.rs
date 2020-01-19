@@ -3,15 +3,19 @@
 use std::fmt::Debug;
 use masq_lib::ui_traffic_converter::UnmarshalError;
 use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
+use std::io::{Read, Write};
+use masq_lib::command::StdStreams;
 
+#[derive (Debug, PartialEq)]
 pub enum CommandError {
     Transaction(UnmarshalError),
 }
 
 pub trait CommandContext {
-    fn transact (&self, message: NodeFromUiMessage) -> Result<Option<NodeToUiMessage>, UnmarshalError>;
-    fn console_out (&self, output: String);
-    fn console_err (&self, output: String);
+    fn transact (&mut self, message: NodeFromUiMessage) -> Result<Option<NodeToUiMessage>, UnmarshalError>;
+    fn stdin (&mut self) -> &mut (dyn Read);
+    fn stdout (&mut self) -> &mut (dyn Write);
+    fn stderr (&mut self) -> &mut (dyn Write);
 }
 
 pub struct CommandContextReal {
@@ -19,21 +23,25 @@ pub struct CommandContextReal {
 }
 
 impl CommandContext for CommandContextReal {
-    fn transact(&self, message: NodeFromUiMessage) -> Result<Option<NodeToUiMessage>, UnmarshalError> {
+    fn transact(&mut self, message: NodeFromUiMessage) -> Result<Option<NodeToUiMessage>, UnmarshalError> {
         unimplemented!()
     }
 
-    fn console_out(&self, output: String) {
+    fn stdin(&mut self) -> &mut (dyn Read) {
         unimplemented!()
     }
 
-    fn console_err(&self, output: String) {
+    fn stdout(&mut self) -> &mut (dyn Write) {
+        unimplemented!()
+    }
+
+    fn stderr(&mut self) -> &mut (dyn Write) {
         unimplemented!()
     }
 }
 
 impl CommandContextReal {
-    fn new (port: u16) -> Self {
+    fn new (port: u16, streams: &mut StdStreams<'_>) -> Self {
         Self {
 
         }
@@ -41,23 +49,24 @@ impl CommandContextReal {
 }
 
 pub trait Command: Debug {
-    fn execute(&self, context: &Box<dyn CommandContext>) -> Result<(), CommandError>;
+    fn execute(&self, context: &mut Box<dyn CommandContext>) -> Result<(), CommandError>;
 }
 
 pub trait CommandProcessorFactory {
-    fn make(&self, args: &Vec<String>) -> Box<dyn CommandProcessor>;
+    fn make(&self, streams: &mut StdStreams<'_>, args: &[String]) -> Box<dyn CommandProcessor>;
 }
 
 pub struct CommandProcessorFactoryReal {}
 
 impl CommandProcessorFactory for CommandProcessorFactoryReal {
-    fn make(&self, args: &Vec<String>) -> Box<dyn CommandProcessor> {
+    fn make(&self, streams: &mut StdStreams<'_>, args: &[String]) -> Box<dyn CommandProcessor> {
         unimplemented!()
     }
 }
 
 pub trait CommandProcessor {
-    fn process (&self, command: Box<dyn Command>) -> Result<(), CommandError>;
+    fn process (&mut self, command: Box<dyn Command>) -> Result<(), CommandError>;
+    fn shutdown (&mut self);
 }
 
 pub struct CommandProcessorReal {
@@ -65,13 +74,17 @@ pub struct CommandProcessorReal {
 }
 
 impl CommandProcessor for CommandProcessorReal {
-    fn process(&self, command: Box<dyn Command>) -> Result<(), CommandError> {
+    fn process(&mut self, command: Box<dyn Command>) -> Result<(), CommandError> {
+        unimplemented!()
+    }
+
+    fn shutdown(&mut self) {
         unimplemented!()
     }
 }
 
 impl CommandProcessorReal {
-    pub fn new(args: &Vec<String>) -> Self {
+    pub fn new(streams: &mut StdStreams<'_>, args: &Vec<String>) -> Self {
         unimplemented!()
     }
 }
@@ -79,7 +92,11 @@ impl CommandProcessorReal {
 pub struct CommandProcessorNull {}
 
 impl CommandProcessor for CommandProcessorNull {
-    fn process(&self, command: Box<dyn Command>) -> Result<(), CommandError> {
+    fn process(&mut self, command: Box<dyn Command>) -> Result<(), CommandError> {
+        unimplemented!()
+    }
+
+    fn shutdown(&mut self) {
         unimplemented!()
     }
 }
@@ -91,8 +108,17 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "masq was not properly initialized")]
-    fn null_command_processor_panics_properly() {
-        let subject = CommandProcessorNull{};
-        subject.process (Box::new (SetupCommand{values: vec![]}));
+    fn null_command_processor_process_panics_properly() {
+        let mut subject = CommandProcessorNull{};
+
+        subject.process (Box::new (SetupCommand{values: vec![]})).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "masq was not properly initialized")]
+    fn null_command_processor_shutdown_panics_properly() {
+        let mut subject = CommandProcessorNull{};
+
+        subject.shutdown ();
     }
 }
