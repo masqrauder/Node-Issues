@@ -30,7 +30,7 @@ struct Main {
 impl command::Command for Main {
     fn go(&mut self, streams: &mut StdStreams<'_>, args: &[String]) -> u8 {
         let mut processor = self.processor_factory.make (streams, args);
-        let command = match self.command_factory.make (args.into_iter().map(|s| s.clone()).skip(1).collect()) {
+        let command = match self.command_factory.make (Self::extract_subcommand(args)) {
             Ok(c) => c,
             Err(e) => unimplemented!("{:?}", e),
         };
@@ -48,6 +48,19 @@ impl Main {
             command_factory: Box::new(CommandFactoryReal::new()),
             processor_factory: Box::new (CommandProcessorFactoryReal{}),
         }
+    }
+
+    fn extract_subcommand(args: &[String]) -> Vec<String> {
+        let mut args_vec: Vec<String> = args.into_iter().map(|s| s.clone()).collect();
+        let mut subcommand_idx = 0;
+        for idx in 1..args_vec.len() {
+            let one = &args_vec[idx - 1];
+            let two = &args_vec[idx];
+            if !one.starts_with ("--") && !two.starts_with ("--") {
+                return args_vec.into_iter ().skip (idx).collect()
+            }
+        }
+        panic! ("No subcommand found in {:?}", args_vec);
     }
 }
 
@@ -292,7 +305,7 @@ mod tests {
             "value2".to_string(),
             "subcommand".to_string(),
             "--param3".to_string(),
-            "--value3".to_string(),
+            "value3".to_string(),
             "param4".to_string(),
             "param5".to_string(),
         ]);
@@ -312,7 +325,7 @@ mod tests {
             "value2".to_string(),
             "subcommand".to_string(),
             "--param3".to_string(),
-            "--value3".to_string(),
+            "value3".to_string(),
             "param4".to_string(),
             "param5".to_string(),
         ]]);
@@ -336,7 +349,7 @@ mod tests {
         let transact_params = transact_params_arc.lock().unwrap();
         assert_eq! (*transact_params, vec![ONE_WAY_MESSAGE.clone()]);
         let stream_holder = stream_holder_arc.lock().unwrap();
-        assert_eq! (stream_holder.stdout.get_string(), "MockCommand output".to_string());
-        assert_eq! (stream_holder.stderr.get_string(), "MockCommand error".to_string());
+        assert_eq! (stream_holder.stdout.get_string(), "MockCommand output\n".to_string());
+        assert_eq! (stream_holder.stderr.get_string(), "MockCommand error\n".to_string());
     }
 }
