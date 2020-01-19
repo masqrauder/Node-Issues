@@ -11,18 +11,18 @@ pub enum CommandError {
     Transaction(UnmarshalError),
 }
 
-pub trait CommandContext {
+pub trait CommandContext<'a> {
     fn transact (&mut self, message: NodeFromUiMessage) -> Result<Option<NodeToUiMessage>, UnmarshalError>;
     fn stdin (&mut self) -> &mut (dyn Read);
     fn stdout (&mut self) -> &mut (dyn Write);
     fn stderr (&mut self) -> &mut (dyn Write);
 }
 
-pub struct CommandContextReal {
-
+pub struct CommandContextReal<'a> {
+    streams: &'a StdStreams<'a>,
 }
 
-impl CommandContext for CommandContextReal {
+impl<'a> CommandContext<'a> for CommandContextReal<'_> {
     fn transact(&mut self, message: NodeFromUiMessage) -> Result<Option<NodeToUiMessage>, UnmarshalError> {
         unimplemented!()
     }
@@ -40,16 +40,16 @@ impl CommandContext for CommandContextReal {
     }
 }
 
-impl CommandContextReal {
-    fn new (port: u16, streams: &mut StdStreams<'_>) -> Self {
+impl<'a> CommandContextReal<'a> {
+    fn new (port: u16, streams: &'a mut StdStreams<'a>) -> Self {
         Self {
-
+            streams
         }
     }
 }
 
 pub trait Command: Debug {
-    fn execute(&self, context: &mut Box<dyn CommandContext>) -> Result<(), CommandError>;
+    fn execute<'a>(&self, context: &mut Box<dyn CommandContext<'a> + 'a>) -> Result<(), CommandError>;
 }
 
 pub trait CommandProcessorFactory {

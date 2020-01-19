@@ -51,7 +51,7 @@ pub struct SetupCommand {
 }
 
 impl Command for SetupCommand {
-    fn execute(&self, context: &mut Box<dyn CommandContext>) -> Result<(), CommandError> {
+    fn execute<'a>(&self, context: &mut Box<dyn CommandContext<'a> + 'a>) -> Result<(), CommandError> {
         unimplemented!()
     }
 }

@@ -80,10 +80,10 @@ mod tests {
     struct CommandContextMock<'a> {
         transact_params: Arc<Mutex<Vec<NodeFromUiMessage>>>,
         transact_results: Vec<Result<Option<NodeToUiMessage>, UnmarshalError>>,
-        streams: StdStreams<'a>,
+        streams: &'a mut StdStreams<'a>,
     }
 
-    impl<'a> CommandContext for CommandContextMock<'a> {
+    impl<'a> CommandContext<'a> for CommandContextMock<'a> {
         fn transact(&mut self, message: NodeFromUiMessage) -> Result<Option<NodeToUiMessage>, UnmarshalError> {
             self.transact_params.lock().unwrap().push (message);
             self.transact_results.remove (0)
@@ -103,7 +103,7 @@ mod tests {
     }
 
     impl<'a> CommandContextMock<'a> {
-        fn new (streams: StdStreams<'a>) -> Self {
+        fn new (streams: &'a mut StdStreams<'a>) -> Self {
             Self {
                 transact_params: Arc::new(Mutex::new(vec![])),
                 transact_results: vec![],
@@ -238,7 +238,7 @@ mod tests {
     }
 
     impl command_processor::Command for MockCommand {
-        fn execute(&self, context: &mut Box<dyn CommandContext>) -> Result<(), CommandError> {
+        fn execute<'a>(&self, context: &mut Box<dyn CommandContext<'a> + 'a>) -> Result<(), CommandError> {
             match context.transact (self.message.clone()) {
                 Ok(_) => (),
                 Err(e) => return Err(CommandError::Transaction(e)),
@@ -263,21 +263,6 @@ mod tests {
         }
     }
 
-    /*
-    fn go(&mut self, streams: &mut StdStreams<'_>, args: &[String]) -> u8 {
-        let mut processor = self.processor_factory.make (streams, args);
-        let command = match self.command_factory.make (args.into_iter().skip(1).collect()) {
-            Ok(c) => c,
-            Err(e) => unimplemented!("{:?}", e),
-        };
-        if let Err(e) = processor.process (command) {
-            unimplemented! ("{:?}", e)
-        }
-        processor.shutdown();
-        0
-    }
-    */
-
     #[test]
     fn go_works() {
         let command = MockCommand::new (ONE_WAY_MESSAGE.clone())
@@ -298,9 +283,8 @@ mod tests {
             command_factory: Box::new(command_factory),
             processor_factory: Box::new (processor_factory),
         };
-        let mut stream_holder = FakeStreamHolder::new();
 
-        let result = subject.go(&mut stream_holder.streams(), &[
+        let result = subject.go(&mut FakeStreamHolder::new().streams(), &[
             "command".to_string(),
             "--param1".to_string(),
             "value1".to_string(),
@@ -314,8 +298,6 @@ mod tests {
         ]);
 
         assert_eq! (result, 0);
-        assert_eq! (stream_holder.stdout.get_string(), "MockCommand output".to_string());
-        assert_eq! (stream_holder.stderr.get_string(), "MockCommand error".to_string());
         let c_make_params = c_make_params_arc.lock().unwrap();
         assert_eq! (*c_make_params, vec![
             vec!["subcommand".to_string(), "--param3".to_string(), "value3".to_string(),
@@ -334,10 +316,27 @@ mod tests {
             "param4".to_string(),
             "param5".to_string(),
         ]]);
-        let process_params = process_params_arc.lock().unwrap();
-        assert_eq! (*process_params, vec![
-            Box::new (MockCommand::new(ONE_WAY_MESSAGE.clone()))
-        ]);
-        unimplemented! ("Check transaction too");
+        let mut process_params = process_params_arc.lock().unwrap();
+        let command = process_params.remove (0);
+        let stream_holder_arc = Arc::new (Mutex::new (FakeStreamHolder::new()));
+        let stream_holder_arc_inner = stream_holder_arc.clone();
+        let transact_params_arc = Arc::new (Mutex::new (vec![]));
+        let result = {
+            let mut stream_holder = stream_holder_arc_inner.lock().unwrap();
+            let mut streams = stream_holder.streams();
+            let context = CommandContextMock::new(&mut streams)
+                .transact_params(&transact_params_arc)
+                .transact_result(Ok(None));
+            let mut boxed_context: Box<dyn CommandContext> = Box::new (context);
+
+            command.execute(&mut boxed_context)
+        };
+
+        assert_eq! (result, Ok(()));
+        let transact_params = transact_params_arc.lock().unwrap();
+        assert_eq! (*transact_params, vec![ONE_WAY_MESSAGE.clone()]);
+        let stream_holder = stream_holder_arc.lock().unwrap();
+        assert_eq! (stream_holder.stdout.get_string(), "MockCommand output".to_string());
+        assert_eq! (stream_holder.stderr.get_string(), "MockCommand error".to_string());
     }
 }
