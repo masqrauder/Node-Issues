@@ -5,6 +5,18 @@ use std::io::{Write, Read};
 use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
 use masq_lib::ui_traffic_converter::UnmarshalError;
 
+pub trait CommandContextFactory {
+    fn make (&self, port: u16, streams: &StdStreams<'_>);
+}
+
+pub struct CommandContextFactoryReal {}
+
+impl CommandContextFactory for CommandContextFactoryReal {
+    fn make(&self, port: u16, streams: &StdStreams<'_>) {
+        unimplemented!()
+    }
+}
+
 pub trait CommandContext<'a> {
     fn transact (&mut self, message: NodeFromUiMessage) -> Result<Option<NodeToUiMessage>, UnmarshalError>;
     fn stdin (&mut self) -> &mut (dyn Read);

@@ -16,6 +16,9 @@ use masq_lib::ui_traffic_converter::TrafficConversionError::JsonSyntaxError;
 use masq_lib::ui_traffic_converter::UnmarshalError::Critical;
 use masq_lib::command::StdStreams;
 use crate::command_processor;
+use crate::commands::CommandError;
+use crate::command_context::{CommandContext, CommandContextFactory};
+use crate::commands::CommandError::Transaction;
 
 lazy_static! {
         pub static ref ONE_WAY_MESSAGE: NodeFromUiMessage = NodeFromUiMessage {
@@ -27,6 +30,41 @@ lazy_static! {
             body: UiSetup {values: vec![]}.tmb(0),
         };
     }
+
+pub enum CommandContextFactoryError {
+
+}
+
+pub struct CommandContextFactoryMock {
+    make_params: Arc<Mutex<Vec<u16>>>,
+    make_results: RefCell<Vec<Result<Box<dyn CommandContext<'_>>, CommandContextFactoryError>>>,
+}
+
+impl CommandContextFactory for CommandContextFactoryMock {
+    fn make<'a>(&self, port: u16, streams: &StdStreams<'a>) -> Result<Box<dyn CommandContext<'a>>, CommandContextFactoryError> {
+        self.make_params.lock().unwrap().push (port);
+        self.make_results.borrow_mut().remove(0)
+    }
+}
+
+impl CommandContextFactoryMock {
+    pub fn new () -> Self {
+        Self {
+            make_params: Arc::new (Mutex::new (vec![])),
+            make_results: RefCell::new (vec![]),
+        }
+    }
+
+    pub fn make_params(mut self, params: &Arc<Mutex<Vec<u16>>>) -> Self {
+        self.make_params = params.clone();
+        self
+    }
+
+    pub fn make_result(self, result: Result<Box<dyn CommandContext<'_>>, CommandContextFactoryError>) -> Self {
+        self.make_results.borrow_mut().push (result);
+        self
+    }
+}
 
 pub struct CommandContextMock<'a> {
     transact_params: Arc<Mutex<Vec<NodeFromUiMessage>>>,
@@ -192,7 +230,7 @@ impl command_processor::Command for MockCommand {
     fn execute<'a>(&self, context: &mut Box<dyn CommandContext<'a> + 'a>) -> Result<(), CommandError> {
         match context.transact (self.message.clone()) {
             Ok(_) => (),
-            Err(e) => return Err(CommandError::Transaction(e)),
+            Err(e) => return Err(Transaction(e)),
         }
         writeln!(context.stdout(), "MockCommand output").unwrap();
         writeln!(context.stderr(), "MockCommand error").unwrap();
