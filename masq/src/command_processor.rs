@@ -93,11 +93,11 @@ pub struct CommandProcessorNull {}
 
 impl CommandProcessor for CommandProcessorNull {
     fn process(&mut self, command: Box<dyn Command>) -> Result<(), CommandError> {
-        unimplemented!()
+        panic!("masq was not properly initialized")
     }
 
     fn shutdown(&mut self) {
-        unimplemented!()
+        panic!("masq was not properly initialized")
     }
 }
 

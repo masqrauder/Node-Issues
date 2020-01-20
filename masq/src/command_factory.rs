@@ -5,7 +5,7 @@ use crate::command_processor::{Command, CommandError, CommandContext};
 
 #[derive(Debug, PartialEq)]
 pub enum CommandFactoryError {
-
+    SyntaxError(String),
 }
 
 pub trait CommandFactory {

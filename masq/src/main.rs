@@ -8,6 +8,7 @@ use masq_lib::command::{StdStreams, Command};
 use std::io;
 use crate::command_factory::{CommandFactoryReal, CommandFactory};
 use crate::command_processor::{CommandProcessor, CommandProcessorFactory, CommandProcessorFactoryReal};
+use crate::command_factory::CommandFactoryError::SyntaxError;
 
 fn main() {
     let mut streams: StdStreams<'_> = StdStreams {
@@ -30,12 +31,16 @@ struct Main {
 impl command::Command for Main {
     fn go(&mut self, streams: &mut StdStreams<'_>, args: &[String]) -> u8 {
         let mut processor = self.processor_factory.make (streams, args);
-        let command = match self.command_factory.make (Self::extract_subcommand(args)) {
-            Ok(c) => c,
-            Err(e) => unimplemented!("{:?}", e),
+        let command_parts = match Self::extract_subcommand(args) {
+            Ok(v) => v,
+            Err(msg) => {
+                writeln! (streams.stderr, "{}", msg).expect ("writeln! failed");
+                return 1
+            }
         };
-        if let Err(e) = processor.process (command) {
-            unimplemented! ("{:?}", e)
+        if let Err(msg) = self.handle_command(&mut processor, command_parts) {
+            writeln! (streams.stderr, "{}", msg).expect ("writeln! failed");
+            return 1
         }
         processor.shutdown();
         0
@@ -50,17 +55,28 @@ impl Main {
         }
     }
 
-    fn extract_subcommand(args: &[String]) -> Vec<String> {
+    fn extract_subcommand(args: &[String]) -> Result<Vec<String>, String> {
         let mut args_vec: Vec<String> = args.into_iter().map(|s| s.clone()).collect();
         let mut subcommand_idx = 0;
         for idx in 1..args_vec.len() {
             let one = &args_vec[idx - 1];
             let two = &args_vec[idx];
             if !one.starts_with ("--") && !two.starts_with ("--") {
-                return args_vec.into_iter ().skip (idx).collect()
+                return Ok(args_vec.into_iter ().skip (idx).collect())
             }
         }
-        panic! ("No subcommand found in {:?}", args_vec);
+        return Err(format!("No masq subcommand found in '{}'", args_vec.join(" ")));
+    }
+
+    fn handle_command(&self, processor: &mut Box<dyn CommandProcessor>, command_parts: Vec<String>) -> Result<(), String> {
+        let command = match self.command_factory.make (command_parts) {
+            Ok(c) => c,
+            Err(SyntaxError(msg)) => return Err(msg),
+        };
+        if let Err(e) = processor.process (command) {
+            return Err(format!("{:?}", e))
+        }
+        Ok(())
     }
 }
 
@@ -72,12 +88,15 @@ mod tests {
     use crate::command_processor::{CommandError, CommandProcessorFactory, CommandContext};
     use std::cell::RefCell;
     use crate::command_factory::{CommandFactoryError};
-    use masq_lib::ui_traffic_converter::UnmarshalError;
+    use masq_lib::ui_traffic_converter::{UnmarshalError, TrafficConversionError};
     use masq_lib::ui_gateway::{NodeToUiMessage, NodeFromUiMessage};
     use masq_lib::messages::{UiShutdownOrder, UiSetup};
     use lazy_static::lazy_static;
     use masq_lib::messages::ToMessageBody;
     use std::io::{Read, Write};
+    use crate::command_processor::CommandError::Transaction;
+    use masq_lib::ui_traffic_converter::TrafficConversionError::JsonSyntaxError;
+    use masq_lib::ui_traffic_converter::UnmarshalError::Critical;
 
     lazy_static! {
         static ref ONE_WAY_MESSAGE: NodeFromUiMessage = NodeFromUiMessage {
@@ -277,7 +296,7 @@ mod tests {
     }
 
     #[test]
-    fn go_works() {
+    fn go_works_when_everything_is_copacetic() {
         let command = MockCommand::new (ONE_WAY_MESSAGE.clone())
             .execute_result (Ok(()));
         let c_make_params_arc = Arc::new (Mutex::new (vec![]));
@@ -351,5 +370,89 @@ mod tests {
         let stream_holder = stream_holder_arc.lock().unwrap();
         assert_eq! (stream_holder.stdout.get_string(), "MockCommand output\n".to_string());
         assert_eq! (stream_holder.stderr.get_string(), "MockCommand error\n".to_string());
+    }
+
+    #[test]
+    fn go_works_when_given_no_subcommand() {
+        let command = MockCommand::new (ONE_WAY_MESSAGE.clone())
+            .execute_result (Ok(()));
+        let command_factory = CommandFactoryMock::new();
+        let processor = CommandProcessorMock::new();
+        let processor_factory = CommandProcessorFactoryMock::new()
+            .make_result (Box::new (processor));
+        let mut subject = Main {
+            command_factory: Box::new(command_factory),
+            processor_factory: Box::new (processor_factory),
+        };
+        let mut stream_holder = FakeStreamHolder::new();
+
+        let result = subject.go(&mut stream_holder.streams(), &[
+            "command".to_string(),
+            "--param1".to_string(),
+            "value1".to_string(),
+        ]);
+
+        assert_eq! (result, 1);
+        assert_eq! (stream_holder.stdout.get_string(), "".to_string());
+        assert_eq! (stream_holder.stderr.get_string(), "No masq subcommand found in 'command --param1 value1'\n".to_string());
+    }
+
+    #[test]
+    fn go_works_when_command_cant_be_created() {
+        let command = MockCommand::new (ONE_WAY_MESSAGE.clone())
+            .execute_result (Ok(()));
+        let c_make_params_arc = Arc::new (Mutex::new (vec![]));
+        let command_factory = CommandFactoryMock::new()
+            .make_params(&c_make_params_arc)
+            .make_result(Err(CommandFactoryError::SyntaxError("booga".to_string())));
+        let processor = CommandProcessorMock::new();
+        let processor_factory = CommandProcessorFactoryMock::new()
+            .make_result (Box::new (processor));
+        let mut subject = Main {
+            command_factory: Box::new(command_factory),
+            processor_factory: Box::new (processor_factory),
+        };
+        let mut stream_holder = FakeStreamHolder::new();
+
+        let result = subject.go(&mut stream_holder.streams(), &[
+            "command".to_string(),
+            "subcommand".to_string(),
+        ]);
+
+        assert_eq! (result, 1);
+        let c_make_params = c_make_params_arc.lock().unwrap();
+        assert_eq! (*c_make_params, vec![
+            vec!["subcommand".to_string()],
+        ]);
+        assert_eq! (stream_holder.stdout.get_string(), "".to_string());
+        assert_eq! (stream_holder.stderr.get_string(), "booga\n".to_string());
+    }
+
+    #[test]
+    fn go_works_when_command_is_unhappy() {
+        let command = MockCommand::new (ONE_WAY_MESSAGE.clone())
+            .execute_result (Ok(())); // irrelevant
+        let command_factory = CommandFactoryMock::new()
+            .make_result(Ok(Box::new (command)));
+        let process_params_arc = Arc::new (Mutex::new (vec![]));
+        let processor = CommandProcessorMock::new()
+            .process_params (&process_params_arc)
+            .process_result(Err(Transaction(Critical(JsonSyntaxError("booga".to_string())))));
+        let processor_factory = CommandProcessorFactoryMock::new()
+            .make_result (Box::new (processor));
+        let mut subject = Main {
+            command_factory: Box::new(command_factory),
+            processor_factory: Box::new (processor_factory),
+        };
+        let mut stream_holder = FakeStreamHolder::new();
+
+        let result = subject.go(&mut stream_holder.streams(), &[
+            "command".to_string(),
+            "subcommand".to_string(),
+        ]);
+
+        assert_eq! (result, 1);
+        assert_eq! (stream_holder.stdout.get_string(), "".to_string());
+        assert_eq! (stream_holder.stderr.get_string(), "Transaction(Critical(JsonSyntaxError(\"booga\")))\n".to_string());
     }
 }
