@@ -1,7 +1,9 @@
 // Copyright (c) 2019-2020, MASQ (https://masq.ai) and/or its affiliates. All rights reserved.
 
+mod command_context;
 mod command_factory;
 mod command_processor;
+mod commands;
 
 #[cfg(test)]
 mod test_utils;

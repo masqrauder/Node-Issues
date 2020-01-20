@@ -5,52 +5,7 @@ use masq_lib::ui_traffic_converter::UnmarshalError;
 use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
 use std::io::{Read, Write};
 use masq_lib::command::StdStreams;
-
-#[derive (Debug, PartialEq)]
-pub enum CommandError {
-    Transaction(UnmarshalError),
-}
-
-pub trait CommandContext<'a> {
-    fn transact (&mut self, message: NodeFromUiMessage) -> Result<Option<NodeToUiMessage>, UnmarshalError>;
-    fn stdin (&mut self) -> &mut (dyn Read);
-    fn stdout (&mut self) -> &mut (dyn Write);
-    fn stderr (&mut self) -> &mut (dyn Write);
-}
-
-pub struct CommandContextReal<'a> {
-    streams: &'a StdStreams<'a>,
-}
-
-impl<'a> CommandContext<'a> for CommandContextReal<'_> {
-    fn transact(&mut self, message: NodeFromUiMessage) -> Result<Option<NodeToUiMessage>, UnmarshalError> {
-        unimplemented!()
-    }
-
-    fn stdin(&mut self) -> &mut (dyn Read) {
-        unimplemented!()
-    }
-
-    fn stdout(&mut self) -> &mut (dyn Write) {
-        unimplemented!()
-    }
-
-    fn stderr(&mut self) -> &mut (dyn Write) {
-        unimplemented!()
-    }
-}
-
-impl<'a> CommandContextReal<'a> {
-    fn new (port: u16, streams: &'a mut StdStreams<'a>) -> Self {
-        Self {
-            streams
-        }
-    }
-}
-
-pub trait Command: Debug {
-    fn execute<'a>(&self, context: &mut Box<dyn CommandContext<'a> + 'a>) -> Result<(), CommandError>;
-}
+use crate::commands::{Command, CommandError};
 
 pub trait CommandProcessorFactory {
     fn make(&self, streams: &mut StdStreams<'_>, args: &[String]) -> Box<dyn CommandProcessor>;
@@ -105,6 +60,7 @@ impl CommandProcessor for CommandProcessorNull {
 mod tests {
     use super::*;
     use crate::command_factory::SetupCommand;
+    use crate::commands::SetupCommand;
 
     #[test]
     #[should_panic(expected = "masq was not properly initialized")]
