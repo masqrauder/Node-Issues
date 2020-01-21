@@ -2,7 +2,6 @@
 
 mod utils;
 
-use crate::utils::{MockWebSocketsServer, MasqProcess};
 use masq_lib::utils::find_free_port;
 use masq_lib::ui_gateway::{NodeToUiMessage, NodeFromUiMessage};
 use masq_lib::ui_gateway::MessageTarget::ClientId;

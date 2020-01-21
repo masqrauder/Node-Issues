@@ -2,7 +2,6 @@
 
 use std::sync::{Mutex, Arc};
 use masq_lib::test_utils::fake_stream_holder::{FakeStreamHolder};
-use crate::command_processor::{CommandError, CommandProcessorFactory, CommandContext, CommandProcessor};
 use std::cell::RefCell;
 use crate::command_factory::{CommandFactoryError, CommandFactory};
 use masq_lib::ui_traffic_converter::{UnmarshalError, TrafficConversionError};
@@ -11,60 +10,57 @@ use masq_lib::messages::{UiShutdownOrder, UiSetup};
 use lazy_static::lazy_static;
 use masq_lib::messages::ToMessageBody;
 use std::io::{Read, Write};
-use crate::command_processor::CommandError::Transaction;
 use masq_lib::ui_traffic_converter::TrafficConversionError::JsonSyntaxError;
 use masq_lib::ui_traffic_converter::UnmarshalError::Critical;
 use masq_lib::command::StdStreams;
 use crate::command_processor;
-use crate::commands::CommandError;
-use crate::command_context::{CommandContext, CommandContextFactory};
+use crate::commands::{CommandError, Command};
+use crate::command_context::{CommandContext};
+//use crate::command_context::{CommandContextFactory, CommandContextFactoryError};
 use crate::commands::CommandError::Transaction;
+use crate::command_processor::{CommandProcessor, CommandProcessorFactory};
 
 lazy_static! {
-        pub static ref ONE_WAY_MESSAGE: NodeFromUiMessage = NodeFromUiMessage {
-            client_id: 0,
-            body: UiShutdownOrder {}.tmb(0),
-        };
-        pub static ref TWO_WAY_MESSAGE: NodeFromUiMessage = NodeFromUiMessage {
-            client_id: 0,
-            body: UiSetup {values: vec![]}.tmb(0),
-        };
-    }
-
-pub enum CommandContextFactoryError {
-
+    pub static ref ONE_WAY_MESSAGE: NodeFromUiMessage = NodeFromUiMessage {
+        client_id: 0,
+        body: UiShutdownOrder {}.tmb(0),
+    };
+    pub static ref TWO_WAY_MESSAGE: NodeFromUiMessage = NodeFromUiMessage {
+        client_id: 0,
+        body: UiSetup {values: vec![]}.tmb(0),
+    };
 }
 
-pub struct CommandContextFactoryMock {
-    make_params: Arc<Mutex<Vec<u16>>>,
-    make_results: RefCell<Vec<Result<Box<dyn CommandContext<'_>>, CommandContextFactoryError>>>,
-}
-
-impl CommandContextFactory for CommandContextFactoryMock {
-    fn make<'a>(&self, port: u16, streams: &StdStreams<'a>) -> Result<Box<dyn CommandContext<'a>>, CommandContextFactoryError> {
-        self.make_params.lock().unwrap().push (port);
-        self.make_results.borrow_mut().remove(0)
-    }
-}
-
-impl CommandContextFactoryMock {
-    pub fn new () -> Self {
-        Self {
-            make_params: Arc::new (Mutex::new (vec![])),
-            make_results: RefCell::new (vec![]),
-        }
-    }
-
-    pub fn make_params(mut self, params: &Arc<Mutex<Vec<u16>>>) -> Self {
-        self.make_params = params.clone();
-        self
-    }
-
-    pub fn make_result(self, result: Result<Box<dyn CommandContext<'_>>, CommandContextFactoryError>) -> Self {
-        self.make_results.borrow_mut().push (result);
-        self
-    }
-}
+//pub struct CommandContextFactoryMock<'a> {
+//    make_params: Arc<Mutex<Vec<u16>>>,
+//    make_results: RefCell<Vec<Result<Box<dyn CommandContext<'a>>, CommandContextFactoryError>>>,
+//}
+//
+//impl CommandContextFactory for CommandContextFactoryMock<'_> {
+//    fn make<'a>(&self, port: u16, streams: &StdStreams<'a>) -> Result<Box<dyn CommandContext<'a>>, CommandContextFactoryError> {
+//        self.make_params.lock().unwrap().push (port);
+//        self.make_results.borrow_mut().remove(0)
+//    }
+//}
+//
+//impl<'a> CommandContextFactoryMock<'a> {
+//    pub fn new () -> Self {
+//        Self {
+//            make_params: Arc::new (Mutex::new (vec![])),
+//            make_results: RefCell::new (vec![]),
+//        }
+//    }
+//
+//    pub fn make_params(mut self, params: &Arc<Mutex<Vec<u16>>>) -> Self {
+//        self.make_params = params.clone();
+//        self
+//    }
+//
+//    pub fn make_result(self, result: Result<Box<dyn CommandContext<'a>>, CommandContextFactoryError>) -> Self {
+//        self.make_results.borrow_mut().push (result);
+//        self
+//    }
+//}
 
 pub struct CommandContextMock<'a> {
     transact_params: Arc<Mutex<Vec<NodeFromUiMessage>>>,
@@ -113,11 +109,11 @@ impl<'a> CommandContextMock<'a> {
 
 pub struct CommandFactoryMock {
     make_params: Arc<Mutex<Vec<Vec<String>>>>,
-    make_results: RefCell<Vec<Result<Box<dyn command_processor::Command>, CommandFactoryError>>>,
+    make_results: RefCell<Vec<Result<Box<dyn Command>, CommandFactoryError>>>,
 }
 
 impl CommandFactory for CommandFactoryMock {
-    fn make(&self, pieces: Vec<String>) -> Result<Box<dyn command_processor::Command>, CommandFactoryError> {
+    fn make(&self, pieces: Vec<String>) -> Result<Box<dyn Command>, CommandFactoryError> {
         self.make_params.lock().unwrap().push(pieces);
         self.make_results.borrow_mut().remove(0)
     }
@@ -136,20 +132,20 @@ impl CommandFactoryMock {
         self
     }
 
-    pub fn make_result(self, result: Result<Box<dyn command_processor::Command>, CommandFactoryError>) -> Self {
+    pub fn make_result(self, result: Result<Box<dyn Command>, CommandFactoryError>) -> Self {
         self.make_results.borrow_mut().push (result);
         self
     }
 }
 
 pub struct CommandProcessorMock {
-    process_params: Arc<Mutex<Vec<Box<dyn command_processor::Command>>>>,
+    process_params: Arc<Mutex<Vec<Box<dyn Command>>>>,
     process_results: RefCell<Vec<Result<(), CommandError>>>,
     shutdown_params: Arc<Mutex<Vec<()>>>,
 }
 
 impl CommandProcessor for CommandProcessorMock {
-    fn process(&mut self, command: Box<dyn command_processor::Command>) -> Result<(), CommandError> {
+    fn process(&mut self, command: Box<dyn Command>) -> Result<(), CommandError> {
         self.process_params.lock().unwrap().push (command);
         self.process_results.borrow_mut().remove(0)
     }
@@ -168,7 +164,7 @@ impl CommandProcessorMock {
         }
     }
 
-    pub fn process_params (mut self, params: &Arc<Mutex<Vec<Box<dyn command_processor::Command>>>>) -> Self {
+    pub fn process_params (mut self, params: &Arc<Mutex<Vec<Box<dyn Command>>>>) -> Self {
         self.process_params = params.clone();
         self
     }
@@ -226,7 +222,7 @@ impl std::fmt::Debug for MockCommand {
     }
 }
 
-impl command_processor::Command for MockCommand {
+impl Command for MockCommand {
     fn execute<'a>(&self, context: &mut Box<dyn CommandContext<'a> + 'a>) -> Result<(), CommandError> {
         match context.transact (self.message.clone()) {
             Ok(_) => (),

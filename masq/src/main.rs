@@ -2,7 +2,7 @@
 
 mod command_context;
 mod command_factory;
-mod command_processor;
+pub mod command_processor;
 mod commands;
 
 #[cfg(test)]
@@ -14,6 +14,7 @@ use std::io;
 use crate::command_factory::{CommandFactoryReal, CommandFactory};
 use crate::command_processor::{CommandProcessor, CommandProcessorFactory, CommandProcessorFactoryReal};
 use crate::command_factory::CommandFactoryError::SyntaxError;
+//use crate::command_context::CommandContextFactoryReal;
 
 fn main() {
     let mut streams: StdStreams<'_> = StdStreams {
@@ -56,13 +57,14 @@ impl Main {
     pub fn new() -> Self {
         Self {
             command_factory: Box::new(CommandFactoryReal::new()),
-            processor_factory: Box::new (CommandProcessorFactoryReal{}),
+            processor_factory: Box::new (CommandProcessorFactoryReal{
+//                command_context_factory: Box::new(CommandContextFactoryReal{})
+            }),
         }
     }
 
     fn extract_subcommand(args: &[String]) -> Result<Vec<String>, String> {
         let mut args_vec: Vec<String> = args.into_iter().map(|s| s.clone()).collect();
-        let mut subcommand_idx = 0;
         for idx in 1..args_vec.len() {
             let one = &args_vec[idx - 1];
             let two = &args_vec[idx];
@@ -91,11 +93,11 @@ mod tests {
     use crate::test_utils::mocks::{MockCommand, CommandFactoryMock, CommandProcessorMock, CommandProcessorFactoryMock, CommandContextMock};
     use std::sync::{Arc, Mutex};
     use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
-    use crate::command_processor::CommandContext;
     use masq_lib::ui_traffic_converter::TrafficConversionError::JsonSyntaxError;
     use masq_lib::ui_traffic_converter::UnmarshalError::Critical;
-    use crate::command_processor::CommandError::Transaction;
     use crate::test_utils::mocks::ONE_WAY_MESSAGE;
+    use crate::commands::CommandError::Transaction;
+    use crate::command_context::CommandContext;
 
     #[test]
     fn go_works_when_everything_is_copacetic() {
