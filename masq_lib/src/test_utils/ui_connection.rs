@@ -9,7 +9,6 @@ use websocket::sync::Client;
 use websocket::{ClientBuilder, OwnedMessage};
 use crate::utils::localhost;
 
-// TODO: This was taken from the test tree and therefore needs to be made tolerant of errors and
 // covered with tests.
 pub struct UiConnection {
     context_id: u64,

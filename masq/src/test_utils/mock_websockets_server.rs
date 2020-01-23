@@ -14,9 +14,11 @@ use websocket::result::WebSocketError;
 use std::sync::mpsc::Sender;
 use std::time::Duration;
 use std::process::{Command, Child, Stdio};
+use masq_lib::messages::NODE_UI_PROTOCOL;
 
 pub struct MockWebSocketsServer {
     port: u16,
+    pub protocol: String,
     responses_arc: Arc<Mutex<Vec<String>>>,
 }
 
@@ -31,6 +33,7 @@ impl MockWebSocketsServer {
     pub fn new(port: u16) -> Self {
         Self {
             port,
+            protocol: NODE_UI_PROTOCOL.to_string(),
             responses_arc: Arc::new(Mutex::new(vec![])),
         }
     }
@@ -58,7 +61,7 @@ impl MockWebSocketsServer {
             let mut requests = inner_requests_arc.lock().unwrap();
             ready_tx.send(()).unwrap();
             let upgrade = server.accept().unwrap();
-            if upgrade.protocols().iter().find(|p| *p == "MASQNode-UIv2").is_none() {
+            if upgrade.protocols().iter().find(|p| *p == &self.protocol).is_none() {
                 panic! ("No recognized protocol: {:?}", upgrade.protocols())
             }
             let mut client = upgrade.accept().unwrap();
@@ -117,7 +120,7 @@ impl MockWebSocketsServerStopHandle {
 mod tests {
     use super::*;
     use masq_lib::ui_gateway::MessageTarget::ClientId;
-    use masq_lib::messages::{UiSetup, UiSetupValue, UiShutdownOrder};
+    use masq_lib::messages::{UiSetup, UiSetupValue, UiShutdownOrder, NODE_UI_PROTOCOL};
     use masq_lib::test_utils::ui_connection::UiConnection;
     use masq_lib::utils::find_free_port;
     use masq_lib::messages::{FromMessageBody, ToMessageBody};
@@ -141,7 +144,7 @@ mod tests {
             .queue_response (first_expected_response.clone())
             .queue_response (second_expected_response.clone())
             .start();
-        let mut connection = UiConnection::new(port, "MASQNode-UIv2");
+        let mut connection = UiConnection::new(port, NODE_UI_PROTOCOL);
         let first_request_payload = UiSetup {
             values: vec![
                 UiSetupValue{ name: "direction".to_string(), value: "from UI".to_string() }

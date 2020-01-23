@@ -171,7 +171,7 @@ impl WebSocketSupervisorReal {
         inner: Arc<Mutex<WebSocketSupervisorInner>>,
         logger: &Logger,
     ) {
-        if upgrade.protocols().contains(&String::from("MASQNode-UIv2")) {
+        if upgrade.protocols().contains(&String::from(NODE_UI_PROTOCOL)) {
             Self::accept_upgrade_request(upgrade, socket_addr, inner, logger);
         } else if upgrade.protocols().contains(&String::from("MASQNode-UI")) {
             Self::accept_old_upgrade_request(upgrade, socket_addr, inner, logger);
@@ -213,7 +213,7 @@ impl WebSocketSupervisorReal {
         info!(logger_clone, "UI connected at {}", socket_addr);
         let upgrade_future =
             upgrade
-                .use_protocol("MASQNode-UIv2")
+                .use_protocol(NODE_UI_PROTOCOL)
                 .accept()
                 .map(move |(client, _)| {
                     Self::handle_connection(client, &inner, &logger_clone, socket_addr, false);
@@ -835,8 +835,8 @@ mod tests {
             system.run();
         });
 
-        let mut one_client = wait_for_client(port, "MASQNode-UIv2");
-        let mut another_client = wait_for_client(port, "MASQNode-UIv2");
+        let mut one_client = wait_for_client(port, NODE_UI_PROTOCOL);
+        let mut another_client = wait_for_client(port, NODE_UI_PROTOCOL);
 
         one_client
             .send_message(&Message::text(r#"{"opcode": "one", "payload": {}}"#))

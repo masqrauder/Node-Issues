@@ -141,7 +141,7 @@ fn request_financial_information_integration() {
     let descriptor_client =
         ClientBuilder::new(format!("ws://{}:{}", localhost(), DEFAULT_UI_PORT).as_str())
             .unwrap()
-            .add_protocol("MASQNode-UIv2")
+            .add_protocol(NODE_UI_PROTOCOL)
             .async_connect_insecure()
             .and_then(|(s, _)| s.send(OwnedMessage::Text(request_msg)))
             .and_then(|s| s.into_future().map_err(|e| e.0))

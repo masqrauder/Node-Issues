@@ -39,7 +39,7 @@ fn initialization_sequence_integration() {
     let mut daemon = MASQNode::start_daemon(Some(
         CommandConfig::new().pair("--ui-port", format!("{}", daemon_port).as_str()),
     ));
-    let mut initialization_client = UiConnection::new(daemon_port, "MASQNode-UIv2");
+    let mut initialization_client = UiConnection::new(daemon_port, NODE_UI_PROTOCOL);
     let data_directory = std::env::current_dir()
         .unwrap()
         .join("generated")
@@ -89,7 +89,7 @@ fn initialization_sequence_integration() {
     let actual_payload: UiFinancialsRequest =
         serde_json::from_str(&running_financials_response.payload).unwrap();
     assert_eq!(actual_payload, expected_payload);
-    let mut service_client = UiConnection::new(start_response.redirect_ui_port, "MASQNode-UIv2");
+    let mut service_client = UiConnection::new(start_response.redirect_ui_port, NODE_UI_PROTOCOL);
     service_client.send(UiShutdownOrder {});
     wait_for_process_end(start_response.new_process_id);
     let _ = daemon.kill();

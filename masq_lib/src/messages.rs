@@ -6,6 +6,8 @@ use crate::messages::UiMessageError::{BadOpcode, BadPath, PayloadError, Deserial
 use crate::ui_gateway::{MessageBody};
 use crate::ui_gateway::MessagePath::{OneWay, TwoWay};
 
+pub const NODE_UI_PROTOCOL: &str = "MASQNode-UIv2";
+
 pub const NODE_LAUNCH_ERROR: u64 = 0x8000_0000_0000_0001;
 pub const NODE_NOT_RUNNING_ERROR: u64 = 0x8000_0000_0000_0002;
 pub const UNMARSHAL_ERROR: u64 = 0x8000_0000_0000_0003;
@@ -20,6 +22,8 @@ pub enum UiMessageError {
 
 pub trait ToMessageBody: serde::Serialize {
     fn tmb(self, context_id: u64) -> MessageBody;
+    fn opcode(&self) -> &str;
+    fn is_two_way(&self) -> bool;
 }
 
 pub trait FromMessageBody: DeserializeOwned {
@@ -36,6 +40,14 @@ macro_rules! one_way_message {
                     path: OneWay,
                     payload: Ok(json),
                 }
+            }
+
+            fn opcode(&self) -> &str {
+                $opcode
+            }
+
+            fn is_two_way(&self) -> bool {
+                false
             }
         }
 
@@ -70,6 +82,14 @@ macro_rules! two_way_message {
                     path: TwoWay(context_id),
                     payload: Ok(json),
                 }
+            }
+
+            fn opcode(&self) -> &str {
+                $opcode
+            }
+
+            fn is_two_way(&self) -> bool {
+                true
             }
         }
 
@@ -209,6 +229,19 @@ mod tests {
     use super::*;
     use crate::ui_gateway::MessagePath::{TwoWay, OneWay};
     use crate::messages::UiMessageError::{BadOpcode, BadPath, PayloadError, DeserializationError};
+
+    #[test]
+    fn ui_financials_methods_were_correctly_generated() {
+        let subject = UiFinancialsResponse {
+            payables: vec![],
+            total_payable: 0,
+            receivables: vec![],
+            total_receivable: 0,
+        };
+
+        assert_eq! (subject.opcode(), "financials");
+        assert_eq! (subject.is_two_way(), true);
+    }
 
     #[test]
     fn can_serialize_ui_financials_response() {
@@ -371,6 +404,14 @@ mod tests {
                 4321
             ))
         );
+    }
+
+    #[test]
+    fn ui_shutdown_order_methods_were_correctly_generated() {
+        let subject = UiShutdownOrder {};
+
+        assert_eq! (subject.opcode(), "shutdownOrder");
+        assert_eq! (subject.is_two_way(), false);
     }
 
     #[test]

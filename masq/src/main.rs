@@ -4,6 +4,7 @@ mod command_context;
 mod command_factory;
 pub mod command_processor;
 mod commands;
+mod websockets_client;
 
 #[cfg(test)]
 mod test_utils;

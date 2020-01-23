@@ -28,7 +28,7 @@ pub struct VerifierToolsReal {}
 impl VerifierTools for VerifierToolsReal {
     fn can_connect_to_ui_gateway(&self, ui_port: u16) -> bool {
         let mut builder = match ClientBuilder::new(format!("ws://127.0.0.1:{}", ui_port).as_str()) {
-            Ok(builder) => builder.add_protocol("MASQNode-UIv2"),
+            Ok(builder) => builder.add_protocol(NODE_UI_PROTOCOL),
             Err(e) => panic!(format!("{:?}", e)),
         };
         builder.connect_insecure().is_ok()
