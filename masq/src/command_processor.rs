@@ -33,7 +33,7 @@ pub trait CommandProcessor {
 }
 
 pub struct CommandProcessorReal<'a> {
-    context: Box<dyn CommandContext<'a>>
+    context: CommandContext<'a>
 }
 
 impl<'a> CommandProcessor for CommandProcessorReal<'a> {
@@ -70,8 +70,6 @@ mod tests {
     use crate::commands::SetupCommand;
     use masq_lib::utils::find_free_port;
     use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
-    use crate::test_utils::mocks::CommandContextMock;
-//    use crate::test_utils::mocks::CommandContextFactoryMock;
 
     #[test]
     #[should_panic(expected = "masq was not properly initialized")]

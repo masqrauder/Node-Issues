@@ -27,82 +27,6 @@ lazy_static! {
     };
 }
 
-//pub struct CommandContextFactoryMock<'a> {
-//    make_params: Arc<Mutex<Vec<u16>>>,
-//    make_results: RefCell<Vec<Result<Box<dyn CommandContext<'a>>, CommandContextFactoryError>>>,
-//}
-//
-//impl CommandContextFactory for CommandContextFactoryMock<'_> {
-//    fn make<'a>(&self, port: u16, streams: &StdStreams<'a>) -> Result<Box<dyn CommandContext<'a>>, CommandContextFactoryError> {
-//        self.make_params.lock().unwrap().push (port);
-//        self.make_results.borrow_mut().remove(0)
-//    }
-//}
-//
-//impl<'a> CommandContextFactoryMock<'a> {
-//    pub fn new () -> Self {
-//        Self {
-//            make_params: Arc::new (Mutex::new (vec![])),
-//            make_results: RefCell::new (vec![]),
-//        }
-//    }
-//
-//    pub fn make_params(mut self, params: &Arc<Mutex<Vec<u16>>>) -> Self {
-//        self.make_params = params.clone();
-//        self
-//    }
-//
-//    pub fn make_result(self, result: Result<Box<dyn CommandContext<'a>>, CommandContextFactoryError>) -> Self {
-//        self.make_results.borrow_mut().push (result);
-//        self
-//    }
-//}
-
-pub struct CommandContextMock<'a> {
-    transact_params: Arc<Mutex<Vec<NodeFromUiMessage>>>,
-    transact_results: Vec<Result<Option<NodeToUiMessage>, UnmarshalError>>,
-    streams: &'a mut StdStreams<'a>,
-}
-
-impl<'a> CommandContext<'a> for CommandContextMock<'a> {
-    fn transact(&mut self, message: NodeFromUiMessage) -> Result<Option<NodeToUiMessage>, UnmarshalError> {
-        self.transact_params.lock().unwrap().push (message);
-        self.transact_results.remove (0)
-    }
-
-    fn stdin(&mut self) -> &mut (dyn Read) {
-        self.streams.stdin
-    }
-
-    fn stdout(&mut self) -> &mut (dyn Write) {
-        self.streams.stdout
-    }
-
-    fn stderr(&mut self) -> &mut (dyn Write) {
-        self.streams.stderr
-    }
-}
-
-impl<'a> CommandContextMock<'a> {
-    pub fn new (streams: &'a mut StdStreams<'a>) -> Self {
-        Self {
-            transact_params: Arc::new(Mutex::new(vec![])),
-            transact_results: vec![],
-            streams,
-        }
-    }
-
-    pub fn transact_params (mut self, params: &Arc<Mutex<Vec<NodeFromUiMessage>>>) -> Self {
-        self.transact_params = params.clone();
-        self
-    }
-
-    pub fn transact_result (mut self, result: Result<Option<NodeToUiMessage>, UnmarshalError>) -> Self {
-        self.transact_results.push (result);
-        self
-    }
-}
-
 pub struct CommandFactoryMock {
     make_params: Arc<Mutex<Vec<Vec<String>>>>,
     make_results: RefCell<Vec<Result<Box<dyn Command>, CommandFactoryError>>>,
@@ -219,7 +143,7 @@ impl std::fmt::Debug for MockCommand {
 }
 
 impl Command for MockCommand {
-    fn execute<'a>(&self, context: &mut Box<dyn CommandContext<'a> + 'a>) -> Result<(), CommandError> {
+    fn execute<'a>(&self, context: &mut CommandContext<'a>) -> Result<(), CommandError> {
         match context.transact (self.message.clone()) {
             Ok(_) => (),
             Err(e) => return Err(Transaction(e)),

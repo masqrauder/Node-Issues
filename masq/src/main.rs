@@ -91,7 +91,7 @@ impl Main {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::mocks::{MockCommand, CommandFactoryMock, CommandProcessorMock, CommandProcessorFactoryMock, CommandContextMock};
+    use crate::test_utils::mocks::{MockCommand, CommandFactoryMock, CommandProcessorMock, CommandProcessorFactoryMock};
     use std::sync::{Arc, Mutex};
     use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
     use masq_lib::ui_traffic_converter::TrafficConversionError::JsonSyntaxError;
@@ -99,9 +99,12 @@ mod tests {
     use crate::test_utils::mocks::ONE_WAY_MESSAGE;
     use crate::commands::CommandError::Transaction;
     use crate::command_context::CommandContext;
+    use masq_lib::utils::find_free_port;
+    use crate::test_utils::mock_websockets_server::MockWebSocketsServer;
 
     #[test]
     fn go_works_when_everything_is_copacetic() {
+        let port = find_free_port();
         let command = MockCommand::new (ONE_WAY_MESSAGE.clone())
             .execute_result (Ok(()));
         let c_make_params_arc = Arc::new (Mutex::new (vec![]));
@@ -157,21 +160,14 @@ mod tests {
         let command = process_params.remove (0);
         let stream_holder_arc = Arc::new (Mutex::new (FakeStreamHolder::new()));
         let stream_holder_arc_inner = stream_holder_arc.clone();
-        let transact_params_arc = Arc::new (Mutex::new (vec![]));
         let result = {
             let mut stream_holder = stream_holder_arc_inner.lock().unwrap();
             let mut streams = stream_holder.streams();
-            let context = CommandContextMock::new(&mut streams)
-                .transact_params(&transact_params_arc)
-                .transact_result(Ok(None));
-            let mut boxed_context: Box<dyn CommandContext> = Box::new (context);
-
-            command.execute(&mut boxed_context)
+            let mut context = CommandContext::new(port, &mut streams);
+            command.execute(&mut context)
         };
 
-        assert_eq! (result, Ok(()));
-        let transact_params = transact_params_arc.lock().unwrap();
-        assert_eq! (*transact_params, vec![ONE_WAY_MESSAGE.clone()]);
+        assert_eq! (result, Err("Something about not a real command".to_string()));
         let stream_holder = stream_holder_arc.lock().unwrap();
         assert_eq! (stream_holder.stdout.get_string(), "MockCommand output\n".to_string());
         assert_eq! (stream_holder.stderr.get_string(), "MockCommand error\n".to_string());

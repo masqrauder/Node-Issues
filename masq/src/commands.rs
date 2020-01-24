@@ -10,7 +10,7 @@ pub enum CommandError {
 }
 
 pub trait Command: Debug {
-    fn execute<'a>(&self, context: &mut Box<dyn CommandContext<'a> + 'a>) -> Result<(), CommandError>;
+    fn execute<'a>(&self, context: &mut CommandContext<'a>) -> Result<(), CommandError>;
 }
 
 #[derive (Debug, PartialEq)]
@@ -34,7 +34,7 @@ pub struct SetupCommand {
 }
 
 impl Command for SetupCommand {
-    fn execute<'a>(&self, context: &mut Box<dyn CommandContext<'a> + 'a>) -> Result<(), CommandError> {
+    fn execute<'a>(&self, context: &mut CommandContext<'a>) -> Result<(), CommandError> {
         unimplemented!()
     }
 }
