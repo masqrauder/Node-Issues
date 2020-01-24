@@ -6,8 +6,8 @@ pub mod command_processor;
 mod commands;
 mod websockets_client;
 
-#[cfg(test)]
-mod test_utils;
+//#[cfg(test)]
+pub mod test_utils;
 
 use masq_lib::command;
 use masq_lib::command::{StdStreams, Command};
@@ -65,7 +65,7 @@ impl Main {
     }
 
     fn extract_subcommand(args: &[String]) -> Result<Vec<String>, String> {
-        let mut args_vec: Vec<String> = args.into_iter().map(|s| s.clone()).collect();
+        let args_vec: Vec<String> = args.into_iter().map(|s| s.clone()).collect();
         for idx in 1..args_vec.len() {
             let one = &args_vec[idx - 1];
             let two = &args_vec[idx];
@@ -179,8 +179,6 @@ mod tests {
 
     #[test]
     fn go_works_when_given_no_subcommand() {
-        let command = MockCommand::new (ONE_WAY_MESSAGE.clone())
-            .execute_result (Ok(()));
         let command_factory = CommandFactoryMock::new();
         let processor = CommandProcessorMock::new();
         let processor_factory = CommandProcessorFactoryMock::new()
@@ -204,8 +202,6 @@ mod tests {
 
     #[test]
     fn go_works_when_command_cant_be_created() {
-        let command = MockCommand::new (ONE_WAY_MESSAGE.clone())
-            .execute_result (Ok(()));
         let c_make_params_arc = Arc::new (Mutex::new (vec![]));
         let command_factory = CommandFactoryMock::new()
             .make_params(&c_make_params_arc)

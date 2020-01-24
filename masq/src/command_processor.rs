@@ -1,9 +1,5 @@
 // Copyright (c) 2019-2020, MASQ (https://masq.ai) and/or its affiliates. All rights reserved.
 
-use std::fmt::Debug;
-use masq_lib::ui_traffic_converter::UnmarshalError;
-use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
-use std::io::{Read, Write};
 use masq_lib::command::StdStreams;
 use crate::commands::{Command, CommandError};
 use crate::command_context::CommandContext;
@@ -76,7 +72,6 @@ mod tests {
     use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
     use crate::test_utils::mocks::CommandContextMock;
 //    use crate::test_utils::mocks::CommandContextFactoryMock;
-    use std::sync::{Mutex, Arc};
 
     #[test]
     #[should_panic(expected = "masq was not properly initialized")]

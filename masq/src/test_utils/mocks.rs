@@ -1,19 +1,15 @@
 // Copyright (c) 2019-2020, MASQ (https://masq.ai) and/or its affiliates. All rights reserved.
 
 use std::sync::{Mutex, Arc};
-use masq_lib::test_utils::fake_stream_holder::{FakeStreamHolder};
 use std::cell::RefCell;
 use crate::command_factory::{CommandFactoryError, CommandFactory};
-use masq_lib::ui_traffic_converter::{UnmarshalError, TrafficConversionError};
+use masq_lib::ui_traffic_converter::{UnmarshalError};
 use masq_lib::ui_gateway::{NodeToUiMessage, NodeFromUiMessage};
 use masq_lib::messages::{UiShutdownOrder, UiSetup};
 use lazy_static::lazy_static;
 use masq_lib::messages::ToMessageBody;
 use std::io::{Read, Write};
-use masq_lib::ui_traffic_converter::TrafficConversionError::JsonSyntaxError;
-use masq_lib::ui_traffic_converter::UnmarshalError::Critical;
 use masq_lib::command::StdStreams;
-use crate::command_processor;
 use crate::commands::{CommandError, Command};
 use crate::command_context::{CommandContext};
 //use crate::command_context::{CommandContextFactory, CommandContextFactoryError};

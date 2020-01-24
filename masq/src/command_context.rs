@@ -107,8 +107,8 @@ mod tests {
         });
         let mut input = String::new();
         subject.stdin().read_to_string(&mut input).unwrap();
-        write!(subject.stdout(), "This is stdout.");
-        write!(subject.stderr(), "This is stderr.");
+        let _ = write!(subject.stdout(), "This is stdout.");
+        let _ = write!(subject.stderr(), "This is stderr.");
 
         assert_eq! (first_response, Ok(None));
         assert_eq! (second_response, Ok(Some (NodeToUiMessage {
