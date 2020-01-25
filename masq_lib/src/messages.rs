@@ -202,7 +202,7 @@ pub struct UiStartResponse {
 }
 two_way_message!(UiStartResponse, "start");
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct UiShutdownOrder {}
 one_way_message!(UiShutdownOrder, "shutdownOrder");
 

@@ -92,7 +92,7 @@ mod tests {
         let port = find_free_port();
         let args = ["masq".to_string(), "--ui-port".to_string(), format!("{}", port)];
         let mut holder = FakeStreamHolder::new();
-        let context = CommandContextMock::new(&mut holder.streams());
+//        let context = CommandContextMock::new(&mut holder.streams());
 //        let make_params_arc = Arc::new (Mutex::new(vec![]));
 //        let factory = CommandContextFactoryMock::new()
 //            .make_params (&make_params_arc)

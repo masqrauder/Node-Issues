@@ -101,11 +101,14 @@ mod tests {
     use crate::command_context::CommandContext;
     use masq_lib::utils::find_free_port;
     use crate::test_utils::mock_websockets_server::MockWebSocketsServer;
+    use crate::commands::CommandError;
+    use masq_lib::ui_traffic_converter::{UnmarshalError, TrafficConversionError};
+    use masq_lib::messages::UiShutdownOrder;
 
     #[test]
     fn go_works_when_everything_is_copacetic() {
         let port = find_free_port();
-        let command = MockCommand::new (ONE_WAY_MESSAGE.clone())
+        let command = MockCommand::new (UiShutdownOrder{})
             .execute_result (Ok(()));
         let c_make_params_arc = Arc::new (Mutex::new (vec![]));
         let command_factory = CommandFactoryMock::new()
@@ -167,7 +170,7 @@ mod tests {
             command.execute(&mut context)
         };
 
-        assert_eq! (result, Err("Something about not a real command".to_string()));
+        assert_eq! (result, Err(CommandError::Transaction(UnmarshalError::Critical(TrafficConversionError::JsonSyntaxError(String::new())))));
         let stream_holder = stream_holder_arc.lock().unwrap();
         assert_eq! (stream_holder.stdout.get_string(), "MockCommand output\n".to_string());
         assert_eq! (stream_holder.stderr.get_string(), "MockCommand error\n".to_string());
@@ -227,7 +230,7 @@ mod tests {
 
     #[test]
     fn go_works_when_command_is_unhappy() {
-        let command = MockCommand::new (ONE_WAY_MESSAGE.clone())
+        let command = MockCommand::new (UiShutdownOrder{})
             .execute_result (Ok(())); // irrelevant
         let command_factory = CommandFactoryMock::new()
             .make_result(Ok(Box::new (command)));

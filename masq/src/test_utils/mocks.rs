@@ -8,7 +8,7 @@ use masq_lib::ui_gateway::{NodeToUiMessage, NodeFromUiMessage};
 use masq_lib::messages::{UiShutdownOrder, UiSetup};
 use lazy_static::lazy_static;
 use masq_lib::messages::ToMessageBody;
-use std::io::{Read, Write};
+use std::io::{Read};
 use masq_lib::command::StdStreams;
 use crate::commands::{CommandError, Command};
 use crate::command_context::{CommandContext};
@@ -131,20 +131,21 @@ impl CommandProcessorFactoryMock {
     }
 }
 
-pub struct MockCommand {
-    message: NodeFromUiMessage,
+pub struct MockCommand<T: ToMessageBody + Clone> {
+    message: T,
     execute_results: RefCell<Vec<Result<(), CommandError>>>,
 }
 
-impl std::fmt::Debug for MockCommand {
+impl<T: ToMessageBody + Clone> std::fmt::Debug for MockCommand<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         write! (f, "MockCommand")
     }
 }
 
-impl Command for MockCommand {
+impl<T: ToMessageBody + Clone> Command for MockCommand<T> {
     fn execute<'a>(&self, context: &mut CommandContext<'a>) -> Result<(), CommandError> {
-        match context.transact (self.message.clone()) {
+        let result: Result<Option<UiSetup>, UnmarshalError> = context.transact(self.message.clone());
+        match result {
             Ok(_) => (),
             Err(e) => return Err(Transaction(e)),
         }
@@ -154,8 +155,8 @@ impl Command for MockCommand {
     }
 }
 
-impl MockCommand {
-    pub fn new (message: NodeFromUiMessage) -> Self {
+impl<T: ToMessageBody + Clone> MockCommand<T> {
+    pub fn new (message: T) -> Self {
         Self {
             message,
             execute_results: RefCell::new (vec![]),

@@ -65,8 +65,8 @@ mod tests {
         let mut std_streams = holder.streams();
         let mut subject = CommandContext::new (port, &mut std_streams);
 
-        let first_response = subject.transact (UiShutdownOrder {});
-        let second_response = subject.transact (UiSetup {
+        let first_response: Result<Option<UiSetup>, UnmarshalError> = subject.transact (UiShutdownOrder {});
+        let second_response: Result<Option<UiSetup>, UnmarshalError> = subject.transact (UiSetup {
                 values: vec![
                     UiSetupValue {
                         name: "Say something".to_string(),
@@ -80,16 +80,13 @@ mod tests {
         let _ = write!(subject.stderr(), "This is stderr.");
 
         assert_eq! (first_response, Ok(None));
-        assert_eq! (second_response, Ok(Some (NodeToUiMessage {
-            target: ClientId(0),
-            body: UiSetup {
-                values: vec![
-                    UiSetupValue {
-                        name: "Okay,".to_string(),
-                        value: "I did.".to_string(),
-                    }
-                ]
-            }.tmb(1234)
+        assert_eq! (second_response, Ok(Some (UiSetup {
+            values: vec![
+                UiSetupValue {
+                    name: "Okay,".to_string(),
+                    value: "I did.".to_string(),
+                }
+            ]
         })));
         assert_eq! (input, "This is stdin.".to_string());
         assert_eq! (holder.stdout.get_string(), "This is stdout.".to_string());
