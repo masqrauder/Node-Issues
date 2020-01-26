@@ -85,6 +85,7 @@ mod tests {
     use std::cell::RefCell;
     use std::iter::FromIterator;
     use std::sync::{Arc, Mutex};
+    use masq_lib::ui_gateway::DEFAULT_UI_PORT;
 
     struct ExecerMock {
         exec_params: Arc<Mutex<Vec<Vec<String>>>>,
@@ -133,7 +134,7 @@ mod tests {
         let params = HashMap::from_iter(
             vec![
                 ("name".to_string(), "value".to_string()),
-                ("ui-port".to_string(), "5333".to_string()),
+                ("ui-port".to_string(), format!("{}", DEFAULT_UI_PORT)),
             ]
             .into_iter(),
         );
@@ -169,7 +170,7 @@ mod tests {
         let params = HashMap::from_iter(
             vec![
                 ("name".to_string(), "value".to_string()),
-                ("ui-port".to_string(), "5333".to_string()),
+                ("ui-port".to_string(), format!("{}", DEFAULT_UI_PORT)),
             ]
             .into_iter(),
         );

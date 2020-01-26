@@ -555,6 +555,7 @@ pub mod common_validators {
     use crate::persistent_configuration::LOWEST_USABLE_INSECURE_PORT;
     use regex::Regex;
     use tiny_hderive::bip44::DerivationPath;
+    use masq_lib::constants::LOWEST_USABLE_INSECURE_PORT;
 
     pub fn validate_earning_wallet(value: String) -> Result<(), String> {
         validate_ethereum_address(value.clone()).or_else(|_| validate_derivation_path(value))

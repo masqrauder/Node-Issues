@@ -13,12 +13,6 @@ use rustc_hex::ToHex;
 use std::net::{Ipv4Addr, SocketAddrV4, TcpListener};
 use std::str::FromStr;
 
-pub const LOWEST_USABLE_INSECURE_PORT: u16 = 1025;
-pub const HIGHEST_RANDOM_CLANDESTINE_PORT: u16 = 9999;
-pub const HIGHEST_USABLE_PORT: u16 = 65535;
-pub const HTTP_PORT: u16 = 80;
-pub const TLS_PORT: u16 = 443;
-
 #[derive(Clone, PartialEq, Debug)]
 pub enum PersistentConfigError {
     PasswordError,

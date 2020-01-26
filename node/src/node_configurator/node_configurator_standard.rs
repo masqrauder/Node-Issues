@@ -1668,7 +1668,7 @@ mod tests {
             )
         );
         assert_eq!(config.crash_point, CrashPoint::None);
-        assert_eq!(config.ui_gateway_config.ui_port, 5333);
+        assert_eq!(config.ui_gateway_config.ui_port, DEFAULT_UI_PORT);
         assert!(config.main_cryptde_null_opt.is_none());
         assert_eq!(config.real_user, RealUser::null().populate());
     }

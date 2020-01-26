@@ -1,16 +1,15 @@
 // Copyright (c) 2019-2020, MASQ (https://masq.ai) and/or its affiliates. All rights reserved.
 
 use masq_lib::command::StdStreams;
+use masq_lib::messages::ToMessageBody;
 use crate::commands::{Command, CommandError};
 use crate::command_context::CommandContext;
-//use crate::command_context::{CommandContextFactory, CommandContextFactoryReal};
 
 pub trait CommandProcessorFactory {
     fn make(&self, streams: &mut StdStreams<'_>, args: &[String]) -> Box<dyn CommandProcessor>;
 }
 
 pub struct CommandProcessorFactoryReal {
-//    command_context_factory: Box<dyn CommandContextFactory>
 }
 
 impl CommandProcessorFactory for CommandProcessorFactoryReal {
@@ -22,7 +21,6 @@ impl CommandProcessorFactory for CommandProcessorFactoryReal {
 impl CommandProcessorFactoryReal {
     pub fn new () -> Self {
         Self {
-//            command_context_factory: Box::new (CommandContextFactoryReal{})
         }
     }
 }
@@ -70,6 +68,9 @@ mod tests {
     use crate::commands::SetupCommand;
     use masq_lib::utils::find_free_port;
     use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
+    use crate::test_utils::mock_websockets_server::MockWebSocketsServer;
+    use masq_lib::ui_gateway::NodeFromUiMessage;
+    use masq_lib::messages::UiShutdownOrder;
 
     #[test]
     #[should_panic(expected = "masq was not properly initialized")]
@@ -87,20 +88,33 @@ mod tests {
         subject.shutdown ();
     }
 
+    #[derive (Debug)]
+    struct TestCommand{}
+
+    impl Command for TestCommand {
+        fn execute<'a>(&self, context: &mut CommandContext<'a>) -> Result<(), CommandError> {
+            context.send (UiShutdownOrder{});
+            Ok(())
+        }
+    }
+
     #[test]
-    fn factory_works_when_everything_is_fine () {
+    fn factory_parses_out_the_correct_port_when_specified() {
         let port = find_free_port();
         let args = ["masq".to_string(), "--ui-port".to_string(), format!("{}", port)];
         let mut holder = FakeStreamHolder::new();
-//        let context = CommandContextMock::new(&mut holder.streams());
-//        let make_params_arc = Arc::new (Mutex::new(vec![]));
-//        let factory = CommandContextFactoryMock::new()
-//            .make_params (&make_params_arc)
-//            .make_result (Ok(Box::new (context)));
         let subject = CommandProcessorFactoryReal::new ();
+        let server = MockWebSocketsServer::new(port);
+        let stop_handle = server.start();
 
-        let result = subject.make (&mut holder.streams(), &args);
+        let mut result = subject.make (&mut holder.streams(), &args);
 
-        unimplemented!()
+        let command = TestCommand{};
+        result.process (Box::new (command));
+        let received = stop_handle.stop();
+        assert_eq! (received, vec![Ok(NodeFromUiMessage {
+            client_id: 0,
+            body: UiShutdownOrder{}.tmb(0),
+        })]);
     }
 }
