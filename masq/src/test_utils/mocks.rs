@@ -144,13 +144,13 @@ impl<T: ToMessageBody + Clone> std::fmt::Debug for MockCommand<T> {
 
 impl<T: ToMessageBody + Clone> Command for MockCommand<T> {
     fn execute<'a>(&self, context: &mut CommandContext<'a>) -> Result<(), CommandError> {
-        let result: Result<Option<UiSetup>, UnmarshalError> = context.transact(self.message.clone());
+        let result: Result<UiSetup, String> = context.transact(self.message.clone());
         match result {
             Ok(_) => (),
             Err(e) => return Err(Transaction(e)),
         }
-        writeln!(context.stdout(), "MockCommand output").unwrap();
-        writeln!(context.stderr(), "MockCommand error").unwrap();
+        context.write_stdout("MockCommand output");
+        context.write_stderr("MockCommand error");
         self.execute_results.borrow_mut().remove (0)
     }
 }

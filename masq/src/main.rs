@@ -170,7 +170,7 @@ mod tests {
             command.execute(&mut context)
         };
 
-        assert_eq! (result, Err(CommandError::Transaction(UnmarshalError::Critical(TrafficConversionError::JsonSyntaxError(String::new())))));
+        assert_eq! (result, Err(CommandError::Transaction("Booga!".to_string())));
         let stream_holder = stream_holder_arc.lock().unwrap();
         assert_eq! (stream_holder.stdout.get_string(), "MockCommand output\n".to_string());
         assert_eq! (stream_holder.stderr.get_string(), "MockCommand error\n".to_string());
@@ -237,7 +237,7 @@ mod tests {
         let process_params_arc = Arc::new (Mutex::new (vec![]));
         let processor = CommandProcessorMock::new()
             .process_params (&process_params_arc)
-            .process_result(Err(Transaction(Critical(JsonSyntaxError("booga".to_string())))));
+            .process_result(Err(Transaction("Booga!".to_string())));
         let processor_factory = CommandProcessorFactoryMock::new()
             .make_result (Box::new (processor));
         let mut subject = Main {
@@ -253,6 +253,6 @@ mod tests {
 
         assert_eq! (result, 1);
         assert_eq! (stream_holder.stdout.get_string(), "".to_string());
-        assert_eq! (stream_holder.stderr.get_string(), "Transaction(Critical(JsonSyntaxError(\"booga\")))\n".to_string());
+        assert_eq! (stream_holder.stderr.get_string(), "Transaction(Booga!)\n".to_string());
     }
 }

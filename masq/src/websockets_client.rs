@@ -70,7 +70,7 @@ pub struct NodeConversation {
 
 impl Drop for NodeConversation {
     fn drop(&mut self) {
-        eprintln! ("Test-drive me!")
+        // TODO: When the client goes asynchronous, this will have to delete the conversation from the connection's map.
     }
 }
 

@@ -6,7 +6,7 @@ use crate::command_context::CommandContext;
 
 #[derive (Debug, PartialEq)]
 pub enum CommandError {
-    Transaction(UnmarshalError),
+    Transaction(String),
 }
 
 pub trait Command: Debug {
