@@ -4,17 +4,24 @@ use masq_lib::command::StdStreams;
 use masq_lib::messages::ToMessageBody;
 use crate::commands::{Command, CommandError};
 use crate::command_context::CommandContext;
+use crate::schema::app;
+use clap::value_t;
 
 pub trait CommandProcessorFactory {
-    fn make(&self, streams: &mut StdStreams<'_>, args: &[String]) -> Box<dyn CommandProcessor>;
+    fn make<'a>(&self, streams: &mut StdStreams<'a>, args: &[String]) -> Box<dyn CommandProcessor>;
 }
 
 pub struct CommandProcessorFactoryReal {
 }
 
 impl CommandProcessorFactory for CommandProcessorFactoryReal {
-    fn make(&self, streams: &mut StdStreams<'_>, args: &[String]) -> Box<dyn CommandProcessor> {
-        unimplemented!()
+    fn make<'a>(&self, streams: &mut StdStreams<'a>, args: &[String]) -> Box<dyn CommandProcessor> {
+        let matches = app().get_matches_from(args);
+        let ui_port = value_t!(matches, "ui-port", u16).expect ("ui-port is not properly defaulted");
+        let context = CommandContext::new (ui_port, streams);
+        Box::new (CommandProcessorReal {
+            context
+        })
     }
 }
 
