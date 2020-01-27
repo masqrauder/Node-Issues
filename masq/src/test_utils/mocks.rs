@@ -11,7 +11,7 @@ use masq_lib::messages::ToMessageBody;
 use std::io::{Read};
 use masq_lib::command::StdStreams;
 use crate::commands::{CommandError, Command};
-use crate::command_context::{CommandContext};
+use crate::command_context::{CommandContextReal};
 //use crate::command_context::{CommandContextFactory, CommandContextFactoryError};
 use crate::commands::CommandError::Transaction;
 use crate::command_processor::{CommandProcessor, CommandProcessorFactory};
@@ -106,7 +106,7 @@ pub struct CommandProcessorFactoryMock {
 }
 
 impl CommandProcessorFactory for CommandProcessorFactoryMock {
-    fn make(&self, streams: &mut StdStreams<'_>, args: &[String]) -> Box<dyn CommandProcessor> {
+    fn make(&self, args: &[String]) -> Box<dyn CommandProcessor> {
         self.make_params.lock().unwrap().push (args.iter().map(|s| s.clone()).collect());
         self.make_results.borrow_mut().remove(0)
     }
@@ -143,7 +143,7 @@ impl<T: ToMessageBody + Clone> std::fmt::Debug for MockCommand<T> {
 }
 
 impl<T: ToMessageBody + Clone> Command for MockCommand<T> {
-    fn execute<'a>(&self, context: &mut CommandContext<'a>) -> Result<(), CommandError> {
+    fn execute(&self, context: &mut CommandContextReal) -> Result<(), CommandError> {
         let result: Result<UiSetup, String> = context.transact(self.message.clone());
         match result {
             Ok(_) => (),

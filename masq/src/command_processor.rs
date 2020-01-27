@@ -3,22 +3,22 @@
 use masq_lib::command::StdStreams;
 use masq_lib::messages::ToMessageBody;
 use crate::commands::{Command, CommandError};
-use crate::command_context::CommandContext;
+use crate::command_context::CommandContextReal;
 use crate::schema::app;
 use clap::value_t;
 
 pub trait CommandProcessorFactory {
-    fn make<'a>(&self, streams: &mut StdStreams<'a>, args: &[String]) -> Box<dyn CommandProcessor>;
+    fn make(&self, args: &[String]) -> Box<dyn CommandProcessor>;
 }
 
 pub struct CommandProcessorFactoryReal {
 }
 
 impl CommandProcessorFactory for CommandProcessorFactoryReal {
-    fn make<'a>(&self, streams: &mut StdStreams<'a>, args: &[String]) -> Box<dyn CommandProcessor> {
+    fn make(&self, args: &[String]) -> Box<dyn CommandProcessor> {
         let matches = app().get_matches_from(args);
         let ui_port = value_t!(matches, "ui-port", u16).expect ("ui-port is not properly defaulted");
-        let context = CommandContext::new (ui_port, streams);
+        let context = CommandContextReal::new (ui_port);
         Box::new (CommandProcessorReal {
             context
         })
@@ -37,11 +37,11 @@ pub trait CommandProcessor {
     fn shutdown (&mut self);
 }
 
-pub struct CommandProcessorReal<'a> {
-    context: CommandContext<'a>
+pub struct CommandProcessorReal {
+    context: CommandContextReal
 }
 
-impl<'a> CommandProcessor for CommandProcessorReal<'a> {
+impl CommandProcessor for CommandProcessorReal {
     fn process(&mut self, command: Box<dyn Command>) -> Result<(), CommandError> {
         unimplemented!()
     }
@@ -51,8 +51,8 @@ impl<'a> CommandProcessor for CommandProcessorReal<'a> {
     }
 }
 
-impl<'a> CommandProcessorReal<'a> {
-    pub fn new(streams: &mut StdStreams<'_>, args: &Vec<String>) -> Self {
+impl CommandProcessorReal {
+    pub fn new(args: &Vec<String>) -> Self {
         unimplemented!()
     }
 }
@@ -99,7 +99,7 @@ mod tests {
     struct TestCommand{}
 
     impl Command for TestCommand {
-        fn execute<'a>(&self, context: &mut CommandContext<'a>) -> Result<(), CommandError> {
+        fn execute<'a>(&self, context: &mut CommandContextReal) -> Result<(), CommandError> {
             context.send (UiShutdownOrder{});
             Ok(())
         }
@@ -109,12 +109,11 @@ mod tests {
     fn factory_parses_out_the_correct_port_when_specified() {
         let port = find_free_port();
         let args = ["masq".to_string(), "--ui-port".to_string(), format!("{}", port)];
-        let mut holder = FakeStreamHolder::new();
         let subject = CommandProcessorFactoryReal::new ();
         let server = MockWebSocketsServer::new(port);
         let stop_handle = server.start();
 
-        let mut result = subject.make (&mut holder.streams(), &args);
+        let mut result = subject.make (&args);
 
         let command = TestCommand{};
         result.process (Box::new (command));
