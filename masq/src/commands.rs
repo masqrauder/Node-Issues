@@ -1,8 +1,7 @@
 // Copyright (c) 2019-2020, MASQ (https://masq.ai) and/or its affiliates. All rights reserved.
 
-use masq_lib::ui_traffic_converter::UnmarshalError;
 use std::fmt::Debug;
-use crate::command_context::{CommandContextReal, CommandContext};
+use crate::command_context::{CommandContext};
 
 #[derive (Debug, PartialEq)]
 pub enum CommandError {
@@ -20,6 +19,7 @@ pub struct SetupValue {
 }
 
 impl SetupValue {
+    #[allow (dead_code)]
     pub fn new(name: &str, value: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -34,7 +34,7 @@ pub struct SetupCommand {
 }
 
 impl Command for SetupCommand {
-    fn execute(&self, context: &mut dyn CommandContext) -> Result<(), CommandError> {
+    fn execute(&self, _context: &mut dyn CommandContext) -> Result<(), CommandError> {
         unimplemented!()
     }
 }

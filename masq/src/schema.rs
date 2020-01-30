@@ -1,7 +1,7 @@
 // Copyright (c) 2019-2020, MASQ (https://masq.ai) and/or its affiliates. All rights reserved.
 use masq_lib::ui_gateway::DEFAULT_UI_PORT;
 use lazy_static::lazy_static;
-use clap::{crate_description, crate_version, value_t, App, AppSettings, Arg};
+use clap::{crate_description, crate_version, App, AppSettings, Arg};
 use masq_lib::constants::{HIGHEST_USABLE_PORT, LOWEST_USABLE_INSECURE_PORT};
 
 lazy_static! {

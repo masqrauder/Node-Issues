@@ -1,11 +1,8 @@
 // Copyright (c) 2019-2020, MASQ (https://masq.ai) and/or its affiliates. All rights reserved.
 
-use masq_lib::command::StdStreams;
-use std::io::{Write, Stderr, Stdout, Stdin, Read};
+use std::io::{Write, Read};
 use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
-use masq_lib::ui_traffic_converter::UnmarshalError;
-use masq_lib::messages::{ToMessageBody, FromMessageBody};
-use crate::websockets_client::{NodeConversation, NodeConnection};
+use crate::websockets_client::{NodeConnection};
 use std::io;
 
 pub trait CommandContext {
@@ -69,7 +66,7 @@ impl CommandContextReal {
 mod tests {
     use super::*;
     use masq_lib::utils::find_free_port;
-    use masq_lib::test_utils::fake_stream_holder::{FakeStreamHolder, ByteArrayReader};
+    use masq_lib::test_utils::fake_stream_holder::{ByteArrayReader, ByteArrayWriter};
     use crate::test_utils::mock_websockets_server::MockWebSocketsServer;
     use masq_lib::messages::{UiSetup, UiSetupValue, UiShutdownOrder};
     use masq_lib::ui_gateway::MessageTarget::ClientId;
@@ -77,12 +74,16 @@ mod tests {
     use masq_lib::ui_gateway::MessageBody;
     use masq_lib::ui_gateway::MessagePath::TwoWay;
     use crate::websockets_client::nfum;
+    use masq_lib::messages::FromMessageBody;
 
     #[test]
     fn works_when_everythings_fine() {
         let port = find_free_port();
-        let mut holder = FakeStreamHolder::new();
-        holder.stdin = ByteArrayReader::new (b"This is stdin.");
+        let stdin = ByteArrayReader::new (b"This is stdin.");
+        let stdout = ByteArrayWriter::new ();
+        let stdout_arc = stdout.inner_arc();
+        let stderr = ByteArrayWriter::new();
+        let stderr_arc = stderr.inner_arc();
         let server = MockWebSocketsServer::new(port)
             .queue_response (NodeToUiMessage {
                 target: ClientId(0),
@@ -97,9 +98,9 @@ mod tests {
             });
         let stop_handle = server.start();
         let mut subject = CommandContextReal::new (port);
-        subject.stdin = Box::new (holder.stdin);
-        subject.stdout = Box::new (holder.stdout);
-        subject.stderr = Box::new (holder.stderr);
+        subject.stdin = Box::new (stdin);
+        subject.stdout = Box::new (stdout);
+        subject.stderr = Box::new (stderr);
 
         subject.send (nfum(UiShutdownOrder {})).unwrap();
         let response = subject.transact (nfum(UiSetup {
@@ -115,6 +116,7 @@ mod tests {
         write!(subject.stdout(), "This is stdout.").unwrap();
         write!(subject.stderr(), "This is stderr.").unwrap();
 
+        stop_handle.stop();
         assert_eq! (UiSetup::fmb(response.body).unwrap().0, UiSetup {
             values: vec![
                 UiSetupValue {
@@ -124,9 +126,8 @@ mod tests {
             ]
         });
         assert_eq! (input, "This is stdin.".to_string());
-        assert_eq! (holder.stdout.get_string(), "This is stdout.".to_string());
-        assert_eq! (holder.stderr.get_string(), "This is stderr.".to_string());
-        stop_handle.stop();
+        assert_eq! (stdout_arc.lock().unwrap().get_string(), "This is stdout.".to_string());
+        assert_eq! (stderr_arc.lock().unwrap().get_string(), "This is stderr.".to_string());
     }
 
     #[test]
@@ -142,8 +143,6 @@ mod tests {
                 }
             });
         let stop_handle = server.start();
-        let mut holder = FakeStreamHolder::new();
-        let mut streams = holder.streams();
         let mut subject = CommandContextReal::new (port);
 
         let response = subject.transact (nfum(UiSetup {
@@ -160,13 +159,13 @@ mod tests {
         let server = MockWebSocketsServer::new(port)
             .queue_string ("disconnect");
         let stop_handle = server.start();
-        let mut holder = FakeStreamHolder::new();
         let mut subject = CommandContextReal::new (port);
 
         let response = subject.transact (nfum(UiSetup {
             values: vec![]
         }));
 
+        stop_handle.stop();
         assert_eq! (response, Err(format!("NoDataAvailable")));
     }
 }

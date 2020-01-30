@@ -1,23 +1,10 @@
 // Copyright (c) 2019-2020, MASQ (https://masq.ai) and/or its affiliates. All rights reserved.
 
-use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
-use masq_lib::ui_traffic_converter::UiTrafficConverter;
-use websocket::sync::Server;
-use std::net::{SocketAddr, TcpListener};
-use masq_lib::utils::localhost;
-use std::sync::{Arc, Mutex};
-use std::thread::JoinHandle;
-use std::thread;
-use websocket::OwnedMessage;
-use websocket::server::WsServer;
-use websocket::server::NoTlsAcceptor;
-use websocket::result::WebSocketError;
-use std::sync::mpsc::Sender;
-use std::time::Duration;
 use std::process::{Command, Child, Stdio};
 
 pub struct MasqProcess {}
 
+#[allow (dead_code)]
 impl MasqProcess {
     pub fn new() -> Self {
         Self {}
@@ -40,6 +27,7 @@ pub struct MasqProcessStopHandle {
     child: Child
 }
 
+#[allow (dead_code)]
 impl MasqProcessStopHandle {
     pub fn stop (self) -> (String, String, i32) {
         let output = self.child.wait_with_output ();

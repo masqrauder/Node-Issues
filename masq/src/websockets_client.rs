@@ -5,8 +5,8 @@ use websocket::sync::Client;
 use websocket::{ClientBuilder, OwnedMessage};
 use std::sync::{Mutex, Arc};
 use masq_lib::utils::localhost;
-use masq_lib::messages::{NODE_UI_PROTOCOL, ToMessageBody, FromMessageBody, UiMessageError};
-use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage, MessageBody};
+use masq_lib::messages::{NODE_UI_PROTOCOL, ToMessageBody};
+use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
 use masq_lib::ui_traffic_converter::UiTrafficConverter;
 use masq_lib::ui_gateway::MessageTarget::ClientId;
 use masq_lib::ui_gateway::MessagePath::{OneWay, TwoWay};
@@ -59,7 +59,8 @@ impl NodeConnection {
         conversation
     }
 
-    pub fn establish_broadcast_receiver<F>(&self, receiver: F) -> Result<(), String> where F: Fn() -> NodeToUiMessage {
+    #[allow (dead_code)]
+    pub fn establish_broadcast_receiver<F>(&self, _receiver: F) -> Result<(), String> where F: Fn() -> NodeToUiMessage {
         unimplemented!();
     }
 }
@@ -85,7 +86,8 @@ impl NodeConversation {
         self.send_string(outgoing_msg_json)
     }
 
-    pub fn establish_receiver<F>(mut self, receiver: F) -> Result<(), String> where F: Fn() -> NodeToUiMessage {
+    #[allow (dead_code)]
+    pub fn establish_receiver<F>(/*mut*/ self, _receiver: F) -> Result<(), String> where F: Fn() -> NodeToUiMessage {
         unimplemented!();
     }
 
@@ -144,11 +146,11 @@ mod tests {
     use masq_lib::utils::find_free_port;
     use crate::test_utils::mock_websockets_server::MockWebSocketsServer;
     use masq_lib::messages::{UiSetup, UiSetupValue, UiShutdownOrder};
-    use std::time::Duration;
-    use std::thread;
-    use masq_lib::ui_gateway::{MessageBody, MessagePath};
+    use masq_lib::ui_gateway::{MessageBody};
     use masq_lib::ui_gateway::MessagePath::TwoWay;
+    use masq_lib::messages::FromMessageBody;
 
+    #[allow (dead_code)]
     pub fn nftm1<T: ToMessageBody> (tmb: T) -> NodeToUiMessage {
         assert_eq! (tmb.is_two_way(), false);
         NodeToUiMessage {
@@ -165,6 +167,7 @@ mod tests {
         }
     }
 
+    #[allow (dead_code)]
     pub fn nftme1(opcode: &str, code: u64, msg: &str) -> NodeToUiMessage {
         NodeToUiMessage {
             target: ClientId(0),
@@ -265,6 +268,7 @@ mod tests {
 
         let result = subject.send (nfum(UiShutdownOrder {})).err().unwrap();
 
+        stop_handle.stop();
         assert! (result.contains ("BrokenPipe"));
     }
 

@@ -3,15 +3,12 @@
 use std::sync::{Mutex, Arc};
 use std::cell::RefCell;
 use crate::command_factory::{CommandFactoryError, CommandFactory};
-use masq_lib::ui_traffic_converter::{UnmarshalError};
-use masq_lib::ui_gateway::{NodeToUiMessage, NodeFromUiMessage};
+use masq_lib::ui_gateway::{NodeFromUiMessage};
 use masq_lib::messages::{UiShutdownOrder, UiSetup};
 use lazy_static::lazy_static;
 use masq_lib::messages::ToMessageBody;
-use std::io::{Read};
-use masq_lib::command::StdStreams;
 use crate::commands::{CommandError, Command};
-use crate::command_context::{CommandContextReal, CommandContext};
+use crate::command_context::{CommandContext};
 //use crate::command_context::{CommandContextFactory, CommandContextFactoryError};
 use crate::commands::CommandError::Transaction;
 use crate::command_processor::{CommandProcessor, CommandProcessorFactory};
@@ -144,7 +141,7 @@ impl<T: ToMessageBody + Clone> std::fmt::Debug for MockCommand<T> {
 }
 
 impl<T: ToMessageBody + Clone> Command for MockCommand<T> {
-    fn execute(&self, context: &mut CommandContext) -> Result<(), CommandError> {
+    fn execute(&self, context: &mut dyn CommandContext) -> Result<(), CommandError> {
         let result = context.transact(nfum(self.message.clone()));
         match result {
             Ok(_) => (),

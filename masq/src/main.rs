@@ -95,15 +95,7 @@ mod tests {
     use crate::test_utils::mocks::{MockCommand, CommandFactoryMock, CommandProcessorMock, CommandProcessorFactoryMock};
     use std::sync::{Arc, Mutex};
     use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
-    use masq_lib::ui_traffic_converter::TrafficConversionError::JsonSyntaxError;
-    use masq_lib::ui_traffic_converter::UnmarshalError::Critical;
-    use crate::test_utils::mocks::ONE_WAY_MESSAGE;
     use crate::commands::CommandError::Transaction;
-    use crate::command_context::CommandContextReal;
-    use masq_lib::utils::find_free_port;
-    use crate::test_utils::mock_websockets_server::MockWebSocketsServer;
-    use crate::commands::CommandError;
-    use masq_lib::ui_traffic_converter::{UnmarshalError, TrafficConversionError};
     use masq_lib::messages::UiShutdownOrder;
 
 //    #[test]

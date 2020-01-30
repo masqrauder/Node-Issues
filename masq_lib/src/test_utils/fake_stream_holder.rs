@@ -6,18 +6,33 @@ use std::io;
 use std::io::Error;
 use std::io::Read;
 use std::io::Write;
+use std::sync::{Mutex, Arc};
 
 pub struct ByteArrayWriter {
-    pub byte_array: Vec<u8>,
-    pub next_error: Option<Error>,
+    inner_arc: Arc<Mutex<ByteArrayWriterInner>>
+}
+
+pub struct ByteArrayWriterInner {
+    byte_array: Vec<u8>,
+    next_error: Option<Error>,
+}
+
+impl ByteArrayWriterInner {
+    pub fn get_bytes(&self) -> Vec<u8> {
+        self.byte_array.clone()
+    }
+    pub fn get_string(&self) -> String {
+        String::from_utf8(self.get_bytes()).unwrap()
+    }
 }
 
 impl Default for ByteArrayWriter {
     fn default() -> Self {
-        let vec = Vec::new();
         ByteArrayWriter {
-            byte_array: vec,
-            next_error: None,
+            inner_arc: Arc::new (Mutex::new (ByteArrayWriterInner {
+                byte_array: vec![],
+                next_error: None,
+            }))
         }
     }
 }
@@ -27,26 +42,31 @@ impl ByteArrayWriter {
         Self::default()
     }
 
-    pub fn get_bytes(&self) -> &[u8] {
-        self.byte_array.as_slice()
+    pub fn inner_arc(&self) -> Arc<Mutex<ByteArrayWriterInner>> {
+        self.inner_arc.clone()
+    }
+
+    pub fn get_bytes(&self) -> Vec<u8> {
+        self.inner_arc.lock().unwrap().byte_array.clone()
     }
     pub fn get_string(&self) -> String {
-        String::from_utf8(self.byte_array.clone()).unwrap()
+        String::from_utf8(self.get_bytes()).unwrap()
     }
 
     pub fn reject_next_write(&mut self, error: Error) {
-        self.next_error = Some(error);
+        self.inner_arc().lock().unwrap().next_error = Some(error);
     }
 }
 
 impl Write for ByteArrayWriter {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        if let Some(next_error) = self.next_error.take() {
+        let mut inner = self.inner_arc.lock().unwrap();
+        if let Some(next_error) = inner.next_error.take() {
             Err(next_error)
         }
         else {
             for byte in buf {
-                self.byte_array.push(*byte)
+                inner.byte_array.push(*byte)
             }
             Ok(buf.len())
         }

@@ -8,7 +8,6 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::thread;
 use websocket::OwnedMessage;
-use websocket::server::WsServer;
 use websocket::result::WebSocketError;
 use std::sync::mpsc::Sender;
 use std::time::Duration;
