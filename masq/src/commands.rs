@@ -2,7 +2,7 @@
 
 use masq_lib::ui_traffic_converter::UnmarshalError;
 use std::fmt::Debug;
-use crate::command_context::CommandContextReal;
+use crate::command_context::{CommandContextReal, CommandContext};
 
 #[derive (Debug, PartialEq)]
 pub enum CommandError {
@@ -10,7 +10,7 @@ pub enum CommandError {
 }
 
 pub trait Command: Debug {
-    fn execute(&self, context: &mut CommandContextReal) -> Result<(), CommandError>;
+    fn execute(&self, context: &mut dyn CommandContext) -> Result<(), CommandError>;
 }
 
 #[derive (Debug, PartialEq)]
@@ -34,7 +34,7 @@ pub struct SetupCommand {
 }
 
 impl Command for SetupCommand {
-    fn execute(&self, context: &mut CommandContextReal) -> Result<(), CommandError> {
+    fn execute(&self, context: &mut dyn CommandContext) -> Result<(), CommandError> {
         unimplemented!()
     }
 }

@@ -78,6 +78,8 @@ mod tests {
     use crate::test_utils::mock_websockets_server::MockWebSocketsServer;
     use masq_lib::ui_gateway::NodeFromUiMessage;
     use masq_lib::messages::UiShutdownOrder;
+    use crate::command_context::CommandContext;
+    use crate::websockets_client::nfum;
 
     #[test]
     #[should_panic(expected = "masq was not properly initialized")]
@@ -99,8 +101,8 @@ mod tests {
     struct TestCommand{}
 
     impl Command for TestCommand {
-        fn execute<'a>(&self, context: &mut CommandContextReal) -> Result<(), CommandError> {
-            context.send (UiShutdownOrder{});
+        fn execute<'a>(&self, context: &mut dyn CommandContext) -> Result<(), CommandError> {
+            context.send (nfum(UiShutdownOrder{}));
             Ok(())
         }
     }

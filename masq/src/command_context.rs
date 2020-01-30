@@ -8,11 +8,50 @@ use masq_lib::messages::{ToMessageBody, FromMessageBody};
 use crate::websockets_client::{NodeConversation, NodeConnection};
 use std::io;
 
+pub trait CommandContext {
+    fn send (&mut self, message: NodeFromUiMessage) -> Result<(), String>;
+    fn transact (&mut self, message: NodeFromUiMessage) -> Result<NodeToUiMessage, String>;
+    fn stdin(&mut self) -> &mut Box<dyn Read>;
+    fn stdout(&mut self) -> &mut Box<dyn Write>;
+    fn stderr(&mut self) -> &mut Box<dyn Write>;
+}
+
 pub struct CommandContextReal {
     connection: NodeConnection,
     pub stdin: Box<dyn Read>,
     pub stdout: Box<dyn Write>,
     pub stderr: Box<dyn Write>,
+}
+
+impl CommandContext for CommandContextReal {
+
+    fn send (&mut self, message: NodeFromUiMessage) -> Result<(), String> {
+        let mut conversation = self.connection.start_conversation();
+        conversation.send(message)
+    }
+
+    fn transact (&mut self, message: NodeFromUiMessage) -> Result<NodeToUiMessage, String> {
+        let mut conversation = self.connection.start_conversation();
+        match conversation.transact (message) {
+            Err (e) => Err (e),
+            Ok(ntum) => match ntum.body.payload {
+                Err((code, msg)) => Err (format!("Daemon or Node reports error {:X}: {}", code, msg)),
+                Ok (_) => Ok (ntum)
+            }
+        }
+    }
+
+    fn stdin(&mut self) -> &mut Box<dyn Read> {
+        &mut self.stdin
+    }
+
+    fn stdout(&mut self) -> &mut Box<dyn Write> {
+        &mut self.stdout
+    }
+
+    fn stderr(&mut self) -> &mut Box<dyn Write> {
+        &mut self.stderr
+    }
 }
 
 impl CommandContextReal {
@@ -23,46 +62,6 @@ impl CommandContextReal {
             stdout: Box::new (io::stdout()),
             stderr: Box::new (io::stderr()),
         }
-    }
-
-    pub fn send<T: ToMessageBody> (&mut self, message: T) -> Result<(), String> {
-        let mut conversation = self.connection.start_conversation();
-        conversation.send(message)
-    }
-
-    pub fn transact<T: ToMessageBody, F: FromMessageBody> (&mut self, message: T) -> Result<F, String> {
-        let mut conversation = self.connection.start_conversation();
-        match conversation.transact (message) {
-            Ok(Ok(response)) => Ok(response),
-            Ok(Err((code, message))) => Err(format!("Daemon or Node reports error {:X}: {}", code, message)),
-            Err(msg) => Err(msg),
-        }
-    }
-
-    pub fn stdin(&mut self) -> &mut Box<dyn Read> {
-        &mut self.stdin
-    }
-
-    pub fn stdout(&mut self) -> &mut Box<dyn Write> {
-        &mut self.stdout
-    }
-
-    pub fn stderr(&mut self) -> &mut Box<dyn Write> {
-        &mut self.stderr
-    }
-
-    pub fn read_stdin(&mut self) -> String {
-        let mut input = String::new();
-        self.stdin.read_to_string(&mut input).expect ("Couldn't read standard input");
-        input
-    }
-
-    pub fn write_stdout(&mut self, string: &str) {
-        write!(&mut self.stdout, "{}", string).expect ("write! to stdout failed");
-    }
-
-    pub fn write_stderr(&mut self, string: &str) {
-        write!(&mut self.stderr, "{}", string).expect ("write! to stderr failed");
     }
 }
 
@@ -77,6 +76,7 @@ mod tests {
     use masq_lib::messages::ToMessageBody;
     use masq_lib::ui_gateway::MessageBody;
     use masq_lib::ui_gateway::MessagePath::TwoWay;
+    use crate::websockets_client::nfum;
 
 //    #[test]
 //    fn works_when_everythings_fine() {
@@ -145,9 +145,9 @@ mod tests {
         let mut streams = holder.streams();
         let mut subject = CommandContextReal::new (port);
 
-        let response: Result<UiSetup, String> = subject.transact (UiSetup {
+        let response = subject.transact (nfum(UiSetup {
             values: vec![]
-        });
+        }));
 
         assert_eq! (response, Err(format!("Daemon or Node reports error 65: booga")));
         stop_handle.stop();
@@ -162,9 +162,9 @@ mod tests {
         let mut holder = FakeStreamHolder::new();
         let mut subject = CommandContextReal::new (port);
 
-        let response: Result<UiSetup, String> = subject.transact (UiSetup {
+        let response = subject.transact (nfum(UiSetup {
             values: vec![]
-        });
+        }));
 
         assert_eq! (response, Err(format!("NoDataAvailable")));
     }

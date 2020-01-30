@@ -6,9 +6,10 @@ use websocket::{ClientBuilder, OwnedMessage};
 use std::sync::{Mutex, Arc};
 use masq_lib::utils::localhost;
 use masq_lib::messages::{NODE_UI_PROTOCOL, ToMessageBody, FromMessageBody, UiMessageError};
-use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
+use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage, MessageBody};
 use masq_lib::ui_traffic_converter::UiTrafficConverter;
 use masq_lib::ui_gateway::MessageTarget::ClientId;
+use masq_lib::ui_gateway::MessagePath::{OneWay, TwoWay};
 
 pub const BROADCAST_CONTEXT_ID: u64 = 0;
 
@@ -79,11 +80,7 @@ impl NodeConversation {
         self.context_id
     }
 
-    pub fn send<T: ToMessageBody>(&mut self, payload: T) -> Result<(), String> {
-        let outgoing_msg = NodeFromUiMessage {
-            client_id: 0, // irrelevant: will be replaced on the other end
-            body: payload.tmb(self.context_id),
-        };
+    pub fn send(&mut self, outgoing_msg: NodeFromUiMessage) -> Result<(), String> {
         let outgoing_msg_json = UiTrafficConverter::new_marshal_from_ui(outgoing_msg);
         self.send_string(outgoing_msg_json)
     }
@@ -92,17 +89,20 @@ impl NodeConversation {
         unimplemented!();
     }
 
-    pub fn transact<S: ToMessageBody, R: FromMessageBody>(
+    pub fn transact(
         &mut self,
-        payload: S,
-    ) -> Result<Result<R, (u64, String)>, String> {
-        if !payload.is_two_way() {
-            return Err(format!("'{}' message is one-way only; can't transact() with it", payload.opcode()))
+        mut outgoing_msg: NodeFromUiMessage,
+    ) -> Result<NodeToUiMessage, String> {
+        if outgoing_msg.body.path == OneWay {
+            return Err(format!("'{}' message is one-way only; can't transact() with it", outgoing_msg.body.opcode))
         }
-        if let Err(e) = self.send(payload) {
+        else {
+            outgoing_msg.body.path = TwoWay(self.context_id());
+        }
+        if let Err(e) = self.send(outgoing_msg) {
             return Err(e) // Don't know how to drive this line
         }
-        self.receive::<R>()
+        self.receive()
     }
 
     fn send_string(&mut self, string: String) -> Result<(), String> {
@@ -115,7 +115,7 @@ impl NodeConversation {
         }
     }
 
-    fn receive<T: FromMessageBody>(&mut self) -> Result<Result<T, (u64, String)>, String> {
+    fn receive(&mut self) -> Result<NodeToUiMessage, String> {
         let client = &mut self.inner_arc.lock().expect ("Connection poisoned").client;
         let incoming_msg = client.recv_message();
         let incoming_msg_json = match incoming_msg {
@@ -123,17 +123,18 @@ impl NodeConversation {
             Ok(x) => return Err(format!("Expected text; received {:?}", x)),
             Err (e) => return Err(format!("{:?}", e)),
         };
-        let incoming_msg = match UiTrafficConverter::new_unmarshal_to_ui(&incoming_msg_json, ClientId(0)) {
-            Ok(m) => m,
-            Err(e) => return Err(format! ("Deserialization problem: {:?}", e)),
-        };
-        let opcode = incoming_msg.body.opcode.clone();
-        let result: Result<(T, u64), UiMessageError> = T::fmb(incoming_msg.body);
-        match result {
-            Ok((payload, _)) => Ok(Ok(payload)),
-            Err(UiMessageError::PayloadError(code, message)) => Ok(Err((code, message))),
-            Err(e) => return Err(format!("Deserialization problem for {}: {:?}", opcode, e)),
+        match UiTrafficConverter::new_unmarshal_to_ui(&incoming_msg_json, ClientId(0)) {
+            Ok(m) => Ok(m),
+            Err(e) => Err(format! ("Deserialization problem: {:?}", e)),
         }
+    }
+}
+
+// Warning: this function does not properly set the context_id field.
+pub fn nfum<T: ToMessageBody> (tmb: T) -> NodeFromUiMessage {
+    NodeFromUiMessage {
+        client_id: 0,
+        body: tmb.tmb(0)
     }
 }
 
@@ -146,6 +147,45 @@ mod tests {
     use std::time::Duration;
     use std::thread;
     use masq_lib::ui_gateway::{MessageBody, MessagePath};
+    use masq_lib::ui_gateway::MessagePath::TwoWay;
+
+    pub fn nftm1<T: ToMessageBody> (tmb: T) -> NodeToUiMessage {
+        assert_eq! (tmb.is_two_way(), false);
+        NodeToUiMessage {
+            target: ClientId(0),
+            body: tmb.tmb(0)
+        }
+    }
+
+    pub fn nftm2<T: ToMessageBody> (context_id: u64, tmb: T) -> NodeToUiMessage {
+        assert_eq! (tmb.is_two_way(), true);
+        NodeToUiMessage {
+            target: ClientId(0),
+            body: tmb.tmb(context_id)
+        }
+    }
+
+    pub fn nftme1(opcode: &str, code: u64, msg: &str) -> NodeToUiMessage {
+        NodeToUiMessage {
+            target: ClientId(0),
+            body: MessageBody {
+                opcode: opcode.to_string(),
+                path: OneWay,
+                payload: Err ((code, msg.to_string()))
+            }
+        }
+    }
+
+    pub fn nftme2(opcode: &str, context_id: u64, code: u64, msg: &str) -> NodeToUiMessage {
+        NodeToUiMessage {
+            target: ClientId(0),
+            body: MessageBody {
+                opcode: opcode.to_string(),
+                path: TwoWay(context_id),
+                payload: Err ((code, msg.to_string()))
+            }
+        }
+    }
 
     #[test]
     fn connection_works_when_no_server_exists() {
@@ -192,7 +232,7 @@ mod tests {
         let connection = NodeConnection::new(port).unwrap();
         let mut subject = connection.start_conversation();
 
-        let result: Result<Result<UiShutdownOrder, (u64, String)>, String> = subject.transact (UiShutdownOrder {});
+        let result = subject.transact (nfum(UiShutdownOrder{}));
 
         assert_eq! (result, Err("'shutdownOrder' message is one-way only; can't transact() with it".to_string()));
         stop_handle.stop();
@@ -207,7 +247,7 @@ mod tests {
         let connection = NodeConnection::new(port).unwrap();
         let mut subject = connection.start_conversation();
 
-        let result: Result<Result<UiSetup, (u64, String)>, String> = subject.transact (UiSetup {values: vec![]});
+        let result = subject.transact (nfum(UiSetup {values: vec![]}));
 
         assert_eq! (result, Err("NoDataAvailable".to_string()));
     }
@@ -220,10 +260,10 @@ mod tests {
         let stop_handle = server.start();
         let connection = NodeConnection::new(port).unwrap();
         let mut subject = connection.start_conversation();
-        let _: Result<Result<UiSetup, (u64, String)>, String> = subject.transact (UiSetup {values: vec![]});
-        let _ = subject.send (UiShutdownOrder {}); // dunno why this doesn't blow up
+        let _ = subject.transact (nfum(UiSetup {values: vec![]}));
+        let _ = subject.send (nfum(UiShutdownOrder {})); // dunno why this doesn't blow up
 
-        let result = subject.send (UiShutdownOrder {}).err().unwrap();
+        let result = subject.send (nfum(UiShutdownOrder {})).err().unwrap();
 
         assert! (result.contains ("BrokenPipe"));
     }
@@ -238,7 +278,7 @@ mod tests {
         let mut subject = connection.start_conversation();
         stop_handle.stop();
 
-        let result: Result<Result<UiSetup, (u64, String)>, String> = subject.receive ();
+        let result = subject.receive ();
 
         if let Err(err_msg) = result {
             assert_eq!(err_msg, "Expected text; received Close(None)".to_string());
@@ -257,8 +297,9 @@ mod tests {
         let connection = NodeConnection::new(port).unwrap();
         let mut subject = connection.start_conversation();
 
-        let result: Result<Result<UiSetup, (u64, String)>, String> = subject.transact (UiSetup {values: vec![]});
+        let result = subject.transact (nfum(UiSetup {values: vec![]}));
 
+        stop_handle.stop();
         assert_eq! (result, Err("Deserialization problem: Critical(JsonSyntaxError(\"Error(\\\"expected value\\\", line: 1, column: 1)\"))".to_string()));
     }
 
@@ -266,66 +307,37 @@ mod tests {
     fn handles_being_sent_a_payload_error() {
         let port = find_free_port();
         let server = MockWebSocketsServer::new(port)
-            .queue_response (NodeToUiMessage {
-                target: ClientId(0),
-                body: MessageBody {
-                    opcode: "setup".to_string(),
-                    path: MessagePath::TwoWay(1),
-                    payload: Err((101, "booga".to_string()))
-                }
-            });
+            .queue_response (nftme2("setup", 1, 101, "booga"));
         let stop_handle = server.start();
         let connection = NodeConnection::new(port).unwrap();
         let mut subject = connection.start_conversation();
 
-        let result: Result<Result<UiSetup, (u64, String)>, String> = subject.transact (UiSetup {values: vec![]});
+        let result = subject.transact (nfum(UiSetup {values: vec![]})).unwrap();
 
-        assert_eq! (result, Ok(Err((101, "booga".to_string()))));
-    }
-
-    #[test]
-    fn handles_being_sent_unrecognized_message() {
-        let port = find_free_port();
-        let server = MockWebSocketsServer::new(port)
-            .queue_response (NodeToUiMessage {
-                target: ClientId(0),
-                body: MessageBody {
-                    opcode: "booga".to_string(),
-                    path: MessagePath::TwoWay(1),
-                    payload: Err((101, "booga".to_string()))
-                }
-            });
-        let stop_handle = server.start();
-        let connection = NodeConnection::new(port).unwrap();
-        let mut subject = connection.start_conversation();
-
-        let result: Result<Result<UiSetup, (u64, String)>, String> = subject.transact (UiSetup {values: vec![]});
-
-        assert_eq! (result, Err("Deserialization problem for booga: BadOpcode".to_string()));
+        stop_handle.stop();
+        assert_eq! (result.body.payload, Err((101, "booga".to_string())));
     }
 
     #[test]
     fn single_cycle_conversation_works_as_expected() {
         let port = find_free_port();
         let server = MockWebSocketsServer::new(port)
-            .queue_response (NodeToUiMessage {
-                target: ClientId(0),
-                body: UiSetup {
-                    values: vec![
-                        UiSetupValue::new ("type", "response")
-                    ]
-                }.tmb(1)
-            });
+            .queue_response (nftm2(1, UiSetup {
+                values: vec![
+                    UiSetupValue::new ("type", "response")
+                ]
+            }));
         let stop_handle = server.start();
         let connection = NodeConnection::new(port).unwrap();
         let mut subject = connection.start_conversation();
 
-        let response: UiSetup = subject.transact (UiSetup {
+        let response_body = subject.transact (nfum(UiSetup {
             values: vec![
                 UiSetupValue::new ("type", "request")
             ]
-        }).unwrap().unwrap();
+        })).unwrap().body;
 
+        let response = UiSetup::fmb(response_body).unwrap();
         let requests = stop_handle.stop();
         assert_eq! (requests, vec![Ok(NodeFromUiMessage {
             client_id: 0,
@@ -333,9 +345,9 @@ mod tests {
                 values: vec![UiSetupValue::new ("type", "request")]
             }.tmb(1)
         })]);
-        assert_eq! (response, UiSetup {
+        assert_eq! (response, (UiSetup {
             values: vec![UiSetupValue::new ("type", "response")]
-        })
+        }, 1));
     }
 
     #[test]
@@ -364,16 +376,16 @@ mod tests {
         let mut subject1 = connection.start_conversation();
         let mut subject2 = connection.start_conversation();
 
-        let response1: UiSetup = subject1.transact (UiSetup {
+        let response1_body = subject1.transact (nfum(UiSetup {
             values: vec![
                 UiSetupValue::new ("type", "conversation 1 request")
             ]
-        }).unwrap().unwrap();
-        let response2: UiSetup = subject2.transact (UiSetup {
+        })).unwrap().body;
+        let response2_body = subject2.transact (nfum(UiSetup {
             values: vec![
                 UiSetupValue::new ("type", "conversation 2 request")
             ]
-        }).unwrap().unwrap();
+        })).unwrap().body;
 
         assert_eq! (subject1.context_id(), 1);
         assert_eq! (subject2.context_id(), 2);
@@ -392,10 +404,12 @@ mod tests {
                 }.tmb(2)
             }),
         ]);
-        assert_eq! (response1, UiSetup {
+        assert_eq! (response1_body.path, TwoWay(1));
+        assert_eq! (UiSetup::fmb(response1_body).unwrap().0, UiSetup {
             values: vec![UiSetupValue::new ("type", "conversation 1 response")]
         });
-        assert_eq! (response2, UiSetup {
+        assert_eq! (response2_body.path, TwoWay(2));
+        assert_eq! (UiSetup::fmb(response2_body).unwrap().0, UiSetup {
             values: vec![UiSetupValue::new ("type", "conversation 2 response")]
         });
     }

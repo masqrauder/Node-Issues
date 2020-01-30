@@ -11,10 +11,11 @@ use masq_lib::messages::ToMessageBody;
 use std::io::{Read};
 use masq_lib::command::StdStreams;
 use crate::commands::{CommandError, Command};
-use crate::command_context::{CommandContextReal};
+use crate::command_context::{CommandContextReal, CommandContext};
 //use crate::command_context::{CommandContextFactory, CommandContextFactoryError};
 use crate::commands::CommandError::Transaction;
 use crate::command_processor::{CommandProcessor, CommandProcessorFactory};
+use crate::websockets_client::nfum;
 
 lazy_static! {
     pub static ref ONE_WAY_MESSAGE: NodeFromUiMessage = NodeFromUiMessage {
@@ -143,14 +144,14 @@ impl<T: ToMessageBody + Clone> std::fmt::Debug for MockCommand<T> {
 }
 
 impl<T: ToMessageBody + Clone> Command for MockCommand<T> {
-    fn execute(&self, context: &mut CommandContextReal) -> Result<(), CommandError> {
-        let result: Result<UiSetup, String> = context.transact(self.message.clone());
+    fn execute(&self, context: &mut CommandContext) -> Result<(), CommandError> {
+        let result = context.transact(nfum(self.message.clone()));
         match result {
             Ok(_) => (),
             Err(e) => return Err(Transaction(e)),
         }
-        context.write_stdout("MockCommand output");
-        context.write_stderr("MockCommand error");
+        write!(context.stdout(), "MockCommand output").unwrap();
+        write!(context.stderr(), "MockCommand error").unwrap();
         self.execute_results.borrow_mut().remove (0)
     }
 }
