@@ -78,55 +78,56 @@ mod tests {
     use masq_lib::ui_gateway::MessagePath::TwoWay;
     use crate::websockets_client::nfum;
 
-//    #[test]
-//    fn works_when_everythings_fine() {
-//        let port = find_free_port();
-//        let mut holder = FakeStreamHolder::new();
-//        holder.stdin = ByteArrayReader::new (b"This is stdin.");
-//        let server = MockWebSocketsServer::new(port)
-//            .queue_response (NodeToUiMessage {
-//                target: ClientId(0),
-//                body: UiSetup {
-//                    values: vec![
-//                        UiSetupValue {
-//                            name: "Okay,".to_string(),
-//                            value: "I did.".to_string(),
-//                        }
-//                    ]
-//                }.tmb(1234)
-//            });
-//        let stop_handle = server.start();
-//        let mut subject = CommandContext::new (port);
-//        subject.stdin = Box::new (holder.stdin);
-//        subject.stdout = Box::new (holder.stdout);
-//        subject.stderr = Box::new (holder.stderr);
-//
-//        subject.send (UiShutdownOrder {}).unwrap();
-//        let response: Result<UiSetup, String> = subject.transact (UiSetup {
-//                values: vec![
-//                    UiSetupValue {
-//                        name: "Say something".to_string(),
-//                        value: "to me.".to_string(),
-//                    }
-//                ]
-//            });
-//        let input = subject.read_stdin();
-//        subject.write_stdout("This is stdout.");
-//        subject.write_stderr("This is stderr.");
-//
-//        assert_eq! (response, Ok(UiSetup {
-//            values: vec![
-//                UiSetupValue {
-//                    name: "Okay,".to_string(),
-//                    value: "I did.".to_string(),
-//                }
-//            ]
-//        }));
-//        assert_eq! (input, "This is stdin.".to_string());
-//        assert_eq! (subject.stdout.get_string(), "This is stdout.".to_string());
-//        assert_eq! (subject.stderr.get_string(), "This is stderr.".to_string());
-//        stop_handle.stop();
-//    }
+    #[test]
+    fn works_when_everythings_fine() {
+        let port = find_free_port();
+        let mut holder = FakeStreamHolder::new();
+        holder.stdin = ByteArrayReader::new (b"This is stdin.");
+        let server = MockWebSocketsServer::new(port)
+            .queue_response (NodeToUiMessage {
+                target: ClientId(0),
+                body: UiSetup {
+                    values: vec![
+                        UiSetupValue {
+                            name: "Okay,".to_string(),
+                            value: "I did.".to_string(),
+                        }
+                    ]
+                }.tmb(1234)
+            });
+        let stop_handle = server.start();
+        let mut subject = CommandContextReal::new (port);
+        subject.stdin = Box::new (holder.stdin);
+        subject.stdout = Box::new (holder.stdout);
+        subject.stderr = Box::new (holder.stderr);
+
+        subject.send (nfum(UiShutdownOrder {})).unwrap();
+        let response = subject.transact (nfum(UiSetup {
+                values: vec![
+                    UiSetupValue {
+                        name: "Say something".to_string(),
+                        value: "to me.".to_string(),
+                    }
+                ]
+            })).unwrap();
+        let mut input = String::new();
+        subject.stdin().read_to_string(&mut input).unwrap();
+        write!(subject.stdout(), "This is stdout.").unwrap();
+        write!(subject.stderr(), "This is stderr.").unwrap();
+
+        assert_eq! (UiSetup::fmb(response.body).unwrap().0, UiSetup {
+            values: vec![
+                UiSetupValue {
+                    name: "Okay,".to_string(),
+                    value: "I did.".to_string(),
+                }
+            ]
+        });
+        assert_eq! (input, "This is stdin.".to_string());
+        assert_eq! (holder.stdout.get_string(), "This is stdout.".to_string());
+        assert_eq! (holder.stderr.get_string(), "This is stderr.".to_string());
+        stop_handle.stop();
+    }
 
     #[test]
     fn works_when_server_sends_payload_error() {
