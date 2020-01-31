@@ -4,6 +4,7 @@ use crate::commands::{Command, CommandError};
 use crate::command_context::CommandContextReal;
 use crate::schema::app;
 use clap::value_t;
+use crate::command_context::CommandContext;
 
 pub trait CommandProcessorFactory {
     fn make(&self, args: &[String]) -> Box<dyn CommandProcessor>;
@@ -32,7 +33,7 @@ impl CommandProcessorFactoryReal {
 
 pub trait CommandProcessor {
     fn process (&mut self, command: Box<dyn Command>) -> Result<(), CommandError>;
-    fn shutdown (&mut self);
+    fn close(&mut self);
 }
 
 pub struct CommandProcessorReal {
@@ -41,12 +42,12 @@ pub struct CommandProcessorReal {
 }
 
 impl CommandProcessor for CommandProcessorReal {
-    fn process(&mut self, _command: Box<dyn Command>) -> Result<(), CommandError> {
-        unimplemented!()
+    fn process(&mut self, command: Box<dyn Command>) -> Result<(), CommandError> {
+        command.execute (&mut self.context)
     }
 
-    fn shutdown(&mut self) {
-        unimplemented!()
+    fn close(&mut self) {
+        self.context.close();
     }
 }
 
@@ -63,7 +64,7 @@ impl CommandProcessor for CommandProcessorNull {
         panic!("masq was not properly initialized")
     }
 
-    fn shutdown(&mut self) {
+    fn close(&mut self) {
         panic!("masq was not properly initialized")
     }
 }
@@ -93,7 +94,7 @@ mod tests {
     fn null_command_processor_shutdown_panics_properly() {
         let mut subject = CommandProcessorNull{};
 
-        subject.shutdown ();
+        subject.close();
     }
 
     #[derive (Debug)]
@@ -123,5 +124,20 @@ mod tests {
             client_id: 0,
             body: UiShutdownOrder{}.tmb(0),
         })]);
+    }
+
+    #[test]
+    fn close_closes_connection() {
+        let port = find_free_port();
+        let args = ["masq".to_string(), "--ui-port".to_string(), format!("{}", port)];
+        let factory = CommandProcessorFactoryReal::new ();
+        let server = MockWebSocketsServer::new(port);
+        let stop_handle = server.start();
+        let mut subject = factory.make (&args);
+
+        subject.close();
+
+        let received = stop_handle.stop();
+        assert_eq! (received, vec![Err("Close(None)".to_string())]);
     }
 }

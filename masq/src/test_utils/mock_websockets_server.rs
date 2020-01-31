@@ -108,7 +108,7 @@ impl MockWebSocketsServer {
 
 impl MockWebSocketsServerStopHandle {
     pub fn stop (self) -> Vec<Result<NodeFromUiMessage, String>> {
-        self.stop_tx.send(()).unwrap();
+        let _ = self.stop_tx.send(());
         let _ = self.join_handle.join();
         let guard = match self.requests_arc.lock() {
             Ok(guard) => guard,

@@ -50,7 +50,7 @@ impl command::Command for Main {
             writeln! (streams.stderr, "{}", msg).expect ("writeln! failed");
             return 1
         }
-        processor.shutdown();
+        processor.close();
         0
     }
 }
@@ -246,6 +246,6 @@ mod tests {
 
         assert_eq! (result, 1);
         assert_eq! (stream_holder.stdout.get_string(), "".to_string());
-        assert_eq! (stream_holder.stderr.get_string(), "Transaction(Booga!)\n".to_string());
+        assert_eq! (stream_holder.stderr.get_string(), "Transaction(\"Booga!\")\n".to_string());
     }
 }

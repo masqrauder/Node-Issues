@@ -11,6 +11,7 @@ pub trait CommandContext {
     fn stdin(&mut self) -> &mut Box<dyn Read>;
     fn stdout(&mut self) -> &mut Box<dyn Write>;
     fn stderr(&mut self) -> &mut Box<dyn Write>;
+    fn close(&mut self);
 }
 
 pub struct CommandContextReal {
@@ -48,6 +49,11 @@ impl CommandContext for CommandContextReal {
 
     fn stderr(&mut self) -> &mut Box<dyn Write> {
         &mut self.stderr
+    }
+
+    fn close(&mut self) {
+        let mut conversation = self.connection.start_conversation();
+        conversation.close()
     }
 }
 
@@ -167,5 +173,18 @@ mod tests {
 
         stop_handle.stop();
         assert_eq! (response, Err(format!("NoDataAvailable")));
+    }
+
+    #[test]
+    fn close_sends_websockets_close() {
+        let port = find_free_port();
+        let server = MockWebSocketsServer::new (port);
+        let stop_handle = server.start();
+        let mut subject = CommandContextReal::new (port);
+
+        subject.close();
+
+        let received = stop_handle.stop();
+        assert_eq! (received, vec![Err("Close(None)".to_string())])
     }
 }

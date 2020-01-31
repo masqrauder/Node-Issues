@@ -59,7 +59,7 @@ impl CommandFactoryMock {
 pub struct CommandProcessorMock {
     process_params: Arc<Mutex<Vec<Box<dyn Command>>>>,
     process_results: RefCell<Vec<Result<(), CommandError>>>,
-    shutdown_params: Arc<Mutex<Vec<()>>>,
+    close_params: Arc<Mutex<Vec<()>>>,
 }
 
 impl CommandProcessor for CommandProcessorMock {
@@ -68,8 +68,8 @@ impl CommandProcessor for CommandProcessorMock {
         self.process_results.borrow_mut().remove(0)
     }
 
-    fn shutdown(&mut self) {
-        self.shutdown_params.lock().unwrap().push (());
+    fn close(&mut self) {
+        self.close_params.lock().unwrap().push (());
     }
 }
 
@@ -78,7 +78,7 @@ impl CommandProcessorMock {
         Self {
             process_params: Arc::new (Mutex::new (vec![])),
             process_results: RefCell::new (vec![]),
-            shutdown_params: Arc::new (Mutex::new (vec![])),
+            close_params: Arc::new (Mutex::new (vec![])),
         }
     }
 
@@ -93,7 +93,7 @@ impl CommandProcessorMock {
     }
 
     pub fn shutdown_params (mut self, params: &Arc<Mutex<Vec<()>>>) -> Self {
-        self.shutdown_params = params.clone();
+        self.close_params = params.clone();
         self
     }
 }
