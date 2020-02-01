@@ -15,7 +15,7 @@ impl MasqProcess {
         let executable_name = "masq";
         #[cfg(target_os = "windows")]
         let executable_name = "masq.exe";
-        let executable_path = std::env::current_dir().unwrap().join ("target").join ("release").join(executable_name);
+        let executable_path = std::env::current_dir().unwrap().join("..").join("node").join ("target").join ("release").join(executable_name);
         let mut command = Command::new(executable_path);
         let command = command.args(params);
         let child = command.stdout (Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();

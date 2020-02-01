@@ -1,8 +1,9 @@
 // Copyright (c) 2019-2020, MASQ (https://masq.ai) and/or its affiliates. All rights reserved.
 use masq_lib::ui_gateway::DEFAULT_UI_PORT;
 use lazy_static::lazy_static;
-use clap::{crate_description, crate_version, App, AppSettings, Arg};
+use clap::{crate_description, crate_version, App, AppSettings, Arg, SubCommand};
 use masq_lib::constants::{HIGHEST_USABLE_PORT, LOWEST_USABLE_INSECURE_PORT};
+use crate::commands::SetupCommand;
 
 lazy_static! {
     static ref UI_PORT_HELP: String = format!(
@@ -35,6 +36,15 @@ pub fn app() -> App<'static, 'static> {
             .default_value(DEFAULT_UI_PORT_STRING.as_str())
             .validator(validate_ui_port)
             .help(UI_PORT_HELP.as_str())
+        )
+        .subcommand (SubCommand::with_name("setup")
+            .setting(AppSettings::TrailingVarArg)
+            .about("Establishes and displays startup parameters for MASQNode. Only valid if Node is not already running.")
+            .arg(Arg::with_name("attribute")
+                .index(1)
+                .multiple(true)
+                .validator(SetupCommand::validator)
+            )
         )
 }
 

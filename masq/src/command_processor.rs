@@ -80,13 +80,14 @@ mod tests {
     use crate::command_context::CommandContext;
     use crate::websockets_client::nfum;
     use masq_lib::messages::ToMessageBody;
+    use std::collections::HashMap;
 
     #[test]
     #[should_panic(expected = "masq was not properly initialized")]
     fn null_command_processor_process_panics_properly() {
         let mut subject = CommandProcessorNull{};
 
-        subject.process (Box::new (SetupCommand{values: vec![]})).unwrap();
+        subject.process (Box::new (SetupCommand{values: HashMap::new()})).unwrap();
     }
 
     #[test]
