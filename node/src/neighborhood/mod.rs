@@ -136,7 +136,7 @@ impl Handler<NodeQueryMessage> for Neighborhood {
             Some(node_record_ref) => Some(NodeQueryResponseMetadata::new(
                 node_record_ref.public_key().clone(),
                 match node_record_ref.node_addr_opt() {
-                    Some(node_addr_ref) => Some(node_addr_ref.clone()),
+                    Some(node_addr_ref) => Some(node_addr_ref),
                     None => None,
                 },
                 node_record_ref.rate_pack().clone(),
@@ -163,7 +163,7 @@ impl Handler<DispatcherNodeQueryMessage> for Neighborhood {
             Some(node_record_ref) => Some(NodeQueryResponseMetadata::new(
                 node_record_ref.public_key().clone(),
                 match node_record_ref.node_addr_opt() {
-                    Some(node_addr) => Some(node_addr.clone()),
+                    Some(node_addr) => Some(node_addr),
                     None => None,
                 },
                 node_record_ref.rate_pack().clone(),
@@ -281,7 +281,7 @@ impl Handler<NeighborhoodDotGraphRequest> for Neighborhood {
             .try_send(UiCarrierMessage {
                 client_id: msg.client_id,
                 data: UiMessage::NeighborhoodDotGraphResponse(
-                    self.neighborhood_database.to_dot_graph().clone(),
+                    self.neighborhood_database.to_dot_graph(),
                 ),
             })
             .expect("DOT graph recipient is dead")
