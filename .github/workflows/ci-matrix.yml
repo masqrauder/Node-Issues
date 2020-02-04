@@ -23,11 +23,12 @@ jobs:
         sudo systemctl disable systemd-resolved.service
         sudo service systemd-resolved stop
         echo "*********"
-        cat /etc/NetworkManager/NetworkManager.conf
+        ls -lah /etc/
+        [[ -e /etc/NetworkManager/NetworkManager.conf]] && cat /etc/NetworkManager/NetworkManager.conf
         echo "*********"
-        sudo sed -i "s/^dns=.*$/dns=default/g" /etc/NetworkManager/NetworkManager.conf
+        [[ -e /etc/NetworkManager/NetworkManager.conf ]] && sudo sed -i "s/^dns=.*$/dns=default/g" /etc/NetworkManager/NetworkManager.conf
         echo "*********"
-        cat /etc/resolv.conf
+        [[ -e /etc/resolv.conf ]] && cat /etc/resolv.conf
         echo "*********"
         ./ci/all.sh
       shell: bash
