@@ -20,7 +20,10 @@ jobs:
       run: |
         rustup show
         cargo version
+        sudo systemctl disable systemd-resolved.service
+        sudo service systemd-resolved stop
         cat /etc/resolv.conf
+        # sudo sed -i 's/127.0.0.53/1.1.1.1/g' /etc/resolv.conf
         sudo rm -f /etc/resolv.conf
         sudo echo "nameserver 1.1.1.1" >> /etc/resolv.conf
         ./ci/all.sh
