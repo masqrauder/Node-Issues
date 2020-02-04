@@ -22,6 +22,6 @@ jobs:
         cargo version
         cat /etc/resolv.conf
         sudo rm /etc/resolv.conf
-        sudo echo "nameserver 1.1.1.1 >> /etc/resolv.conf
+        sudo echo "nameserver 1.1.1.1" >> /etc/resolv.conf
         ./ci/all.sh
       shell: bash
