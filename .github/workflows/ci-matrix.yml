@@ -20,8 +20,8 @@ jobs:
       run: |
         rustup show
         cargo version
-        sudo echo DNSStubListener=no >> /etc/systemd/resolved.conf
-        sudo systemctl daemon-reload
-        sudo systemctl restart systemd-resolved.service
+        cat /etc/resolv.conf
+        sudo rm /etc/resolv.conf
+        sudo echo "nameserver 1.1.1.1 >> /etc/resolv.conf
         ./ci/all.sh
       shell: bash
