@@ -8,7 +8,7 @@ description = "Command-line utility to turn DNS subversion on and off"
 edition = "2018"
 
 [dependencies]
-regex = "1.2.1"
+regex = "1.3.4"
 libc = "0.2.62"
 ipconfig = "0.2.1"
 
