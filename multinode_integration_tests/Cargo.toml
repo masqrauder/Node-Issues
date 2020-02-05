@@ -20,7 +20,7 @@ regex = "1.2.1"
 rusqlite = {version = "0.20.0", features = ["bundled"]}
 rustc-hex = "2.0.1"
 serde = "1.0.99"
-serde_derive = "1.0.99"
+serde_derive = "1.0.104"
 serde_cbor = "0.10.1"
 sha1 = "0.6.0"
 tiny-bip39 = "0.6.2"
