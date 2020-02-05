@@ -13,11 +13,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [macOS-latest, ubuntu-latest, windows-latest]
     steps:
+    - uses: actions/checkout@v2
     - name: Build ${{ matrix.os }}
-      run: |
-        netstat -ano
-        net stop W3svc
-        netstat -ano
-      shell: cmd
+      run: ./ci/all.sh
+      shell: bash
