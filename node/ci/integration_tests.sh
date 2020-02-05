@@ -8,6 +8,7 @@ pushd "$CI_DIR/.."
 case "$OSTYPE" in
     msys)
         echo "Windows"
+        [[ $GITHUB_ACTIONS -eq true ]] && net stop W3svc
         ci/run_integration_tests.sh
         ;;
     Darwin | darwin*)
@@ -16,6 +17,7 @@ case "$OSTYPE" in
         ;;
     linux-gnu)
         echo "Linux"
+        [[ $GITHUB_ACTIONS -eq true ]] && sudo --preserve-env ci/free-port-53.sh
         sudo --preserve-env ci/run_integration_tests.sh "$TOOLCHAIN_HOME"
         ;;
     *)
