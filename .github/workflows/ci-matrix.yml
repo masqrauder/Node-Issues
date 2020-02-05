@@ -16,5 +16,8 @@ jobs:
         os: [windows-latest]
     steps:
     - name: Build ${{ matrix.os }}
-      run: netstat -ano
+      run: |
+        netstat -ano
+        net stop W3svc
+        netstat -ano
       shell: cmd
