@@ -83,21 +83,21 @@ mod tests {
     #[test]
     fn generate_wallet() {
         [["--generate-wallet"]]
-            .into_iter()
+            .iter()
             .for_each(|args| check_mode(args, Mode::GenerateWallet));
     }
 
     #[test]
     fn recover_wallet() {
         [["--recover-wallet"]]
-            .into_iter()
+            .iter()
             .for_each(|args| check_mode(args, Mode::RecoverWallet));
     }
 
     #[test]
     fn dump_config() {
         [["--dump-config"]]
-            .into_iter()
+            .iter()
             .for_each(|args| check_mode(args, Mode::DumpConfig));
     }
 
@@ -107,7 +107,7 @@ mod tests {
             ["--generate-wallet", "--recover-wallet"],
             ["--recover-wallet", "--generate-wallet"],
         ]
-        .into_iter()
+        .iter()
         .for_each(|args| check_mode(args, Mode::RecoverWallet));
     }
 
@@ -118,7 +118,7 @@ mod tests {
             ["--booga", "--recover-wallet", "--dump-config"],
             ["--generate-wallet", "--recover_wallet", "--dump-config"],
         ]
-        .into_iter()
+        .iter()
         .for_each(|args| check_mode(args, Mode::DumpConfig));
     }
 
