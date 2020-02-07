@@ -686,7 +686,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "fdlimit"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.62 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1542,7 +1542,7 @@ dependencies = [
  "ethereum-types 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethsign 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethsign-crypto 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "fdlimit 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fdlimit 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "flexi_logger 0.14.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "heck 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3561,7 +3561,7 @@ dependencies = [
 "checksum fake-simd 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
 "checksum fallible-iterator 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4443176a9f2c162692bd3d352d745ef9413eec5782a80d8fd6f8a1ac692a07f7"
 "checksum fallible-streaming-iterator 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)" = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
-"checksum fdlimit 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b1ee15a7050e5580b3712877157068ea713b245b080ff302ae2ca973cfcd9baa"
+"checksum fdlimit 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "9084c55bb76efb1496328976db88320fe7d9ee86e649e83c4ecce3ba7a9a35d1"
 "checksum filetime 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)" = "6bd7380b54ced79dda72ecc35cc4fbbd1da6bba54afaa37e96fd1c2a308cd469"
 "checksum fixed-hash 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "d1a683d1234507e4f3bf2736eeddf0de1dc65996dc0164d57eba0a74bcf29489"
 "checksum fixed-hash 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "516877b7b9a1cc2d0293cbce23cd6203f0edbfd4090e6ca4489fecb5aa73050e"
