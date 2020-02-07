@@ -19,5 +19,6 @@ jobs:
     - name: Build ${{ matrix.os }}
       run: |
         rustup show
+        rustup update stable
         ./ci/all.sh
       shell: bash
