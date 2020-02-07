@@ -96,8 +96,6 @@ impl NodeConfiguratorStandardUnprivileged {
     }
 }
 
-<<<<<<< HEAD
-=======
 lazy_static! {
     static ref DEFAULT_UI_PORT_VALUE: String = DEFAULT_UI_PORT.to_string();
     static ref DEFAULT_CRASH_POINT_VALUE: String = format!("{}", CrashPoint::None);
@@ -175,7 +173,6 @@ const NEIGHBORHOOD_MODE_HELP: &str = "This configures the way the Node relates t
      connections, both consuming and providing services, and when you operate behind a router, it \
      requires that you forward your clandestine port through that router to your Node's machine.";
 
->>>>>>> fb8eaebf... Fix too many open files error on macOS (#16)
 const HELP_TEXT: &str = indoc!(
     r"ADDITIONAL HELP:
     If you want to start the MASQ Daemon to manage the MASQ Node and the MASQ UIs, try:
