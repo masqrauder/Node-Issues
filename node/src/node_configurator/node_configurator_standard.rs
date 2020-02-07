@@ -96,6 +96,86 @@ impl NodeConfiguratorStandardUnprivileged {
     }
 }
 
+<<<<<<< HEAD
+=======
+lazy_static! {
+    static ref DEFAULT_UI_PORT_VALUE: String = DEFAULT_UI_PORT.to_string();
+    static ref DEFAULT_CRASH_POINT_VALUE: String = format!("{}", CrashPoint::None);
+    static ref UI_PORT_HELP: String = format!(
+        "The port at which user interfaces will connect to the Node. Best to accept the default unless \
+        you know what you're doing. Must be between {} and {}.",
+        LOWEST_USABLE_INSECURE_PORT, HIGHEST_USABLE_PORT
+    );
+    static ref CLANDESTINE_PORT_HELP: String = format!(
+        "The port this Node will advertise to other Nodes at which clandestine traffic will be \
+         received. If you don't specify a clandestine port, the Node will choose an unused \
+         one at random on first startup, then use that one for every subsequent run unless \
+         you change it by specifying a different clandestine port here. --clandestine-port is \
+         meaningless except in --neighborhood-mode standard. \
+         Must be between {} and {} [default: last used port]",
+        LOWEST_USABLE_INSECURE_PORT, HIGHEST_USABLE_PORT
+    );
+    static ref GAS_PRICE_HELP: String = format!(
+       "The Gas Price is the amount of Gwei you will pay per unit of gas used in a transaction. \
+       If left unspecified, MASQ Node will use the previously stored value (Default {}). Valid range is 1-99 Gwei.",
+       DEFAULT_GAS_PRICE);
+}
+
+const BLOCKCHAIN_SERVICE_HELP: &str = "The Ethereum client you wish to use to provide Blockchain \
+     exit services from your MASQ Node (e.g. http://localhost:8545, \
+     https://ropsten.infura.io/v3/YOUR-PROJECT-ID, https://mainnet.infura.io/v3/YOUR-PROJECT-ID).";
+const DB_PASSWORD_HELP: &str =
+    "A password or phrase to decrypt the encrypted material in the database, to include your \
+     mnemonic seed (if applicable) and your list of previous neighbors. If you don't provide this \
+     password, none of the encrypted data in your database will be used.";
+const DNS_SERVERS_HELP: &str =
+    "IP addresses of DNS Servers for host name look-up while providing exit \
+     services for other MASQ Nodes (e.g. 1.0.0.1,1.1.1.1,8.8.8.8,9.9.9.9, etc.)";
+const EARNING_WALLET_HELP: &str =
+    "An Ethereum wallet address. Addresses must begin with 0x followed by 40 hexadecimal digits \
+     (case-insensitive). If you already have a derivation-path earning wallet, don't supply this. \
+     If you have supplied an earning wallet address before, either don't supply it again or be \
+     careful to supply exactly the same one you supplied before.";
+const IP_ADDRESS_HELP: &str = "The public IP address of your MASQ Node: that is, the IPv4 \
+     address at which other Nodes can contact yours. If you're running your Node behind \
+     a router, this will be the IP address of the router. If this IP address starts with 192.168 or 10.0, \
+     it's a local address rather than a public address, and other Nodes won't be able to see yours. \
+     --ip is meaningless except in --neighborhood-mode standard.";
+const LOG_LEVEL_HELP: &str =
+    "The minimum severity of the logs that should appear in the Node's logfile. You should probably not specify \
+     a level lower than the default unless you're doing testing or forensics: a Node at the 'trace' log level \
+     generates a lot of log traffic. This will both consume your disk space and degrade your Node's performance. \
+     You should probably not specify a level higher than the default unless you have security concerns about \
+     persistent logs being kept on your computer: if your Node crashes, it's good to know why.";
+const NEIGHBORS_HELP: &str = "One or more Node descriptors for running Nodes in the MASQ \
+     Network to which you'd like your Node to connect on startup. A Node descriptor looks like \
+     this:\n\ngBviQbjOS3e5ReFQCvIhUM3i02d1zPleo1iXg/EN6zQ:86.75.30.9:5542 (initial ':' for testnet) and\n\
+     gBviQbjOS3e5ReFQCvIhUM3i02d1zPleo1iXg/EN6zQ@86.75.30.9:5542 (initial '@' for mainnet)\n\n\
+     If you have more than one, separate them with commas (but no spaces). There is no default value; \
+     if you don't specify a neighbor, your Node will start without being connected to any MASQ \
+     Network, although other Nodes will be able to connect to yours if they know your Node's descriptor. \
+     --neighbors is meaningless in --neighborhood-mode zero-hop.";
+const NEIGHBORHOOD_MODE_HELP: &str = "This configures the way the Node relates to other Nodes.\n\n\
+     zero-hop means that your Node will operate as its own Substratum Network and will not communicate with any \
+     other Nodes. --ip, --neighbors, and --clandestine-port are incompatible with --neighborhood_mode \
+     zero-hop.\n\n\
+     originate-only means that your Node will not accept connections from any other Node; it \
+     will only originate connections to other Nodes. This will reduce your Node's opportunity to route \
+     data (it will only ever have two neighbors, so the number of routes it can participate in is limited), \
+     it will reduce redundancy in the Substratum Network, and it will prevent your Node from acting as \
+     a connection point for other Nodes to get on the Network; but it will enable your Node to operate in \
+     an environment where your network hookup is preventing you from accepting connections, and it means \
+     that you don't have to forward any incoming ports through your router. --ip and --clandestine_port \
+     are incompatible with --neighborhood_mode originate-only.\n\n\
+     consume-only means that your Node will not accept connections from or route data for any other Node; \
+     it will only consume services from the Substratum Network. This mode is appropriate for devices that \
+     cannot maintain a constant IP address or stay constantly on the Network. --ip and --clandestine_port \
+     are incompatible with --neighborhood_mode consume-only.\n\n\
+     standard means that your Node will operate fully unconstrained, both originating and accepting \
+     connections, both consuming and providing services, and when you operate behind a router, it \
+     requires that you forward your clandestine port through that router to your Node's machine.";
+
+>>>>>>> fb8eaebf... Fix too many open files error on macOS (#16)
 const HELP_TEXT: &str = indoc!(
     r"ADDITIONAL HELP:
     If you want to start the MASQ Daemon to manage the MASQ Node and the MASQ UIs, try:

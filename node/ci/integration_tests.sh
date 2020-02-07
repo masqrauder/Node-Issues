@@ -15,6 +15,7 @@ case "$OSTYPE" in
         ;;
     Darwin | darwin*)
         echo "macOS"
+        [[ $GITHUB_ACTIONS -eq true ]] && sudo launchctl limit maxfiles 524288 524288 && ulimit -Sn 524288 && sudo launchctl limit maxfiles
         sudo --preserve-env ci/run_integration_tests.sh "$TOOLCHAIN_HOME"
         ;;
     linux-gnu)
