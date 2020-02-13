@@ -40,7 +40,7 @@ regex = "1.0.5"
 rlp = "0.4.4"
 rpassword = "4.0.5"
 rusqlite = {version = "0.20.0", features = ["bundled"]}
-rustc-hex = "2.0.1"
+rustc-hex = "2.1.0"
 serde = "1.0.104"
 serde_derive = "1.0.104"
 serde_json = "1.0.47"
