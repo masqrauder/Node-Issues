@@ -23,7 +23,7 @@ serde = "1.0.104"
 serde_derive = "1.0.104"
 serde_cbor = "0.11.1"
 sha1 = "0.6.0"
-tiny-bip39 = "0.6.2"
+tiny-bip39 = "0.7.0"
 tiny-hderive = "0.2.1"
 native-tls = "0.2.3"
 node = { path = "../node", features = [ "expose_test_privates" ] }
