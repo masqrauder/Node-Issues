@@ -40,4 +40,4 @@ name = "mock_node"
 path = "src/main.rs"
 
 [dev-dependencies]
-reqwest = "0.10.1"
+reqwest = "0.10.2"
