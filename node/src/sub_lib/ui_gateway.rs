@@ -1,17 +1,25 @@
 // Copyright (c) 2017-2018, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
+
 use crate::sub_lib::accountant::FinancialStatisticsMessage;
 use crate::sub_lib::peer_actors::BindMessage;
 use actix::Message;
 use actix::Recipient;
+use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
 use serde_derive::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
 
-pub const DEFAULT_UI_PORT: u16 = 5333;
+#[derive(Message, PartialEq, Debug)]
+pub struct FromUiMessage {
+    pub client_id: u64,
+    pub json: String,
+}
 
 #[derive(Clone, Debug)]
 pub struct UiGatewayConfig {
     pub ui_port: u16,
-    pub node_descriptor: String,
+    pub node_descriptor: String, // TODO: This really shouldn't be here; it exists only to answer
+                                 // the GetNodeDescriptor message, which A) is part of MASQNode-UI,
+                                 // and B) shouldn't be answered by the UiGateway anyway.
 }
 
 #[derive(Clone)]
@@ -19,8 +27,8 @@ pub struct UiGatewaySubs {
     pub bind: Recipient<BindMessage>,
     pub ui_message_sub: Recipient<UiCarrierMessage>,
     pub from_ui_message_sub: Recipient<FromUiMessage>,
-    pub new_from_ui_message_sub: Recipient<NewFromUiMessage>,
-    pub new_to_ui_message_sub: Recipient<NewToUiMessage>,
+    pub new_from_ui_message_sub: Recipient<NodeFromUiMessage>,
+    pub new_to_ui_message_sub: Recipient<NodeToUiMessage>,
 }
 
 impl Debug for UiGatewaySubs {
@@ -50,43 +58,6 @@ pub enum UiMessage {
     ShutdownMessage,
 }
 
-#[derive(Message, PartialEq, Debug)]
-pub struct FromUiMessage {
-    pub client_id: u64,
-    pub json: String,
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub enum MessageTarget {
-    ClientId(u64),
-    AllClients,
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub enum MessagePath {
-    OneWay,
-    TwoWay(u64), // context_id
-}
-
-#[derive(PartialEq, Clone, Debug)]
-pub struct MessageBody {
-    pub opcode: String,
-    pub path: MessagePath,
-    pub payload: Result<String, (u64, String)>, // <success payload as JSON, (error code, error message)>
-}
-
-#[derive(Message, PartialEq, Clone, Debug)]
-pub struct NewFromUiMessage {
-    pub client_id: u64,
-    pub body: MessageBody,
-}
-
-#[derive(Message, PartialEq, Clone, Debug)]
-pub struct NewToUiMessage {
-    pub target: MessageTarget,
-    pub body: MessageBody,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -103,8 +74,8 @@ mod tests {
             bind: recipient!(recorder, BindMessage),
             ui_message_sub: recipient!(recorder, UiCarrierMessage),
             from_ui_message_sub: recipient!(recorder, FromUiMessage),
-            new_from_ui_message_sub: recipient!(recorder, NewFromUiMessage),
-            new_to_ui_message_sub: recipient!(recorder, NewToUiMessage),
+            new_from_ui_message_sub: recipient!(recorder, NodeFromUiMessage),
+            new_to_ui_message_sub: recipient!(recorder, NodeToUiMessage),
         };
 
         assert_eq!(format!("{:?}", subject), "UiGatewaySubs");

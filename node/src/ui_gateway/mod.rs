@@ -4,18 +4,23 @@ mod shutdown_supervisor;
 pub mod ui_traffic_converter;
 mod websocket_supervisor;
 
+#[cfg(test)]
+pub mod websocket_supervisor_mock;
+
+use crate::daemon::DaemonBindMessage;
 use crate::sub_lib::accountant::GetFinancialStatisticsMessage;
 use crate::sub_lib::blockchain_bridge::{SetDbPasswordMsg, SetGasPriceMsg};
 use crate::sub_lib::logger::Logger;
 use crate::sub_lib::neighborhood::NeighborhoodDotGraphRequest;
 use crate::sub_lib::peer_actors::BindMessage;
-use crate::sub_lib::ui_gateway::{FromUiMessage, NewFromUiMessage, UiCarrierMessage};
-use crate::sub_lib::ui_gateway::{NewToUiMessage, UiGatewaySubs};
+use crate::sub_lib::ui_gateway::UiGatewaySubs;
+use crate::sub_lib::ui_gateway::{FromUiMessage, UiCarrierMessage};
 use crate::sub_lib::ui_gateway::{UiGatewayConfig, UiMessage};
+use crate::sub_lib::utils::NODE_MAILBOX_CAPACITY;
 use crate::ui_gateway::shutdown_supervisor::ShutdownSupervisor;
 use crate::ui_gateway::shutdown_supervisor::ShutdownSupervisorReal;
-use crate::ui_gateway::ui_traffic_converter::UiTrafficConverter;
-use crate::ui_gateway::ui_traffic_converter::UiTrafficConverterReal;
+use crate::ui_gateway::ui_traffic_converter::UiTrafficConverterOld;
+use crate::ui_gateway::ui_traffic_converter::UiTrafficConverterOldReal;
 use crate::ui_gateway::websocket_supervisor::WebSocketSupervisor;
 use crate::ui_gateway::websocket_supervisor::WebSocketSupervisorReal;
 use actix::Actor;
@@ -23,7 +28,10 @@ use actix::Addr;
 use actix::Context;
 use actix::Handler;
 use actix::Recipient;
+use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
 
+// TODO: Once we switch all the way over to MASQNode-UIv2 protocol, this entire struct should
+// disappear.
 struct UiGatewayOutSubs {
     ui_message_sub: Recipient<UiCarrierMessage>,
     blockchain_bridge_set_consuming_db_password_sub: Recipient<SetDbPasswordMsg>,
@@ -35,11 +43,11 @@ struct UiGatewayOutSubs {
 pub struct UiGateway {
     port: u16,
     node_descriptor: String,
-    converter: Box<dyn UiTrafficConverter>,
+    converter: Box<dyn UiTrafficConverterOld>,
     subs: Option<UiGatewayOutSubs>,
     websocket_supervisor: Option<Box<dyn WebSocketSupervisor>>,
     shutdown_supervisor: Box<dyn ShutdownSupervisor>,
-    incoming_message_recipients: Vec<Recipient<NewFromUiMessage>>,
+    incoming_message_recipients: Vec<Recipient<NodeFromUiMessage>>,
     logger: Logger,
 }
 
@@ -48,7 +56,7 @@ impl UiGateway {
         UiGateway {
             port: config.ui_port,
             node_descriptor: config.node_descriptor.clone(),
-            converter: Box::new(UiTrafficConverterReal::new()),
+            converter: Box::new(UiTrafficConverterOldReal::new()),
             subs: None,
             websocket_supervisor: None,
             shutdown_supervisor: Box::new(ShutdownSupervisorReal::new()),
@@ -62,8 +70,8 @@ impl UiGateway {
             bind: recipient!(addr, BindMessage),
             ui_message_sub: recipient!(addr, UiCarrierMessage),
             from_ui_message_sub: recipient!(addr, FromUiMessage),
-            new_from_ui_message_sub: recipient!(addr, NewFromUiMessage),
-            new_to_ui_message_sub: recipient!(addr, NewToUiMessage),
+            new_from_ui_message_sub: recipient!(addr, NodeFromUiMessage),
+            new_to_ui_message_sub: recipient!(addr, NodeToUiMessage),
         }
     }
 }
@@ -103,17 +111,54 @@ impl Handler<BindMessage> for UiGateway {
         ];
         self.websocket_supervisor = Some(Box::new(WebSocketSupervisorReal::new(
             self.port,
-            msg.peer_actors.ui_gateway.from_ui_message_sub.clone(),
+            msg.peer_actors.ui_gateway.from_ui_message_sub,
             msg.peer_actors.ui_gateway.new_from_ui_message_sub,
         )));
-        info!(self.logger, "UIGateway bound");
+        debug!(self.logger, "UIGateway bound");
     }
 }
 
-impl Handler<NewToUiMessage> for UiGateway {
+//TODO Remove this when MASQNode-UIv2 takes over completely
+struct StubRecipient {}
+
+impl Actor for StubRecipient {
+    type Context = Context<StubRecipient>;
+}
+
+impl Handler<FromUiMessage> for StubRecipient {
+    type Result = ();
+    fn handle(&mut self, _msg: FromUiMessage, _ctx: &mut Self::Context) -> Self::Result {
+        panic!("Should never be called")
+    }
+}
+
+impl StubRecipient {
+    fn make() -> Recipient<FromUiMessage> {
+        StubRecipient {}.start().recipient::<FromUiMessage>()
+    }
+}
+//TODO Remove this when MASQNode-UIv2 takes over completely
+
+impl Handler<DaemonBindMessage> for UiGateway {
     type Result = ();
 
-    fn handle(&mut self, msg: NewToUiMessage, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: DaemonBindMessage, ctx: &mut Self::Context) -> Self::Result {
+        ctx.set_mailbox_capacity(NODE_MAILBOX_CAPACITY);
+        self.subs = None;
+        self.incoming_message_recipients = msg.from_ui_message_recipients;
+        self.websocket_supervisor = Some(Box::new(WebSocketSupervisorReal::new(
+            self.port,
+            StubRecipient::make(),
+            msg.from_ui_message_recipient,
+        )));
+        debug!(self.logger, "UIGateway bound");
+    }
+}
+
+impl Handler<NodeToUiMessage> for UiGateway {
+    type Result = ();
+
+    fn handle(&mut self, msg: NodeToUiMessage, _ctx: &mut Self::Context) -> Self::Result {
         self.websocket_supervisor
             .as_ref()
             .expect("WebsocketSupervisor is unbound")
@@ -121,17 +166,17 @@ impl Handler<NewToUiMessage> for UiGateway {
     }
 }
 
-impl Handler<NewFromUiMessage> for UiGateway {
+impl Handler<NodeFromUiMessage> for UiGateway {
     type Result = ();
 
-    fn handle(&mut self, msg: NewFromUiMessage, _ctx: &mut Self::Context) -> Self::Result {
-        self.incoming_message_recipients
-            .iter()
-            .for_each(|recipient| {
-                recipient
-                    .try_send(msg.clone())
-                    .expect("A NewUiMessage recipient has died.")
+    fn handle(&mut self, msg: NodeFromUiMessage, _ctx: &mut Self::Context) -> Self::Result {
+        let len = self.incoming_message_recipients.len();
+        (0..len).for_each(|idx| {
+            let recipient = &self.incoming_message_recipients[idx];
+            recipient.try_send(msg.clone()).unwrap_or_else(|_| {
+                panic!("UiGateway's NodeFromUiMessage recipient #{} has died.", idx)
             })
+        });
     }
 }
 
@@ -248,15 +293,17 @@ mod tests {
     use super::*;
     use crate::sub_lib::accountant::{FinancialStatisticsMessage, GetFinancialStatisticsMessage};
     use crate::sub_lib::blockchain_bridge::SetDbPasswordMsg;
-    use crate::sub_lib::ui_gateway::MessagePath::OneWay;
-    use crate::sub_lib::ui_gateway::{MessageBody, MessageTarget, NewFromUiMessage, UiMessage};
-    use crate::test_utils::find_free_port;
+    use crate::sub_lib::ui_gateway::UiMessage;
     use crate::test_utils::logging::init_test_logging;
     use crate::test_utils::logging::TestLogHandler;
     use crate::test_utils::recorder::peer_actors_builder;
     use crate::test_utils::recorder::{make_recorder, Recorder};
     use crate::test_utils::wait_for;
+    use crate::ui_gateway::websocket_supervisor_mock::WebSocketSupervisorMock;
     use actix::System;
+    use masq_lib::ui_gateway::MessagePath::OneWay;
+    use masq_lib::ui_gateway::{MessageBody, MessageTarget};
+    use masq_lib::utils::find_free_port;
     use std::cell::RefCell;
     use std::sync::Arc;
     use std::sync::Mutex;
@@ -280,14 +327,14 @@ mod tests {
         }
     }
 
-    pub struct UiTrafficConverterMock {
+    pub struct UiTrafficConverterOldMock {
         marshal_parameters: Arc<Mutex<Vec<UiMessage>>>,
         marshal_results: RefCell<Vec<Result<String, String>>>,
         unmarshal_parameters: Arc<Mutex<Vec<String>>>,
         unmarshal_results: RefCell<Vec<Result<UiMessage, String>>>,
     }
 
-    impl UiTrafficConverter for UiTrafficConverterMock {
+    impl UiTrafficConverterOld for UiTrafficConverterOldMock {
         fn marshal(&self, ui_message: UiMessage) -> Result<String, String> {
             self.marshal_parameters.lock().unwrap().push(ui_message);
             self.marshal_results.borrow_mut().remove(0)
@@ -300,57 +347,11 @@ mod tests {
                 .push(String::from(json));
             self.unmarshal_results.borrow_mut().remove(0)
         }
-
-        fn new_marshal_from_ui(&self, _msg: NewFromUiMessage) -> String {
-            unimplemented!()
-        }
-
-        fn new_marshal_to_ui(&self, _msg: NewToUiMessage) -> String {
-            unimplemented!()
-        }
-
-        fn new_unmarshal_from_ui(
-            &self,
-            _json: &str,
-            _client_id: u64,
-        ) -> Result<NewFromUiMessage, String> {
-            unimplemented!()
-        }
-
-        fn new_unmarshal_to_ui(
-            &self,
-            _json: &str,
-            _target: MessageTarget,
-        ) -> Result<NewToUiMessage, String> {
-            unimplemented!()
-        }
-
-        fn reject_error_from_ui(
-            &self,
-            _logger: &Logger,
-            _msg: &NewFromUiMessage,
-            _reply_sub_opt: Option<&Recipient<NewToUiMessage>>,
-        ) -> Result<String, String> {
-            unimplemented!()
-        }
-
-        fn reject_error_to_ui(
-            &self,
-            _logger: &Logger,
-            _msg: &NewToUiMessage,
-            _reply_sub_opt: Option<&Recipient<NewFromUiMessage>>,
-        ) -> Result<String, String> {
-            unimplemented!()
-        }
-
-        fn get_context_id(&self, _logger: &Logger, _body: &MessageBody) -> Option<u64> {
-            unimplemented!()
-        }
     }
 
-    impl UiTrafficConverterMock {
-        fn new() -> UiTrafficConverterMock {
-            UiTrafficConverterMock {
+    impl UiTrafficConverterOldMock {
+        fn new() -> UiTrafficConverterOldMock {
+            UiTrafficConverterOldMock {
                 marshal_parameters: Arc::new(Mutex::new(vec![])),
                 marshal_results: RefCell::new(vec![]),
                 unmarshal_parameters: Arc::new(Mutex::new(vec![])),
@@ -362,13 +363,13 @@ mod tests {
         fn marshal_parameters(
             mut self,
             parameters: &Arc<Mutex<Vec<UiMessage>>>,
-        ) -> UiTrafficConverterMock {
+        ) -> UiTrafficConverterOldMock {
             self.marshal_parameters = parameters.clone();
             self
         }
 
         #[allow(dead_code)]
-        fn marshal_result(self, result: Result<String, String>) -> UiTrafficConverterMock {
+        fn marshal_result(self, result: Result<String, String>) -> UiTrafficConverterOldMock {
             self.marshal_results.borrow_mut().push(result);
             self
         }
@@ -376,57 +377,13 @@ mod tests {
         fn unmarshal_parameters(
             mut self,
             parameters: &Arc<Mutex<Vec<String>>>,
-        ) -> UiTrafficConverterMock {
+        ) -> UiTrafficConverterOldMock {
             self.unmarshal_parameters = parameters.clone();
             self
         }
 
-        fn unmarshal_result(self, result: Result<UiMessage, String>) -> UiTrafficConverterMock {
+        fn unmarshal_result(self, result: Result<UiMessage, String>) -> UiTrafficConverterOldMock {
             self.unmarshal_results.borrow_mut().push(result);
-            self
-        }
-    }
-
-    #[derive(Default)]
-    struct WebSocketSupervisorMock {
-        send_parameters: Arc<Mutex<Vec<(u64, String)>>>,
-        send_msg_parameters: Arc<Mutex<Vec<NewToUiMessage>>>,
-    }
-
-    impl WebSocketSupervisor for WebSocketSupervisorMock {
-        fn send(&self, client_id: u64, message_json: &str) {
-            self.send_parameters
-                .lock()
-                .unwrap()
-                .push((client_id, String::from(message_json)));
-        }
-
-        fn send_msg(&self, msg: NewToUiMessage) {
-            self.send_msg_parameters.lock().unwrap().push(msg);
-        }
-    }
-
-    impl WebSocketSupervisorMock {
-        fn new() -> WebSocketSupervisorMock {
-            WebSocketSupervisorMock {
-                send_parameters: Arc::new(Mutex::new(vec![])),
-                send_msg_parameters: Arc::new(Mutex::new(vec![])),
-            }
-        }
-
-        fn send_parameters(
-            mut self,
-            parameters: &Arc<Mutex<Vec<(u64, String)>>>,
-        ) -> WebSocketSupervisorMock {
-            self.send_parameters = parameters.clone();
-            self
-        }
-
-        fn send_msg_parameters(
-            mut self,
-            parameters: &Arc<Mutex<Vec<NewToUiMessage>>>,
-        ) -> WebSocketSupervisorMock {
-            self.send_msg_parameters = parameters.clone();
             self
         }
     }
@@ -472,7 +429,7 @@ mod tests {
             .neighborhood(neighborhood)
             .build();
         subject_addr.try_send(BindMessage { peer_actors }).unwrap();
-        let msg = NewFromUiMessage {
+        let msg = NodeFromUiMessage {
             client_id: 1234,
             body: MessageBody {
                 opcode: "booga".to_string(),
@@ -486,10 +443,13 @@ mod tests {
         System::current().stop();
         system.run();
         let accountant_recording = accountant_recording_arc.lock().unwrap();
-        assert_eq!(accountant_recording.get_record::<NewFromUiMessage>(0), &msg);
+        assert_eq!(
+            accountant_recording.get_record::<NodeFromUiMessage>(0),
+            &msg
+        );
         let neighborhood_recording = neighborhood_recording_arc.lock().unwrap();
         assert_eq!(
-            neighborhood_recording.get_record::<NewFromUiMessage>(0),
+            neighborhood_recording.get_record::<NodeFromUiMessage>(0),
             &msg
         );
     }
@@ -507,9 +467,9 @@ mod tests {
         let system = System::new("test");
         subject.websocket_supervisor = Some(Box::new(websocket_supervisor));
         subject.incoming_message_recipients =
-            vec![accountant.start().recipient::<NewFromUiMessage>()];
+            vec![accountant.start().recipient::<NodeFromUiMessage>()];
         let subject_addr: Addr<UiGateway> = subject.start();
-        let msg = NewToUiMessage {
+        let msg = NodeToUiMessage {
             target: MessageTarget::ClientId(1234),
             body: MessageBody {
                 opcode: "booga".to_string(),
@@ -926,7 +886,7 @@ mod tests {
     #[test]
     fn good_from_ui_message_is_unmarshalled_and_resent() {
         let unmarshal_parameters = Arc::new(Mutex::new(vec![]));
-        let handler = UiTrafficConverterMock::new()
+        let handler = UiTrafficConverterOldMock::new()
             .unmarshal_parameters(&unmarshal_parameters)
             .unmarshal_result(Ok(UiMessage::ShutdownMessage));
         let (ui_gateway, ui_gateway_awaiter, ui_gateway_recording_arc) = make_recorder();
@@ -970,8 +930,8 @@ mod tests {
     #[test]
     fn bad_from_ui_message_is_logged_and_ignored() {
         init_test_logging();
-        let handler =
-            UiTrafficConverterMock::new().unmarshal_result(Err(String::from("I have a tummyache")));
+        let handler = UiTrafficConverterOldMock::new()
+            .unmarshal_result(Err(String::from("I have a tummyache")));
         let (ui_gateway, _, ui_gateway_recording_arc) = make_recorder();
 
         thread::spawn(move || {
@@ -1014,7 +974,7 @@ mod tests {
         peer_actors.ui_gateway = UiGateway::make_subs_from(&addr);
         addr.try_send(BindMessage { peer_actors }).unwrap();
 
-        let json = UiTrafficConverterReal::new()
+        let json = UiTrafficConverterOldReal::new()
             .marshal(UiMessage::NeighborhoodDotGraphRequest)
             .unwrap();
         addr.try_send(FromUiMessage { client_id: 0, json }).unwrap();

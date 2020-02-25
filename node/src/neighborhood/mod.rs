@@ -13,6 +13,7 @@ pub mod node_record;
 use crate::blockchain::blockchain_interface::{chain_id_from_name, contract_address};
 use crate::bootstrapper::BootstrapperConfig;
 use crate::database::db_initializer::{DbInitializer, DbInitializerReal};
+use crate::masq_lib::messages::FromMessageBody;
 use crate::neighborhood::gossip::{DotGossipEndpoint, GossipNodeRecord, Gossip_0v1};
 use crate::neighborhood::gossip_acceptor::GossipAcceptanceResult;
 use crate::neighborhood::node_record::NodeRecordInner_0v1;
@@ -24,6 +25,7 @@ use crate::sub_lib::dispatcher::{Component, StreamShutdownMsg};
 use crate::sub_lib::hopper::{ExpiredCoresPackage, NoLookupIncipientCoresPackage};
 use crate::sub_lib::hopper::{IncipientCoresPackage, MessageType};
 use crate::sub_lib::logger::Logger;
+use crate::sub_lib::neighborhood::ExpectedService;
 use crate::sub_lib::neighborhood::ExpectedServices;
 use crate::sub_lib::neighborhood::NeighborhoodDotGraphRequest;
 use crate::sub_lib::neighborhood::NeighborhoodSubs;
@@ -35,7 +37,6 @@ use crate::sub_lib::neighborhood::RemoveNeighborMessage;
 use crate::sub_lib::neighborhood::RouteQueryMessage;
 use crate::sub_lib::neighborhood::RouteQueryResponse;
 use crate::sub_lib::neighborhood::{DispatcherNodeQueryMessage, GossipFailure_0v1};
-use crate::sub_lib::neighborhood::{ExpectedService, UiShutdownOrder};
 use crate::sub_lib::node_addr::NodeAddr;
 use crate::sub_lib::peer_actors::{BindMessage, StartMessage};
 use crate::sub_lib::proxy_server::DEFAULT_MINIMUM_HOP_COUNT;
@@ -43,11 +44,10 @@ use crate::sub_lib::route::Route;
 use crate::sub_lib::route::RouteSegment;
 use crate::sub_lib::set_consuming_wallet_message::SetConsumingWalletMessage;
 use crate::sub_lib::stream_handler_pool::DispatcherNodeQueryResponse;
-use crate::sub_lib::ui_gateway::{NewFromUiMessage, NewToUiMessage, UiCarrierMessage, UiMessage};
+use crate::sub_lib::ui_gateway::{UiCarrierMessage, UiMessage};
 use crate::sub_lib::utils::NODE_MAILBOX_CAPACITY;
 use crate::sub_lib::versioned_data::VersionedData;
 use crate::sub_lib::wallet::Wallet;
-use crate::ui_gateway::ui_traffic_converter::{UiTrafficConverter, UiTrafficConverterReal};
 use actix::Addr;
 use actix::Context;
 use actix::Handler;
@@ -59,6 +59,9 @@ use gossip_acceptor::GossipAcceptorReal;
 use gossip_producer::GossipProducer;
 use gossip_producer::GossipProducerReal;
 use itertools::Itertools;
+use masq_lib::messages::UiMessageError::UnexpectedMessage;
+use masq_lib::messages::{UiMessageError, UiShutdownRequest};
+use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
 use neighborhood_database::NeighborhoodDatabase;
 use node_record::NodeRecord;
 use std::cmp::Ordering;
@@ -73,7 +76,7 @@ pub struct Neighborhood {
     dot_graph_recipient: Option<Recipient<UiCarrierMessage>>,
     is_connected: bool,
     connected_signal: Option<Recipient<StartMessage>>,
-    _to_ui_message_sub: Option<Recipient<NewToUiMessage>>,
+    _to_ui_message_sub: Option<Recipient<NodeToUiMessage>>,
     gossip_acceptor: Box<dyn GossipAcceptor>,
     gossip_producer: Box<dyn GossipProducer>,
     neighborhood_database: NeighborhoodDatabase,
@@ -288,35 +291,20 @@ impl Handler<NeighborhoodDotGraphRequest> for Neighborhood {
     }
 }
 
-impl Handler<NewFromUiMessage> for Neighborhood {
+impl Handler<NodeFromUiMessage> for Neighborhood {
     type Result = ();
 
-    fn handle(&mut self, msg: NewFromUiMessage, _ctx: &mut Self::Context) -> Self::Result {
-        let json =
-            match UiTrafficConverterReal::new().reject_error_from_ui(&self.logger, &msg, None) {
-                Ok(json) => json,
-                Err(_) => return,
-            };
-        let opcode = msg.body.opcode;
+    fn handle(&mut self, msg: NodeFromUiMessage, _ctx: &mut Self::Context) -> Self::Result {
         let client_id = msg.client_id;
-
-        match &opcode {
-            opcode if opcode == "shutdownOrder" => {
-                let request = match serde_json::from_str::<UiShutdownOrder>(&json) {
-                    Ok(r) => r,
-                    Err(e) => {
-                        error!(
-                            &self.logger,
-                            "Bad shutdownOrder from client {}: {:?}", client_id, e
-                        );
-                        return;
-                    }
-                };
-                self.handle_shutdown_order(client_id, request);
-            }
-            opcode => debug!(
+        let opcode = msg.body.opcode.clone();
+        let result: Result<(UiShutdownRequest, u64), UiMessageError> =
+            UiShutdownRequest::fmb(msg.body);
+        match result {
+            Ok((payload, _)) => self.handle_shutdown_order(client_id, payload),
+            Err(UnexpectedMessage(_, _)) => (),
+            Err(e) => error!(
                 &self.logger,
-                "Ignoring unrecognized UI message: '{}'", opcode
+                "Bad {} request from client {}: {:?}", opcode, client_id, e
             ),
         }
     }
@@ -434,7 +422,7 @@ impl Neighborhood {
             stream_shutdown_sub: addr.clone().recipient::<StreamShutdownMsg>(),
             set_consuming_wallet_sub: addr.clone().recipient::<SetConsumingWalletMessage>(),
             from_ui_gateway: addr.clone().recipient::<NeighborhoodDotGraphRequest>(),
-            from_ui_message_sub: addr.clone().recipient::<NewFromUiMessage>(),
+            from_ui_message_sub: addr.clone().recipient::<NodeFromUiMessage>(),
         }
     }
 
@@ -1048,7 +1036,7 @@ impl Neighborhood {
     // target key, if any, in target, and minimum hop count in hops_remaining. Return value is
     // a list of all the node sequences that will either go from the origin to the target in
     // hops_remaining or more hops with no cycles, or from the origin hops_remaining hops out into
-    // the Substratum Network. No round trips; if you want a round trip, call this method twice.
+    // the MASQ Network. No round trips; if you want a round trip, call this method twice.
     // If the return value is empty, no qualifying route was found.
     fn complete_routes<'a>(
         &'a self,
@@ -1222,11 +1210,13 @@ impl Neighborhood {
         };
     }
 
-    fn handle_shutdown_order(&self, client_id: u64, _msg: UiShutdownOrder) {
+    #[allow(unreachable_code)]
+    fn handle_shutdown_order(&self, client_id: u64, _msg: UiShutdownRequest) {
         info!(
             self.logger,
-            "Received shutdown order from client {}", client_id
-        )
+            "Received shutdown order from client {}: shutting down hard", client_id
+        );
+        std::process::exit(0);
     }
 }
 
@@ -1250,7 +1240,7 @@ mod tests {
     use crate::neighborhood::gossip::GossipBuilder;
     use crate::neighborhood::gossip::Gossip_0v1;
     use crate::neighborhood::node_record::NodeRecordInner_0v1;
-    use crate::persistent_configuration::{PersistentConfigError, TLS_PORT};
+    use crate::persistent_configuration::PersistentConfigError;
     use crate::stream_messages::{NonClandestineAttributes, RemovedStreamType};
     use crate::sub_lib::cryptde::{decodex, encodex, CryptData};
     use crate::sub_lib::cryptde_null::CryptDENull;
@@ -1261,8 +1251,6 @@ mod tests {
     use crate::sub_lib::neighborhood::{NeighborhoodConfig, DEFAULT_RATE_PACK};
     use crate::sub_lib::peer_actors::PeerActors;
     use crate::sub_lib::stream_handler_pool::TransmitDataMsg;
-    use crate::sub_lib::ui_gateway::MessagePath::OneWay;
-    use crate::sub_lib::ui_gateway::{MessageBody, NewFromUiMessage};
     use crate::sub_lib::versioned_data::VersionedData;
     use crate::test_utils::logging::init_test_logging;
     use crate::test_utils::logging::TestLogHandler;
@@ -1271,6 +1259,7 @@ mod tests {
         neighborhood_from_nodes,
     };
     use crate::test_utils::persistent_configuration_mock::PersistentConfigurationMock;
+    use crate::test_utils::rate_pack;
     use crate::test_utils::recorder::make_recorder;
     use crate::test_utils::recorder::peer_actors_builder;
     use crate::test_utils::recorder::Recorder;
@@ -1278,13 +1267,16 @@ mod tests {
     use crate::test_utils::vec_to_set;
     use crate::test_utils::{assert_contains, make_wallet};
     use crate::test_utils::{assert_matches, make_meaningless_route};
-    use crate::test_utils::{ensure_node_home_directory_exists, rate_pack};
     use crate::test_utils::{main_cryptde, make_paying_wallet, DEFAULT_CHAIN_ID};
     use actix::dev::{MessageResponse, ResponseChannel};
     use actix::Message;
     use actix::Recipient;
     use actix::System;
     use itertools::Itertools;
+    use masq_lib::constants::TLS_PORT;
+    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
+    use masq_lib::ui_gateway::MessageBody;
+    use masq_lib::ui_gateway::MessagePath::{OneWay, TwoWay};
     use serde_cbor;
     use std::cell::RefCell;
     use std::convert::TryInto;
@@ -3453,9 +3445,7 @@ mod tests {
     fn node_gossips_to_neighbors_on_startup() {
         let cryptde: &dyn CryptDE = main_cryptde();
         let neighbor = make_node_record(1234, true);
-        let hopper = Recorder::new();
-        let hopper_awaiter = hopper.get_awaiter();
-        let hopper_recording = hopper.get_recording();
+        let (hopper, _, hopper_recording) = make_recorder();
         let neighbor_inside = neighbor.clone();
         let subject = Neighborhood::new(
             cryptde,
@@ -3477,19 +3467,16 @@ mod tests {
             ),
         );
         let this_node = subject.neighborhood_database.root().clone();
-        thread::spawn(move || {
-            let system = System::new("node_gossips_to_neighbors_on_startup");
-            let addr: Addr<Neighborhood> = subject.start();
-            let peer_actors = peer_actors_builder().hopper(hopper).build();
-            addr.try_send(BindMessage { peer_actors }).unwrap();
+        let system = System::new("node_gossips_to_neighbors_on_startup");
+        let addr: Addr<Neighborhood> = subject.start();
+        let peer_actors = peer_actors_builder().hopper(hopper).build();
+        addr.try_send(BindMessage { peer_actors }).unwrap();
 
-            let sub = addr.recipient::<StartMessage>();
+        let sub = addr.recipient::<StartMessage>();
 
-            sub.try_send(StartMessage {}).unwrap();
-
-            system.run();
-        });
-        hopper_awaiter.await_message_count(1);
+        sub.try_send(StartMessage {}).unwrap();
+        System::current().stop();
+        system.run();
         let locked_recording = hopper_recording.lock().unwrap();
         let package_ref: &NoLookupIncipientCoresPackage = locked_recording.get_record(0);
         let neighbor_node_cryptde = CryptDENull::from(neighbor.public_key(), DEFAULT_CHAIN_ID);
@@ -4254,11 +4241,11 @@ mod tests {
         subject_addr.try_send(BindMessage { peer_actors }).unwrap();
 
         subject_addr
-            .try_send(NewFromUiMessage {
+            .try_send(NodeFromUiMessage {
                 client_id: 1234,
                 body: MessageBody {
-                    opcode: "shutdownOrder".to_string(),
-                    path: OneWay,
+                    opcode: "shutdown".to_string(),
+                    path: TwoWay(4321),
                     payload: Ok("{}".to_string()),
                 },
             })
@@ -4293,7 +4280,7 @@ mod tests {
         subject_addr.try_send(BindMessage { peer_actors }).unwrap();
 
         subject_addr
-            .try_send(NewFromUiMessage {
+            .try_send(NodeFromUiMessage {
                 client_id: 1234,
                 body: MessageBody {
                     opcode: "booga".to_string(),
@@ -4308,7 +4295,7 @@ mod tests {
         let ui_gateway_recording = ui_gateway_recording_arc.lock().unwrap();
         assert_eq!(ui_gateway_recording.len(), 0);
         TestLogHandler::new().exists_log_containing(
-            "DEBUG: Neighborhood: Ignoring unrecognized UI message: 'booga'",
+            "ERROR: Neighborhood: Bad booga request from client 1234: BadOpcode",
         );
     }
 
