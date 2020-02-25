@@ -262,7 +262,7 @@ impl EnvironmentVcl {
             if (upper_name.len() < 5) || (&upper_name[0..5] != "MASQ_") {
                 continue;
             }
-            let lower_name = str::replace(&upper_name[4..].to_lowercase(), "_", "-");
+            let lower_name = str::replace(&upper_name[5..].to_lowercase(), "_", "-");
             if opt_names.contains(&lower_name) {
                 let name = format!("--{}", lower_name);
                 vcl_args.push(Box::new(NameValueVclArg::new(&name, &value)));
@@ -727,12 +727,12 @@ pub(crate) mod tests {
         let subject = EnvironmentVcl::new(&schema);
 
         assert_eq!(
+            subject.args(),
             vec![
                 "".to_string(),
                 "--numeric-arg".to_string(),
                 "47".to_string()
-            ],
-            subject.args()
+            ]
         );
         assert_eq!(
             vec!["--numeric-arg"],
