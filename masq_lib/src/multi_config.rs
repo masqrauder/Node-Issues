@@ -727,12 +727,12 @@ pub(crate) mod tests {
         let subject = EnvironmentVcl::new(&schema);
 
         assert_eq!(
+            subject.args(),
             vec![
                 "".to_string(),
                 "--numeric-arg".to_string(),
                 "47".to_string()
-            ],
-            subject.args()
+            ]
         );
         assert_eq!(
             vec!["--numeric-arg"],
