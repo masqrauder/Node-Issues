@@ -602,6 +602,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ethbloom"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "crunchy 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fixed-hash 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "impl-rlp 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "impl-serde 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tiny-keccak 1.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "ethereum-types"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -612,6 +624,19 @@ dependencies = [
  "impl-serde 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "primitive-types 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "uint 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "ethereum-types"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "ethbloom 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fixed-hash 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "impl-rlp 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "impl-serde 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "primitive-types 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "uint 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1508,7 +1533,7 @@ name = "multinode_integration_tests"
 version = "1.0.0"
 dependencies = [
  "base64 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "ethereum-types 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ethereum-types 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ethsign-crypto 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3625,7 +3650,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum error-chain 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "6930e04918388a9a2e41d518c25cf679ccafe26733fb4127dbf21993f2575d46"
 "checksum ethabi 8.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "ebdeeea85a6d217b9fcc862906d7e283c047e04114165c433756baf5dce00a6c"
 "checksum ethbloom 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)" = "3932e82d64d347a045208924002930dc105a138995ccdc1479d0f05f0359f17c"
+"checksum ethbloom 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "32cfe1c169414b709cf28aa30c74060bdb830a03a8ba473314d079ac79d80a5f"
 "checksum ethereum-types 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "62d1bc682337e2c5ec98930853674dd2b4bd5d0d246933a9e98e5280f7c76c5f"
+"checksum ethereum-types 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ba744248e3553a393143d5ebb68939fc3a4ec0c22a269682535f5ffe7fed728c"
 "checksum ethsign 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)" = "96d29647713ba24ade587139ab8ac200e390ecb49df1e1010f1b2e45e9a0e5e3"
 "checksum ethsign-crypto 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0239998cf14901be86d9b30391fe873da495a80ae848016da4b8ff7cacbbc717"
 "checksum ethsign-crypto 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4e62e068d05d580a2504f51e2a242a9ea4a0cd2a6ba378e13de390efcc1b1753"
