@@ -26,7 +26,7 @@ fn node_logs_panic_integration() {
     let panic_config = CommandConfig::new().pair("--crash-point", "panic");
     let mut node = utils::MASQNode::start_standard(Some(panic_config));
 
-    node.wait_for_log("stack backtrace", Some(1000));
+    node.wait_for_log("node_lib::crash_test_dummy::CrashTestDummy", Some(1000));
 }
 
 #[cfg(target_os = "linux")]

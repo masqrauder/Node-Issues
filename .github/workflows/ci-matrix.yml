@@ -17,5 +17,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build ${{ matrix.os }}
-      run: ./ci/all.sh
+      run: |
+        rustup show
+        rustup update stable
+        ./ci/all.sh
       shell: bash

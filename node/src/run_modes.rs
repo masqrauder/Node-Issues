@@ -9,9 +9,9 @@ use crate::node_configurator::node_configurator_recover_wallet::NodeConfigurator
 use crate::node_configurator::{NodeConfigurator, WalletCreationConfig};
 use crate::privilege_drop::{PrivilegeDropper, PrivilegeDropperReal};
 use crate::server_initializer::ServerInitializer;
-use crate::sub_lib::main_tools::{Command, StdStreams};
 use actix::System;
 use futures::future::Future;
+use masq_lib::command::{Command, StdStreams};
 
 #[derive(Debug, PartialEq)]
 enum Mode {
@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn initialization() {
         [["--initialization"]]
-            .into_iter()
+            .iter()
             .for_each(|args| check_mode(args, Mode::Initialization));
     }
 
