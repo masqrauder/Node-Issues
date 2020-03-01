@@ -27,17 +27,17 @@ use crate::sub_lib::cryptde::CryptDE;
 use crate::sub_lib::cryptde_null::CryptDENull;
 use crate::sub_lib::cryptde_real::CryptDEReal;
 use crate::sub_lib::logger::Logger;
-use crate::sub_lib::main_tools::StdStreams;
 use crate::sub_lib::neighborhood::NodeDescriptor;
 use crate::sub_lib::neighborhood::{NeighborhoodConfig, NeighborhoodMode};
 use crate::sub_lib::node_addr::NodeAddr;
 use crate::sub_lib::socket_server::SocketServer;
 use crate::sub_lib::ui_gateway::UiGatewayConfig;
-use crate::sub_lib::ui_gateway::DEFAULT_UI_PORT;
 use crate::sub_lib::wallet::Wallet;
 use futures::try_ready;
 use itertools::Itertools;
 use log::LevelFilter;
+use masq_lib::command::StdStreams;
+use masq_lib::ui_gateway::DEFAULT_UI_PORT;
 use std::collections::HashMap;
 use std::env::var;
 use std::fmt::{Debug, Error, Formatter};
@@ -206,6 +206,24 @@ impl RealUser {
         RealUser::new(Some(uid), Some(gid), Some(home_dir))
     }
 
+    pub fn to_string(&self) -> String {
+        format!(
+            "{}:{}:{}",
+            match self.uid {
+                Some(uid) => format!("{}", uid),
+                None => "".to_string(),
+            },
+            match self.gid {
+                Some(gid) => format!("{}", gid),
+                None => "".to_string(),
+            },
+            match &self.home_dir {
+                Some(home_dir) => home_dir.to_string_lossy().to_string(),
+                None => "".to_string(),
+            },
+        )
+    }
+
     fn sudo_home_from_sudo_user_and_home(&self) -> Option<PathBuf> {
         match (self.environment_wrapper.var ("SUDO_USER"), self.dirs_wrapper.home_dir()) {
             (Some (sudo_user), Some (home_dir)) =>
@@ -343,13 +361,14 @@ impl SocketServer<BootstrapperConfig> for Bootstrapper {
         &self.config
     }
 
-    fn initialize_as_privileged(&mut self, args: &Vec<String>, streams: &mut StdStreams) {
-        self.config = NodeConfiguratorStandardPrivileged {}.configure(args, streams);
+    fn initialize_as_privileged(&mut self, args: &[String], streams: &mut StdStreams) {
+        self.config = NodeConfiguratorStandardPrivileged {}.configure(&args.to_vec(), streams);
 
         self.logger_initializer.init(
             self.config.data_directory.clone(),
             &self.config.real_user,
             self.config.log_level,
+            None,
         );
         self.listener_handlers =
             FuturesUnordered::<Box<dyn ListenerHandler<Item = (), Error = ()>>>::new();
@@ -369,11 +388,11 @@ impl SocketServer<BootstrapperConfig> for Bootstrapper {
             });
     }
 
-    fn initialize_as_unprivileged(&mut self, args: &Vec<String>, streams: &mut StdStreams) {
+    fn initialize_as_unprivileged(&mut self, args: &[String], streams: &mut StdStreams) {
         // NOTE: The following line of code is not covered by unit tests
         fdlimit::raise_fd_limit();
-        let unprivileged_config =
-            NodeConfiguratorStandardUnprivileged::new(&self.config).configure(args, streams);
+        let unprivileged_config = NodeConfiguratorStandardUnprivileged::new(&self.config)
+            .configure(&args.to_vec(), streams);
         self.config.merge_unprivileged(unprivileged_config);
         self.establish_clandestine_port();
         let (cryptde_ref, _) = Bootstrapper::initialize_cryptdes(
@@ -538,13 +557,13 @@ mod tests {
     use crate::test_utils::recorder::Recording;
     use crate::test_utils::tokio_wrapper_mocks::ReadHalfWrapperMock;
     use crate::test_utils::tokio_wrapper_mocks::WriteHalfWrapperMock;
-    use crate::test_utils::{
-        assert_contains, ensure_node_home_directory_exists, rate_pack, ArgsBuilder,
-    };
-    use crate::test_utils::{main_cryptde, FakeStreamHolder, DEFAULT_CHAIN_ID};
+    use crate::test_utils::{assert_contains, rate_pack, ArgsBuilder};
+    use crate::test_utils::{main_cryptde, DEFAULT_CHAIN_ID};
     use actix::Recipient;
     use actix::System;
     use lazy_static::lazy_static;
+    use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
+    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
     use regex::Regex;
     use std::cell::RefCell;
     use std::io;
@@ -753,6 +772,24 @@ mod tests {
     }
 
     #[test]
+    fn full_real_user_to_string() {
+        let subject = RealUser::from_str("123:456:booga").unwrap();
+
+        let result = subject.to_string();
+
+        assert_eq!(result, "123:456:booga".to_string());
+    }
+
+    #[test]
+    fn empty_real_user_to_string() {
+        let subject = RealUser::from_str("::").unwrap();
+
+        let result = subject.to_string();
+
+        assert_eq!(result, "::".to_string());
+    }
+
+    #[test]
     fn initialize_as_privileged_with_no_args_binds_http_and_tls_ports() {
         let _lock = INITIALIZATION.lock();
         let (first_handler, first_handler_log) =
@@ -840,13 +877,15 @@ mod tests {
         ));
         let mut subject = Bootstrapper::new(Box::new(logger_initializer));
         subject.listener_handler_factory = Box::new(listener_handler_factory);
-        let args = ArgsBuilder::new()
+        let args: Vec<String> = ArgsBuilder::new()
             .param("--data-directory", data_dir.to_str().unwrap())
             .param("--dns-servers", "1.1.1.1")
             .param("--ip", "2.2.2.2")
-            .param("--real-user", "123:456:/home/booga");
+            .param("--real-user", "123:456:/home/booga")
+            .into();
+        let args_slice: &[String] = args.as_slice();
 
-        subject.initialize_as_privileged(&args.into(), &mut FakeStreamHolder::new().streams());
+        subject.initialize_as_privileged(args_slice, &mut FakeStreamHolder::new().streams());
 
         let init_params = init_params_arc.lock().unwrap();
         assert_eq!(
@@ -854,7 +893,8 @@ mod tests {
             vec![(
                 data_dir,
                 RealUser::new(Some(123), Some(456), Some("/home/booga".into())),
-                LevelFilter::Warn
+                LevelFilter::Warn,
+                None,
             )]
         )
     }

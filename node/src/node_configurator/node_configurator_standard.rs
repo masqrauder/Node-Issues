@@ -5,17 +5,15 @@ use crate::bootstrapper::BootstrapperConfig;
 use crate::node_configurator;
 use crate::node_configurator::{
     app_head, chain_arg, common_validators, config_file_arg, data_directory_arg, db_password_arg,
-    earning_wallet_arg, initialize_database, real_user_arg, NodeConfigurator,
+    earning_wallet_arg, initialize_database, real_user_arg, ui_port_arg, NodeConfigurator,
 };
 use crate::sub_lib::crash_point::CrashPoint;
-use crate::sub_lib::main_tools::StdStreams;
-use crate::sub_lib::ui_gateway::DEFAULT_UI_PORT;
 use clap::{App, Arg};
 use indoc::indoc;
 use lazy_static::lazy_static;
-
-pub const LOWEST_USABLE_INSECURE_PORT: u16 = 1025;
-pub const HIGHEST_USABLE_PORT: u16 = 65535;
+use masq_lib::command::StdStreams;
+use masq_lib::constants::{HIGHEST_USABLE_PORT, LOWEST_USABLE_INSECURE_PORT};
+use masq_lib::ui_gateway::DEFAULT_UI_PORT;
 
 pub struct NodeConfiguratorStandardPrivileged {}
 
@@ -63,14 +61,14 @@ impl NodeConfiguratorStandardUnprivileged {
 }
 
 lazy_static! {
-    static ref DEFAULT_UI_PORT_VALUE: String = DEFAULT_UI_PORT.to_string();
-    static ref DEFAULT_CRASH_POINT_VALUE: String = format!("{}", CrashPoint::None);
-    static ref UI_PORT_HELP: String = format!(
+    pub static ref DEFAULT_UI_PORT_VALUE: String = DEFAULT_UI_PORT.to_string();
+    pub static ref DEFAULT_CRASH_POINT_VALUE: String = format!("{}", CrashPoint::None);
+    pub static ref UI_PORT_HELP: String = format!(
         "The port at which user interfaces will connect to the Node. Best to accept the default unless \
         you know what you're doing. Must be between {} and {}.",
         LOWEST_USABLE_INSECURE_PORT, HIGHEST_USABLE_PORT
     );
-    static ref CLANDESTINE_PORT_HELP: String = format!(
+    pub static ref CLANDESTINE_PORT_HELP: String = format!(
         "The port this Node will advertise to other Nodes at which clandestine traffic will be \
          received. If you don't specify a clandestine port, the Node will choose an unused \
          one at random on first startup, then use that one for every subsequent run unless \
@@ -79,7 +77,7 @@ lazy_static! {
          Must be between {} and {} [default: last used port]",
         LOWEST_USABLE_INSECURE_PORT, HIGHEST_USABLE_PORT
     );
-    static ref GAS_PRICE_HELP: String = format!(
+    pub static ref GAS_PRICE_HELP: String = format!(
        "The Gas Price is the amount of Gwei you will pay per unit of gas used in a transaction. \
        If left unspecified, MASQ Node will use the previously stored value (Default {}). Valid range is 1-99 Gwei.",
        DEFAULT_GAS_PRICE);
@@ -120,19 +118,19 @@ const NEIGHBORS_HELP: &str = "One or more Node descriptors for running Nodes in 
      Network, although other Nodes will be able to connect to yours if they know your Node's descriptor. \
      --neighbors is meaningless in --neighborhood-mode zero-hop.";
 const NEIGHBORHOOD_MODE_HELP: &str = "This configures the way the Node relates to other Nodes.\n\n\
-     zero-hop means that your Node will operate as its own Substratum Network and will not communicate with any \
+     zero-hop means that your Node will operate as its own MASQ Network and will not communicate with any \
      other Nodes. --ip, --neighbors, and --clandestine-port are incompatible with --neighborhood_mode \
      zero-hop.\n\n\
      originate-only means that your Node will not accept connections from any other Node; it \
      will only originate connections to other Nodes. This will reduce your Node's opportunity to route \
      data (it will only ever have two neighbors, so the number of routes it can participate in is limited), \
-     it will reduce redundancy in the Substratum Network, and it will prevent your Node from acting as \
+     it will reduce redundancy in the MASQ Network, and it will prevent your Node from acting as \
      a connection point for other Nodes to get on the Network; but it will enable your Node to operate in \
      an environment where your network hookup is preventing you from accepting connections, and it means \
      that you don't have to forward any incoming ports through your router. --ip and --clandestine_port \
      are incompatible with --neighborhood_mode originate-only.\n\n\
      consume-only means that your Node will not accept connections from or route data for any other Node; \
-     it will only consume services from the Substratum Network. This mode is appropriate for devices that \
+     it will only consume services from the MASQ Network. This mode is appropriate for devices that \
      cannot maintain a constant IP address or stay constantly on the Network. --ip and --clandestine_port \
      are incompatible with --neighborhood_mode consume-only.\n\n\
      standard means that your Node will operate fully unconstrained, both originating and accepting \
@@ -169,7 +167,7 @@ const HELP_TEXT: &str = indoc!(
         3. Create the port forwarding entries in the router."
 );
 
-fn app() -> App<'static, 'static> {
+pub fn app() -> App<'static, 'static> {
     app_head()
         .after_help(HELP_TEXT)
         .arg(
@@ -277,18 +275,10 @@ fn app() -> App<'static, 'static> {
                 .help(NEIGHBORS_HELP),
         )
         .arg(real_user_arg())
-        .arg(
-            Arg::with_name("ui-port")
-                .long("ui-port")
-                .value_name("UI-PORT")
-                .takes_value(true)
-                .default_value(&DEFAULT_UI_PORT_VALUE)
-                .validator(validators::validate_ui_port)
-                .help(&UI_PORT_HELP),
-        )
+        .arg(ui_port_arg(&UI_PORT_HELP))
 }
 
-mod standard {
+pub mod standard {
     use super::*;
     use std::net::IpAddr;
     use std::net::SocketAddr;
@@ -300,12 +290,11 @@ mod standard {
     use crate::blockchain::blockchain_interface::chain_id_from_name;
     use crate::bootstrapper::PortConfiguration;
     use crate::http_request_start_finder::HttpRequestDiscriminatorFactory;
-    use crate::multi_config::{CommandLineVcl, ConfigFileVcl, EnvironmentVcl, MultiConfig};
     use crate::node_configurator::{
         determine_config_file_path, mnemonic_seed_exists, real_user_data_directory_and_chain_id,
         request_existing_db_password,
     };
-    use crate::persistent_configuration::{PersistentConfiguration, HTTP_PORT, TLS_PORT};
+    use crate::persistent_configuration::PersistentConfiguration;
     use crate::sub_lib::accountant::DEFAULT_EARNING_WALLET;
     use crate::sub_lib::cryptde::{CryptDE, PlainData, PublicKey};
     use crate::sub_lib::cryptde_null::CryptDENull;
@@ -318,6 +307,8 @@ mod standard {
     use crate::test_utils::DEFAULT_CHAIN_ID;
     use crate::tls_discriminator_factory::TlsDiscriminatorFactory;
     use itertools::Itertools;
+    use masq_lib::constants::{HTTP_PORT, TLS_PORT};
+    use masq_lib::multi_config::{CommandLineVcl, ConfigFileVcl, EnvironmentVcl, MultiConfig};
     use rustc_hex::{FromHex, ToHex};
     use std::convert::TryInto;
     use std::str::FromStr;
@@ -734,7 +725,7 @@ mod standard {
 }
 
 mod validators {
-    use super::*;
+    use masq_lib::constants::LOWEST_USABLE_INSECURE_PORT;
     use regex::Regex;
     use std::net::IpAddr;
     use std::str::FromStr;
@@ -743,14 +734,6 @@ mod validators {
         match IpAddr::from_str(&address) {
             Ok(_) => Ok(()),
             Err(_) => Err(address),
-        }
-    }
-
-    pub fn validate_ui_port(port: String) -> Result<(), String> {
-        match str::parse::<u16>(&port) {
-            Ok(port_number) if port_number < LOWEST_USABLE_INSECURE_PORT => Err(port),
-            Ok(_) => Ok(()),
-            Err(_) => Err(port),
         }
     }
 
@@ -790,10 +773,6 @@ mod tests {
     use crate::bootstrapper::RealUser;
     use crate::config_dao::{ConfigDao, ConfigDaoReal};
     use crate::database::db_initializer::{DbInitializer, DbInitializerReal};
-    use crate::multi_config::tests::FauxEnvironmentVcl;
-    use crate::multi_config::{
-        CommandLineVcl, ConfigFileVcl, MultiConfig, NameValueVclArg, VclArg, VirtualCommandLine,
-    };
     use crate::persistent_configuration::{PersistentConfigError, PersistentConfigurationReal};
     use crate::sub_lib::accountant::DEFAULT_EARNING_WALLET;
     use crate::sub_lib::crash_point::CrashPoint;
@@ -805,13 +784,16 @@ mod tests {
     };
     use crate::sub_lib::node_addr::NodeAddr;
     use crate::sub_lib::wallet::Wallet;
-    use crate::test_utils::environment_guard::EnvironmentGuard;
     use crate::test_utils::persistent_configuration_mock::PersistentConfigurationMock;
-    use crate::test_utils::{
-        ensure_node_home_directory_exists, main_cryptde, ArgsBuilder, TEST_DEFAULT_CHAIN_NAME,
-    };
+    use crate::test_utils::ByteArrayWriter;
+    use crate::test_utils::{main_cryptde, ArgsBuilder, TEST_DEFAULT_CHAIN_NAME};
     use crate::test_utils::{make_default_persistent_configuration, DEFAULT_CHAIN_ID};
-    use crate::test_utils::{ByteArrayWriter, FakeStreamHolder};
+    use masq_lib::multi_config::{
+        CommandLineVcl, ConfigFileVcl, MultiConfig, NameValueVclArg, VclArg, VirtualCommandLine,
+    };
+    use masq_lib::test_utils::environment_guard::EnvironmentGuard;
+    use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
+    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
     use rustc_hex::{FromHex, ToHex};
     use std::fs::File;
     use std::io::Cursor;
@@ -874,28 +856,28 @@ mod tests {
 
     #[test]
     fn validate_ui_port_complains_about_non_numeric_ui_port() {
-        let result = validators::validate_ui_port(String::from("booga"));
+        let result = common_validators::validate_ui_port(String::from("booga"));
 
         assert_eq!(Err(String::from("booga")), result);
     }
 
     #[test]
     fn validate_ui_port_complains_about_ui_port_too_low() {
-        let result = validators::validate_ui_port(String::from("1023"));
+        let result = common_validators::validate_ui_port(String::from("1023"));
 
         assert_eq!(Err(String::from("1023")), result);
     }
 
     #[test]
     fn validate_ui_port_complains_about_ui_port_too_high() {
-        let result = validators::validate_ui_port(String::from("65536"));
+        let result = common_validators::validate_ui_port(String::from("65536"));
 
         assert_eq!(Err(String::from("65536")), result);
     }
 
     #[test]
     fn validate_ui_port_works() {
-        let result = validators::validate_ui_port(String::from("5335"));
+        let result = common_validators::validate_ui_port(String::from("5335"));
 
         assert_eq!(Ok(()), result);
     }
@@ -1686,7 +1668,7 @@ mod tests {
             )
         );
         assert_eq!(config.crash_point, CrashPoint::None);
-        assert_eq!(config.ui_gateway_config.ui_port, 5333);
+        assert_eq!(config.ui_gateway_config.ui_port, DEFAULT_UI_PORT);
         assert!(config.main_cryptde_null_opt.is_none());
         assert_eq!(config.real_user, RealUser::null().populate());
     }
@@ -2127,11 +2109,11 @@ mod tests {
             .param("--dns-servers", "12.34.56.78,23.45.67.89")
             .param("--data-directory", home_directory.to_str().unwrap());
         let vcl_args: Vec<Box<dyn VclArg>> = vec![Box::new(NameValueVclArg::new(
-            &"--consuming-private-key", // this is equal to SUB_CONSUMING_PRIVATE_KEY
+            &"--consuming-private-key", // this is equal to MASQ_CONSUMING_PRIVATE_KEY
             &"not valid hex",
         ))];
 
-        let faux_environment = FauxEnvironmentVcl { vcl_args };
+        let faux_environment = CommandLineVcl::from(vcl_args);
 
         let mut config = BootstrapperConfig::new();
         let vcls: Vec<Box<dyn VirtualCommandLine>> = vec![
@@ -2161,11 +2143,11 @@ mod tests {
             .param("--data-directory", home_directory.to_str().unwrap())
             .opt("--db-password");
         let vcl_args: Vec<Box<dyn VclArg>> = vec![Box::new(NameValueVclArg::new(
-            &"--consuming-private-key", // this is equal to SUB_CONSUMING_PRIVATE_KEY
+            &"--consuming-private-key", // this is equal to MASQ_CONSUMING_PRIVATE_KEY
             &"cc46befe8d169b89db447bd725fc2368b12542113555302598430cb5d5c74ea9",
         ))];
 
-        let faux_environment = FauxEnvironmentVcl { vcl_args };
+        let faux_environment = CommandLineVcl::from(vcl_args);
 
         let mut config = BootstrapperConfig::new();
         config.db_password_opt = Some("password".to_string());

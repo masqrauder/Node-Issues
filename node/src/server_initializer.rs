@@ -7,8 +7,6 @@ use crate::entry_dns::dns_socket_server::DnsSocketServer;
 use crate::node_configurator::node_configurator_standard::NodeConfiguratorStandardPrivileged;
 use crate::node_configurator::NodeConfigurator;
 use crate::sub_lib;
-use crate::sub_lib::main_tools::Command;
-use crate::sub_lib::main_tools::StdStreams;
 use crate::sub_lib::socket_server::SocketServer;
 use backtrace::Backtrace;
 use chrono::{DateTime, Local};
@@ -17,6 +15,8 @@ use flexi_logger::Logger;
 use flexi_logger::{Cleanup, Criterion, LevelFilter, Naming};
 use flexi_logger::{DeferredNow, Duplicate, Record};
 use futures::try_ready;
+use masq_lib::command::Command;
+use masq_lib::command::StdStreams;
 use std::any::Any;
 use std::panic::{Location, PanicInfo};
 use std::path::PathBuf;
@@ -31,11 +31,11 @@ pub struct ServerInitializer {
 }
 
 impl Command for ServerInitializer {
-    fn go(&mut self, streams: &mut StdStreams<'_>, args: &Vec<String>) -> u8 {
+    fn go(&mut self, streams: &mut StdStreams<'_>, args: &[String]) -> u8 {
         if args.contains(&"--help".to_string()) || args.contains(&"--version".to_string()) {
             self.privilege_dropper
                 .drop_privileges(&RealUser::null().populate());
-            NodeConfiguratorStandardPrivileged {}.configure(args, streams);
+            NodeConfiguratorStandardPrivileged {}.configure(&args.to_vec(), streams);
             0
         } else {
             self.dns_socket_server
@@ -93,14 +93,26 @@ impl Default for ServerInitializer {
 }
 
 pub trait LoggerInitializerWrapper: Send {
-    fn init(&mut self, file_path: PathBuf, real_user: &RealUser, log_level: LevelFilter);
+    fn init(
+        &mut self,
+        file_path: PathBuf,
+        real_user: &RealUser,
+        log_level: LevelFilter,
+        discriminant_opt: Option<&str>,
+    );
 }
 
 pub struct LoggerInitializerWrapperReal {}
 
 impl LoggerInitializerWrapper for LoggerInitializerWrapperReal {
-    fn init(&mut self, file_path: PathBuf, real_user: &RealUser, log_level: LevelFilter) {
-        Logger::with(
+    fn init(
+        &mut self,
+        file_path: PathBuf,
+        real_user: &RealUser,
+        log_level: LevelFilter,
+        discriminant_opt: Option<&str>,
+    ) {
+        let mut logger = Logger::with(
             LogSpecBuilder::new()
                 .default(log_level)
                 .module("tokio", LevelFilter::Off)
@@ -117,11 +129,19 @@ impl LoggerInitializerWrapper for LoggerInitializerWrapperReal {
             Criterion::Size(100_000_000),
             Naming::Numbers,
             Cleanup::KeepZipFiles(50),
-        )
-        .start()
-        .expect("Logging subsystem failed to start");
+        );
+        if let Some(discriminant) = discriminant_opt {
+            logger = logger.discriminant(discriminant);
+        }
+        logger.start().expect("Logging subsystem failed to start");
         let privilege_dropper = PrivilegeDropperReal::new();
-        let logfile_name = file_path.join("MASQNode_rCURRENT.log");
+        let logfile_name = file_path.join(format!(
+            "MASQNode_{}rCURRENT.log",
+            match discriminant_opt {
+                Some(discriminant) => format!("{}_", discriminant),
+                None => "".to_string(),
+            }
+        ));
         privilege_dropper.chown(&logfile_name, real_user);
         std::panic::set_hook(Box::new(|panic_info| {
             panic_hook(AltPanicInfo::from(panic_info))
@@ -260,15 +280,26 @@ pub mod test_utils {
     }
 
     pub struct LoggerInitializerWrapperMock {
-        init_parameters: Arc<Mutex<Vec<(PathBuf, RealUser, LevelFilter)>>>,
+        init_parameters: Arc<Mutex<Vec<(PathBuf, RealUser, LevelFilter, Option<String>)>>>,
     }
 
     impl LoggerInitializerWrapper for LoggerInitializerWrapperMock {
-        fn init(&mut self, file_path: PathBuf, real_user: &RealUser, log_level: LevelFilter) {
-            self.init_parameters
-                .lock()
-                .unwrap()
-                .push((file_path, real_user.clone(), log_level));
+        fn init(
+            &mut self,
+            file_path: PathBuf,
+            real_user: &RealUser,
+            log_level: LevelFilter,
+            name_segment: Option<&str>,
+        ) {
+            self.init_parameters.lock().unwrap().push((
+                file_path,
+                real_user.clone(),
+                log_level,
+                match name_segment {
+                    Some(s) => Some(s.to_string()),
+                    None => None,
+                },
+            ));
             assert!(init_test_logging());
         }
     }
@@ -282,7 +313,7 @@ pub mod test_utils {
 
         pub fn init_parameters(
             mut self,
-            parameters: &Arc<Mutex<Vec<(PathBuf, RealUser, LevelFilter)>>>,
+            parameters: &Arc<Mutex<Vec<(PathBuf, RealUser, LevelFilter, Option<String>)>>>,
         ) -> Self {
             self.init_parameters = parameters.clone();
             self
@@ -297,8 +328,9 @@ pub mod tests {
     use crate::server_initializer::test_utils::PrivilegeDropperMock;
     use crate::sub_lib::crash_point::CrashPoint;
     use crate::test_utils::logging::{init_test_logging, TestLogHandler};
+    use crate::test_utils::ByteArrayReader;
     use crate::test_utils::ByteArrayWriter;
-    use crate::test_utils::{ByteArrayReader, FakeStreamHolder};
+    use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
     use std::sync::Arc;
     use std::sync::Mutex;
 
@@ -310,15 +342,9 @@ pub mod tests {
             &self.configuration
         }
 
-        fn initialize_as_privileged(&mut self, _args: &Vec<String>, _streams: &mut StdStreams<'_>) {
-        }
+        fn initialize_as_privileged(&mut self, _args: &[String], _streams: &mut StdStreams<'_>) {}
 
-        fn initialize_as_unprivileged(
-            &mut self,
-            _args: &Vec<String>,
-            _streams: &mut StdStreams<'_>,
-        ) {
-        }
+        fn initialize_as_unprivileged(&mut self, _args: &[String], _streams: &mut StdStreams<'_>) {}
     }
 
     struct SocketServerMock<C> {
@@ -344,18 +370,18 @@ pub mod tests {
             &self.get_configuration_result
         }
 
-        fn initialize_as_privileged(&mut self, args: &Vec<String>, _streams: &mut StdStreams) {
+        fn initialize_as_privileged(&mut self, args: &[String], _streams: &mut StdStreams) {
             self.initialize_as_privileged_params
                 .lock()
                 .unwrap()
-                .push(args.clone());
+                .push(args.to_vec());
         }
 
-        fn initialize_as_unprivileged(&mut self, args: &Vec<String>, _streams: &mut StdStreams) {
+        fn initialize_as_unprivileged(&mut self, args: &[String], _streams: &mut StdStreams) {
             self.initialize_as_unprivileged_params
                 .lock()
                 .unwrap()
-                .push(args.clone());
+                .push(args.to_vec());
         }
     }
 
