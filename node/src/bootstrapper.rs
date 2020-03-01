@@ -373,16 +373,8 @@ impl SocketServer<BootstrapperConfig> for Bootstrapper {
         &self.config
     }
 
-    fn initialize_as_privileged(
-        &mut self,
-        args: &[String],
-        streams: &mut StdStreams,
-    ) -> Result<(), ConfiguratorError> {
-        self.config =
-            match NodeConfiguratorStandardPrivileged::new().configure(&args.to_vec(), streams) {
-                Ok(config) => config,
-                Err(e) => return Err(e),
-            };
+    fn initialize_as_privileged(&mut self, args: &[String], streams: &mut StdStreams) {
+        self.config = NodeConfiguratorStandardPrivileged {}.configure(&args.to_vec(), streams);
 
         self.logger_initializer.init(
             self.config.data_directory.clone(),
@@ -409,15 +401,11 @@ impl SocketServer<BootstrapperConfig> for Bootstrapper {
         Ok(())
     }
 
-    fn initialize_as_unprivileged(
-        &mut self,
-        args: &[String],
-        streams: &mut StdStreams,
-    ) -> Result<(), ConfiguratorError> {
+    fn initialize_as_unprivileged(&mut self, args: &[String], streams: &mut StdStreams) {
         // NOTE: The following line of code is not covered by unit tests
         fdlimit::raise_fd_limit();
         let unprivileged_config = NodeConfiguratorStandardUnprivileged::new(&self.config)
-            .configure(&args.to_vec(), streams)?;
+            .configure(&args.to_vec(), streams);
         self.config.merge_unprivileged(unprivileged_config);
         self.establish_clandestine_port();
         let (cryptde_ref, _) = Bootstrapper::initialize_cryptdes(
@@ -589,8 +577,6 @@ mod tests {
     use actix::Recipient;
     use actix::System;
     use lazy_static::lazy_static;
-    use masq_lib::shared_schema::ParamError;
-    use masq_lib::test_utils::environment_guard::ClapGuard;
     use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
     use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
     use regex::Regex;
@@ -943,9 +929,7 @@ mod tests {
             .into();
         let args_slice: &[String] = args.as_slice();
 
-        subject
-            .initialize_as_privileged(args_slice, &mut FakeStreamHolder::new().streams())
-            .unwrap();
+        subject.initialize_as_privileged(args_slice, &mut FakeStreamHolder::new().streams());
 
         let init_params = init_params_arc.lock().unwrap();
         assert_eq!(

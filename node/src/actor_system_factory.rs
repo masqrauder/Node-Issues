@@ -466,7 +466,6 @@ mod tests {
     use crate::test_utils::{main_cryptde, make_wallet, DEFAULT_CHAIN_ID};
     use actix::System;
     use log::LevelFilter;
-    use masq_lib::crash_point::CrashPoint;
     use masq_lib::ui_gateway::NodeFromUiMessage;
     use masq_lib::ui_gateway::NodeToUiMessage;
     use std::cell::RefCell;

@@ -4,17 +4,12 @@ use crate::blockchain::blockchain_interface::chain_id_from_name;
 use crate::bootstrapper::RealUser;
 use crate::config_dao::{ConfigDao, ConfigDaoReal};
 use crate::database::db_initializer::{DbInitializer, DbInitializerReal, DATABASE_FILE};
-use crate::node_configurator::RealDirsWrapper;
-use crate::node_configurator::{
-    app_head, data_directory_from_context, real_user_data_directory_opt_and_chain_name, DirsWrapper,
-};
+use crate::node_configurator::{app_head, chain_arg, data_directory_arg, real_user_arg};
 use crate::privilege_drop::{PrivilegeDropper, PrivilegeDropperReal};
-use crate::sub_lib::utils::make_new_multi_config;
 use clap::Arg;
 use heck::MixedCase;
 use masq_lib::command::StdStreams;
-use masq_lib::multi_config::{CommandLineVcl, EnvironmentVcl, VirtualCommandLine};
-use masq_lib::shared_schema::{chain_arg, data_directory_arg, real_user_arg, ConfiguratorError};
+use masq_lib::multi_config::{CommandLineVcl, EnvironmentVcl, MultiConfig, VirtualCommandLine};
 use serde_json::json;
 use serde_json::{Map, Value};
 use std::path::PathBuf;
@@ -109,7 +104,6 @@ mod tests {
     use crate::persistent_configuration::{PersistentConfiguration, PersistentConfigurationReal};
     use crate::sub_lib::cryptde::PlainData;
     use crate::test_utils::{ArgsBuilder, DEFAULT_CHAIN_ID, TEST_DEFAULT_CHAIN_NAME};
-    use masq_lib::test_utils::environment_guard::ClapGuard;
     use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
     use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
 

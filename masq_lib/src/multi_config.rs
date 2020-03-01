@@ -1,8 +1,5 @@
 // Copyright (c) 2017-2019, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 
-use crate::command::StdStreams;
-use crate::shared_schema::{ConfiguratorError, ParamError};
-use crate::utils::exit_process;
 #[allow(unused_imports)]
 use clap::{value_t, values_t};
 use clap::{App, ArgMatches};
@@ -404,16 +401,17 @@ impl Display for ConfigFileVclError {
 }
 
 impl ConfigFileVcl {
-    pub fn new(
-        file_path: &PathBuf,
-        user_specified: bool,
-    ) -> Result<ConfigFileVcl, ConfigFileVclError> {
+    pub fn new(file_path: &PathBuf, user_specified: bool) -> ConfigFileVcl {
         let mut file: File = match File::open(file_path) {
             Err(e) => {
                 if user_specified {
                     return Err(ConfigFileVclError::OpenError(file_path.clone(), e));
                 } else {
-                    return Ok(ConfigFileVcl { vcl_args: vec![] });
+                    println!(
+                        "No configuration file was found at {} - skipping",
+                        file_path.display()
+                    );
+                    return ConfigFileVcl { vcl_args: vec![] };
                 }
             }
             Ok(file) => file,
@@ -499,7 +497,6 @@ fn append<T>(ts: Vec<T>, t: T) -> Vec<T> {
 pub(crate) mod tests {
     use super::*;
     use crate::test_utils::environment_guard::EnvironmentGuard;
-    use crate::test_utils::fake_stream_holder::FakeStreamHolder;
     use crate::test_utils::utils::ensure_node_home_directory_exists;
     use clap::Arg;
     use std::fs::File;
@@ -586,6 +583,8 @@ pub(crate) mod tests {
         )
     }
 
+=======
+>>>>>>> 605f22b8... Merge upstream updates (#41):node/src/multi_config.rs
     #[test]
     fn double_provided_optional_single_valued_parameter_with_no_default_produces_second_value() {
         let schema = App::new("test").arg(
@@ -1001,12 +1000,12 @@ pub(crate) mod tests {
         let subject = EnvironmentVcl::new(&schema);
 
         assert_eq!(
+            subject.args(),
             vec![
                 "".to_string(),
                 "--numeric-arg".to_string(),
                 "47".to_string()
-            ],
-            subject.args()
+            ]
         );
         assert_eq!(
             vec!["--numeric-arg"],

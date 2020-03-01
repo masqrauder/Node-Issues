@@ -5,7 +5,6 @@ use crate::sub_lib::cryptde::PlainData;
 use crate::sub_lib::proxy_server::ProxyProtocol;
 use lazy_static::lazy_static;
 use masq_lib::constants::HTTP_PORT;
-use masq_lib::utils::index_of;
 use regex::Regex;
 
 lazy_static! {

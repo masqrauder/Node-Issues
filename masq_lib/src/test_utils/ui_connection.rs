@@ -2,6 +2,7 @@
 
 use crate::messages::{FromMessageBody, ToMessageBody, UiMessageError};
 use crate::ui_gateway::MessageTarget::ClientId;
+use crate::ui_gateway::NodeFromUiMessage;
 use crate::ui_traffic_converter::UiTrafficConverter;
 use crate::utils::localhost;
 use std::net::TcpStream;
@@ -33,8 +34,11 @@ impl UiConnection {
     }
 
     pub fn send_with_context_id<T: ToMessageBody>(&mut self, payload: T, context_id: u64) {
-        let outgoing_msg = payload.tmb(context_id);
-        let outgoing_msg_json = UiTrafficConverter::new_marshal(outgoing_msg);
+        let outgoing_msg = NodeFromUiMessage {
+            client_id: 0, // irrelevant: will be replaced on the other end
+            body: payload.tmb(context_id),
+        };
+        let outgoing_msg_json = UiTrafficConverter::new_marshal_from_ui(outgoing_msg);
         self.send_string(outgoing_msg_json);
     }
 

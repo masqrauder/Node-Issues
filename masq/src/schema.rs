@@ -1,10 +1,9 @@
 // Copyright (c) 2019-2020, MASQ (https://masq.ai) and/or its affiliates. All rights reserved.
-use crate::commands::setup_command::setup_subcommand;
-use crate::commands::shutdown_command::shutdown_subcommand;
-use crate::commands::start_command::start_subcommand;
-use clap::{App, AppSettings, Arg};
+use crate::commands::{setup_subcommand, shutdown_subcommand, start_subcommand};
+use clap::{crate_description, crate_version, App, AppSettings, Arg};
 use lazy_static::lazy_static;
-use masq_lib::constants::{DEFAULT_UI_PORT, HIGHEST_USABLE_PORT, LOWEST_USABLE_INSECURE_PORT};
+use masq_lib::constants::{HIGHEST_USABLE_PORT, LOWEST_USABLE_INSECURE_PORT};
+use masq_lib::ui_gateway::DEFAULT_UI_PORT;
 
 lazy_static! {
     static ref UI_PORT_HELP: String = format!(
@@ -16,17 +15,16 @@ lazy_static! {
 }
 
 pub fn app_head() -> App<'static, 'static> {
-    App::new("masq")
+    App::new("MASQNode")
         .global_settings(if cfg!(test) {
             &[AppSettings::ColorNever]
         } else {
             &[AppSettings::ColorAuto, AppSettings::ColoredHelp]
         })
-        //.version(crate_version!())
-        //.author(crate_authors!("\n")) // TODO: Put this back in when clap is compatible with Rust 1.38.0
-        .version("1.0.0")
-        .author("MASQ")
-        .about("masq is a command-line user interface to the MASQ Daemon and the MASQ Node")
+        .version(crate_version!())
+        //        .author(crate_authors!("\n")) // TODO: Put this back in when clap is compatible with Rust 1.38.0
+        .author("Substratum, MASQ")
+        .about(crate_description!())
 }
 
 pub fn app() -> App<'static, 'static> {

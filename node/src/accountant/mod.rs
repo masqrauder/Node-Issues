@@ -206,7 +206,37 @@ impl Handler<ReportExitServiceConsumedMessage> for Accountant {
         msg: ReportExitServiceConsumedMessage,
         _ctx: &mut Self::Context,
     ) -> Self::Result {
-        self.handle_report_exit_service_consumed_message(msg);
+        debug!(
+            self.logger,
+            "Accruing debt to wallet {} for consuming exit service {} bytes",
+            msg.earning_wallet,
+            msg.payload_size
+        );
+        self.record_service_consumed(
+            msg.service_rate,
+            msg.byte_rate,
+            msg.payload_size,
+            &msg.earning_wallet,
+        );
+    }
+}
+
+impl Handler<NodeFromUiMessage> for Accountant {
+    type Result = ();
+
+    fn handle(&mut self, msg: NodeFromUiMessage, _ctx: &mut Self::Context) -> Self::Result {
+        let client_id = msg.client_id;
+        let opcode = msg.body.opcode.clone();
+        let result: Result<(UiFinancialsRequest, u64), UiMessageError> =
+            UiFinancialsRequest::fmb(msg.body);
+        match result {
+            Ok((payload, context_id)) => self.handle_financials(client_id, context_id, payload),
+            Err(UnexpectedMessage(_, _)) => (),
+            Err(e) => error!(
+                &self.logger,
+                "Bad {} request from client {}: {:?}", opcode, client_id, e
+            ),
+        }
     }
 }
 
@@ -765,7 +795,7 @@ pub mod tests {
     use actix::System;
     use ethereum_types::BigEndianHash;
     use ethsign_crypto::Keccak256;
-    use masq_lib::ui_gateway::MessagePath::{Conversation, FireAndForget};
+    use masq_lib::ui_gateway::MessagePath::{OneWay, TwoWay};
     use masq_lib::ui_gateway::{MessageBody, MessageTarget, NodeFromUiMessage, NodeToUiMessage};
     use std::cell::RefCell;
     use std::convert::TryFrom;
@@ -1240,7 +1270,7 @@ pub mod tests {
     }
 
     #[test]
-    fn unexpected_ui_message_is_ignored() {
+    fn unexpected_ui_message_is_logged_and_ignored() {
         init_test_logging();
         let system = System::new("test");
         let subject = Accountant::new(
@@ -1277,7 +1307,7 @@ pub mod tests {
         let ui_gateway_recording = ui_gateway_recording_arc.lock().unwrap();
         assert_eq!(ui_gateway_recording.len(), 0);
         TestLogHandler::new().exists_log_containing(
-            "DEBUG: Accountant: Ignoring FireAndForget request from client 1234 with opcode 'farple-prang'",
+            "ERROR: Accountant: Bad booga request from client 1234: BadOpcode",
         );
     }
 

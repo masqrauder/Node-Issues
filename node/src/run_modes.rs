@@ -8,11 +8,10 @@ use crate::node_configurator::node_configurator_initialization::NodeConfigurator
 use crate::node_configurator::node_configurator_recover_wallet::NodeConfiguratorRecoverWallet;
 use crate::node_configurator::{NodeConfigurator, RealDirsWrapper, WalletCreationConfig};
 use crate::privilege_drop::{PrivilegeDropper, PrivilegeDropperReal};
-use crate::server_initializer::{LoggerInitializerWrapperReal, ServerInitializer};
+use crate::server_initializer::ServerInitializer;
 use actix::System;
 use futures::future::Future;
 use masq_lib::command::{Command, StdStreams};
-use masq_lib::shared_schema::ConfiguratorError;
 
 #[derive(Debug, PartialEq)]
 enum Mode {
@@ -20,27 +19,35 @@ enum Mode {
     RecoverWallet,
     DumpConfig,
     Initialization,
-    Service,
+    RunTheNode,
 }
 
-pub struct RunModes {
-    privilege_dropper: Box<dyn PrivilegeDropper>,
-    runner: Box<dyn Runner>,
-}
-
-impl Default for RunModes {
-    fn default() -> Self {
-        Self::new()
+pub fn go(args: &Vec<String>, streams: &mut StdStreams<'_>) -> i32 {
+    match determine_mode(args) {
+        Mode::GenerateWallet => generate_wallet(args, streams),
+        Mode::RecoverWallet => recover_wallet(args, streams),
+        Mode::DumpConfig => dump_config(args, streams),
+        Mode::Initialization => initialization(args, streams),
+        Mode::RunTheNode => run_service(args, streams),
     }
 }
 
-impl RunModes {
-    pub fn new() -> Self {
-        Self {
-            privilege_dropper: Box::new(PrivilegeDropperReal::new()),
-            runner: Box::new(RunnerReal::new()),
-        }
+fn determine_mode(args: &Vec<String>) -> Mode {
+    if args.contains(&"--dump-config".to_string()) {
+        Mode::DumpConfig
+    } else if args.contains(&"--recover-wallet".to_string()) {
+        Mode::RecoverWallet
+    } else if args.contains(&"--generate-wallet".to_string()) {
+        Mode::GenerateWallet
+    } else if args.contains(&"--initialization".to_string()) {
+        Mode::Initialization
+    } else {
+        Mode::RunTheNode
     }
+}
+
+fn run_service(args: &Vec<String>, streams: &mut StdStreams<'_>) -> i32 {
+    let system = System::new("main");
 
     pub fn go(&self, args: &[String], streams: &mut StdStreams<'_>) -> i32 {
         let (mode, privilege_required) = self.determine_mode_and_priv_req(args);
@@ -239,10 +246,27 @@ impl Runner for RunnerReal {
     }
 }
 
-impl RunnerReal {
-    pub fn new() -> Self {
-        Self {}
-    }
+fn initialization(args: &Vec<String>, streams: &mut StdStreams<'_>) -> i32 {
+    let configurator = NodeConfiguratorInitialization {};
+    let config = configurator.configure(args, streams);
+    let mut initializer = DaemonInitializer::new(
+        config,
+        Box::new(ChannelFactoryReal::new()),
+        Box::new(RecipientsFactoryReal::new()),
+        Box::new(RerunnerReal::new()),
+    );
+    initializer.go(streams, args);
+    1
+}
+
+fn configuration_run(
+    args: &Vec<String>,
+    streams: &mut StdStreams<'_>,
+    configurator: &dyn NodeConfigurator<WalletCreationConfig>,
+) -> i32 {
+    let config = configurator.configure(args, streams);
+    PrivilegeDropperReal::new().drop_privileges(&config.real_user);
+    0
 }
 
 #[cfg(test)]
@@ -395,6 +419,13 @@ mod tests {
     }
 
     #[test]
+    fn initialization() {
+        [["--initialization"]]
+            .iter()
+            .for_each(|args| check_mode(args, Mode::Initialization));
+    }
+
+    #[test]
     fn both_generate_and_recover() {
         [
             ["--generate-wallet", "--recover-wallet"],
@@ -436,6 +467,28 @@ mod tests {
             Mode::DumpConfig,
             false,
         );
+    }
+
+    #[test]
+    fn everything_beats_initialization() {
+        check_mode(
+            &["--initialization", "--generate-wallet"],
+            Mode::GenerateWallet,
+        );
+        check_mode(
+            &["--initialization", "--recover-wallet"],
+            Mode::RecoverWallet,
+        );
+        check_mode(&["--initialization", "--dump-config"], Mode::DumpConfig);
+        check_mode(
+            &["--generate-wallet", "--initialization"],
+            Mode::GenerateWallet,
+        );
+        check_mode(
+            &["--recover-wallet", "--initialization"],
+            Mode::RecoverWallet,
+        );
+        check_mode(&["--dump-config", "--initialization"], Mode::DumpConfig);
     }
 
     #[test]
@@ -689,11 +742,6 @@ parm2 - msg2\n"
         let (actual_mode, actual_privilege_required) = subject.determine_mode_and_priv_req(&args);
 
         assert_eq!(actual_mode, expected_mode, "args: {:?}", args);
-        assert_eq!(
-            actual_privilege_required, privilege_required,
-            "args: {:?}",
-            args
-        );
     }
 
     fn strs_to_strings(strs: Vec<&str>) -> Vec<String> {

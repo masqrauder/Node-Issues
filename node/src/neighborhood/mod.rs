@@ -62,7 +62,6 @@ use itertools::Itertools;
 use masq_lib::messages::UiMessageError::UnexpectedMessage;
 use masq_lib::messages::{UiMessageError, UiShutdownRequest};
 use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
-use masq_lib::utils::exit_process;
 use neighborhood_database::NeighborhoodDatabase;
 use node_record::NodeRecord;
 use std::cmp::Ordering;
@@ -302,13 +301,10 @@ impl Handler<NodeFromUiMessage> for Neighborhood {
             UiShutdownRequest::fmb(msg.body);
         match result {
             Ok((payload, _)) => self.handle_shutdown_order(client_id, payload),
-            Err(UnexpectedMessage(opcode, _)) => debug!(
-                &self.logger,
-                "Ignoring '{}' request from client {}", opcode, client_id
-            ),
+            Err(UnexpectedMessage(_, _)) => (),
             Err(e) => error!(
                 &self.logger,
-                "Failure to parse '{}' message from client {}: {:?}", opcode, client_id, e
+                "Bad {} request from client {}: {:?}", opcode, client_id, e
             ),
         }
     }
@@ -1220,18 +1216,7 @@ impl Neighborhood {
             self.logger,
             "Received shutdown order from client {}: shutting down hard", client_id
         );
-        #[cfg(test)]
-        let running_test = true;
-        #[cfg(not(test))]
-        let running_test = false;
-        exit_process(
-            0,
-            &format!(
-                "Received shutdown order from client {}: shutting down hard",
-                client_id
-            ),
-            running_test,
-        );
+        std::process::exit(0);
     }
 }
 
@@ -1291,7 +1276,7 @@ mod tests {
     use masq_lib::constants::TLS_PORT;
     use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
     use masq_lib::ui_gateway::MessageBody;
-    use masq_lib::ui_gateway::MessagePath::{Conversation, FireAndForget};
+    use masq_lib::ui_gateway::MessagePath::{OneWay, TwoWay};
     use serde_cbor;
     use std::cell::RefCell;
     use std::convert::TryInto;
@@ -4254,7 +4239,7 @@ mod tests {
                 client_id: 1234,
                 body: MessageBody {
                     opcode: "shutdown".to_string(),
-                    path: Conversation(4321),
+                    path: TwoWay(4321),
                     payload: Ok("{}".to_string()),
                 },
             })
@@ -4304,7 +4289,7 @@ mod tests {
         let ui_gateway_recording = ui_gateway_recording_arc.lock().unwrap();
         assert_eq!(ui_gateway_recording.len(), 0);
         TestLogHandler::new().exists_log_containing(
-            "DEBUG: Neighborhood: Ignoring 'booga' request from client 1234",
+            "ERROR: Neighborhood: Bad booga request from client 1234: BadOpcode",
         );
     }
 
