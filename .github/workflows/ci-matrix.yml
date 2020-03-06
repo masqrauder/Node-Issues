@@ -23,10 +23,10 @@ jobs:
         ./ci/all.sh
         ./ci/multinode_integration_test.sh
       shell: bash
-      uses: actions/upload-artifact@v1
-        with:
-          name: Build Results
-          path: |
+    - uses: actions/upload-artifact@v1
+      with:
+        name: Build Results
+        path: |
           ./dns_utility/target/release/dns_utility.exe
           ./dns_utility/target/release/dns_utilityw.exe
           ./node/target/release/MASQNode.exe
