@@ -21,4 +21,17 @@ jobs:
         rustup show
         rustup update stable
         ./ci/all.sh
+        ./ci/multinode_integration_test.sh
       shell: bash
+        uses: actions/upload-artifact@v1
+          with:
+            name: Build Results
+            path: |
+              ./dns_utility/target/release/dns_utility.exe
+              ./dns_utility/target/release/dns_utilityw.exe
+              ./node/target/release/MASQNode.exe
+              ./node/target/release/MASQNodeW.exe
+              ./node/target/release/masq.exe
+              ./node/generated/*
+              ./dns_utility/generated/*
+              ./multinode_integration_tests/generated/*
