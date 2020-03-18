@@ -8,7 +8,9 @@ pushd "$CI_DIR/.."
 case "$OSTYPE" in
     msys)
         echo "Windows"
-        [[ $GITHUB_ACTIONS -eq true ]] && net stop W3svc
+        [[ $GITHUB_ACTIONS -eq true ]] && netsh advfirewall set allprofiles state off
+        [[ $GITHUB_ACTIONS -eq true ]] && net stop sharedaccess || echo ICS already disabled
+        [[ $GITHUB_ACTIONS -eq true ]] && net stop W3svc || echo W3SVC already disabled
         ci/run_integration_tests.sh
         ;;
     Darwin | darwin*)
