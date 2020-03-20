@@ -3,7 +3,7 @@
 CI_DIR="$( cd "$( dirname "$0" )" && pwd )"
 TOOLCHAIN_HOME="$1"
 
-source "$CI_DIR"/../../ci/environment.sh "$TOOLCHAIN_HOME"
+#source "$CI_DIR"/../../ci/environment.sh "$TOOLCHAIN_HOME"
 
 #export RUSTC_WRAPPER=sccache
 pushd "$CI_DIR/.."
