@@ -15,5 +15,10 @@ jobs:
     - name: Build ${{ matrix.os }}
       run: |
         env
-        cat /etc/docker/daemon.json
+        [[ $GITHUB_ACTIONS ]] && echo "Just $GITHUB_ACTIONS alone"
+        [[ $GITHUB_ACTIONS -eq true ]] && echo "Bare true"
+        [[ $GITHUB_ACTIONS -eq 'true' ]] && echo "Single quoted true"
+        [[ $GITHUB_ACTIONS -eq "true" ]] && echo "Double quoted true"
+        [[ -f /etc/docker/daemon.json ]] && cat /etc/docker/daemon.json
+        [[ ! -f /etc/docker/daemon.json ]] && echo "/etc/docker/daemon.json not found"
       shell: bash
