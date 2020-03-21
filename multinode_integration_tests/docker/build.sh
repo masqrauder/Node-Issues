@@ -2,9 +2,14 @@
 # Copyright (c) 2017-2019, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 
 function ensure_dns_works_with_github_actions() {
-  [[ -d /etc/docker ]] || sudo mkdir -p /etc/docker/
-  [[ -f /etc/docker/daemon.json ]] && cat /etc/docker/daemon.json && sudo sed -i -E 's/"dns": .+"/"dns": ["1.1.1.1", "8.8.8.8"]/g' /etc/docker/daemon.json
+  sudo tee /etc/docker/daemon.json << 'EOF'
+  {
+    "cgroup-parent": "/actions_job",
+    "dns": ["1.1.1.1", "8.8.8.8"]
+  }
+EOF
   sudo service docker restart
+  sleep 10
 }
 
 mkdir -p generated
