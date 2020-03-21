@@ -10,8 +10,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [macOS-latest, ubuntu-latest, windows-latest]
     steps:
     - name: Build ${{ matrix.os }}
-      run: cat /etc/docker/daemon.json
+      run: |
+        env
+        cat /etc/docker/daemon.json
       shell: bash
