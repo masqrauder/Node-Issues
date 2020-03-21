@@ -16,7 +16,7 @@ export RUST_BACKTRACE=full
 # IN THE CONTEXT OF THE PARENT (host) FILESYSTEM.
 export HOST_NODE_PARENT_DIR="$1"
 
-if [ "HOST_NODE_PARENT_DIR" == "" ]; then
+if [ "$HOST_NODE_PARENT_DIR" == "" ]; then
     export HOST_NODE_PARENT_DIR="$CI_DIR/../.."
 fi
 
