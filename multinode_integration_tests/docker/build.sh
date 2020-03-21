@@ -2,6 +2,7 @@
 # Copyright (c) 2017-2019, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 
 function ensure_dns_works_with_github_actions() {
+  echo "running ensure_dns_works_with_github_actions"
   sudo tee /etc/docker/daemon.json << 'EOF'
   {
     "cgroup-parent": "/actions_job",
