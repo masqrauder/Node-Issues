@@ -5,7 +5,6 @@ KIND="$1" # should be either 'sudo' or 'user'
 TOOLCHAIN_HOME="$2"
 
 export PATH="$PATH:$HOME/.cargo/bin"
-#source "$CI_DIR"/../../ci/environment.sh "$TOOLCHAIN_HOME"
 
 export RUST_BACKTRACE=full
 export RUSTFLAGS="-D warnings -Anon-snake-case"

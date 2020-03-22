@@ -20,6 +20,29 @@ if [ "$HOST_NODE_PARENT_DIR" == "" ]; then
     export HOST_NODE_PARENT_DIR="$CI_DIR/../.."
 fi
 
+[[ $GITHUB_ACTIONS -eq true && -f /etc/hosts ]] && echo "Dumping /etc/hosts before edit" && cat /etc/hosts
+
+if grep -q $(hostname) /etc/hosts
+  then next
+  else sudo sed -i "s/127.0.0.1 localhost/127.0.0.1 localhost $(hostname)/g" /etc/hosts
+fi
+
+function ensure_dns_works_with_github_actions() {
+  echo "Running ensure_dns_works_with_github_actions"
+  sudo tee /etc/docker/daemon.json << 'EOF'
+  {
+    "cgroup-parent": "/actions_job",
+    "dns": ["1.1.1.1", "8.8.8.8"]
+  }
+EOF
+  echo "Restarting docker service"
+  sudo service docker restart
+  sleep 10
+}
+
+[[ $GITHUB_ACTIONS -eq true ]] && ensure_dns_works_with_github_actions
+[[ $GITHUB_ACTIONS -eq true ]] && sudo --preserve-env ../../node/ci/free-port-53.sh
+
 pushd "$CI_DIR/../../port_exposer"
 ci/all.sh "$TOOLCHAIN_HOME"
 popd
