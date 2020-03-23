@@ -22,10 +22,8 @@ fi
 
 [[ $GITHUB_ACTIONS -eq true && -f /etc/hosts ]] && echo "Dumping /etc/hosts before edit" && cat /etc/hosts
 
-if grep -q $(hostname) /etc/hosts
-  then next
-  else sudo sed -i "s/127.0.0.1 localhost/127.0.0.1 localhost $(hostname)/g" /etc/hosts
-fi
+grep -q $(hostname) /etc/hosts
+[[ $? -ne 0 ]] && sudo sed -i "s/127.0.0.1 localhost/127.0.0.1 localhost $(hostname)/g" /etc/hosts
 
 function ensure_dns_works_with_github_actions() {
   echo "Running ensure_dns_works_with_github_actions"
@@ -40,10 +38,10 @@ EOF
   sleep 10
 }
 
-[[ $GITHUB_ACTIONS -eq true ]] && ensure_dns_works_with_github_actions
-[[ $GITHUB_ACTIONS -eq true ]] && sudo --preserve-env ../../node/ci/free-port-53.sh
+[[ $GITHUB_ACTIONS -eq true && -f /etc/docker/daemon.json ]] && ensure_dns_works_with_github_actions
+[[ $GITHUB_ACTIONS -eq true ]] && sudo --preserve-env "$HOST_NODE_PARENT_DIR/ci/free-port-53.sh"
 
-pushd "$CI_DIR/../../port_exposer"
+pushd "$HOST_NODE_PARENT_DIR/port_exposer"
 ci/all.sh "$TOOLCHAIN_HOME"
 popd
 

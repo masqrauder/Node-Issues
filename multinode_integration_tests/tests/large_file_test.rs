@@ -1,5 +1,8 @@
 // Copyright (c) 2017-2019, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 
+use std::thread;
+use std::time::Duration;
+
 use multinode_integration_tests_lib::masq_node::MASQNode;
 use multinode_integration_tests_lib::masq_node_cluster::MASQNodeCluster;
 use multinode_integration_tests_lib::masq_real_node::{
@@ -7,14 +10,11 @@ use multinode_integration_tests_lib::masq_real_node::{
 };
 use multinode_integration_tests_lib::rest_utils::RestServer;
 use node_lib::blockchain::blockchain_interface::chain_name_from_id;
-use std::thread;
-use std::time::Duration;
 
 const MAXIMUM_KBYTES: &'static str = "148480";
 const REQUEST_BYTES: u64 = 157_286_400;
 
 #[test]
-#[ignore]
 fn downloading_a_file_larger_than_available_memory_doesnt_kill_node_but_makes_it_stronger() {
     let mut cluster = MASQNodeCluster::start().expect("starting cluster");
     let originating_node = cluster.start_real_node(
@@ -47,6 +47,9 @@ fn downloading_a_file_larger_than_available_memory_doesnt_kill_node_but_makes_it
         rest_server.ip().unwrap(),
         REQUEST_BYTES
     );
-    let response = reqwest::get(&address).unwrap();
-    assert_eq!(response.content_length(), Some(REQUEST_BYTES));
+
+    async {
+        let response = reqwest::get(&address).await.unwrap();
+        assert_eq!(response.content_length(), Some(REQUEST_BYTES));
+    };
 }
