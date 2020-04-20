@@ -39,7 +39,7 @@ EOF
 }
 
 [[ $GITHUB_ACTIONS -eq true && -f /etc/docker/daemon.json ]] && ensure_dns_works_with_github_actions
-[[ $GITHUB_ACTIONS -eq true ]] && sudo --preserve-env "$CI_DIR/../../node/ci/free-port-53.sh"
+[[ $GITHUB_ACTIONS -eq true ]] && sudo --preserve-env "$CI_DIR/../../ci/free-port-53.sh"
 
 pushd "$CI_DIR/../../port_exposer"
 ci/all.sh "$TOOLCHAIN_HOME"

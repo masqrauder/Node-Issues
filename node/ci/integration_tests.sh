@@ -20,7 +20,7 @@ case "$OSTYPE" in
         ;;
     linux-gnu)
         echo "Linux"
-        [[ $GITHUB_ACTIONS -eq true ]] && sudo --preserve-env "$CI_DIR/../../node/ci/free-port-53.sh"
+        [[ $GITHUB_ACTIONS -eq true ]] && sudo --preserve-env "$CI_DIR/../../ci/free-port-53.sh"
         sudo --preserve-env ci/run_integration_tests.sh "$TOOLCHAIN_HOME"
         ;;
     *)
