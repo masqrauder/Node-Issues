@@ -1,12 +1,9 @@
 name: ci-matrix
-
 on:
   pull_request:
-    types: [assigned, opened, synchronize, reopened]
+    types: [opened, synchronize]
     branches:
       - master
-      - release/*
-
 jobs:
   build:
     name: Build node on ${{ matrix.os }}
@@ -15,10 +12,13 @@ jobs:
       matrix:
         os: [macOS-latest, ubuntu-latest, windows-latest]
     steps:
-    - uses: actions/checkout@v2
     - name: Build ${{ matrix.os }}
       run: |
-        rustup show
-        rustup update stable
-        ./ci/all.sh
+        env
+        [[ $GITHUB_ACTIONS ]] && echo "Just $GITHUB_ACTIONS alone"
+        [[ $GITHUB_ACTIONS -eq true ]] && echo "Bare true"
+        [[ $GITHUB_ACTIONS -eq 'true' ]] && echo "Single quoted true"
+        [[ $GITHUB_ACTIONS -eq "true" ]] && echo "Double quoted true"
+        [[ -f /etc/docker/daemon.json ]] && cat /etc/docker/daemon.json
+        [[ ! -f /etc/docker/daemon.json ]] && echo "/etc/docker/daemon.json not found"
       shell: bash
