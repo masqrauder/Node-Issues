@@ -23,7 +23,7 @@ ethsign-crypto = "0.2.1"
 ethereum-types = "0.6.0"
 fdlimit = "0.1.2"
 flexi_logger = { version = "0.14.8", features = [ "ziplogs" ] }
-futures = "0.1.28"
+futures = "0.3.3"
 heck = "0.3.1"
 http = "0.2.0"
 indoc = "0.3.4"
