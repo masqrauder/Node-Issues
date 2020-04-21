@@ -27,6 +27,7 @@ jobs:
         run: |
           rustup show
           rustup update stable
+          sudo ./ci/free-port-53.sh
           ./ci/all.sh
           ./ci/multinode_integration_test.sh
           ./ci/collect_results.sh
