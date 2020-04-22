@@ -22,8 +22,7 @@ fi
 
 [[ $GITHUB_ACTIONS -eq true && -f /etc/hosts ]] && echo "Dumping /etc/hosts before edit" && cat /etc/hosts
 
-grep -q $(hostname) /etc/hosts
-[[ $? -ne 0 ]] && sudo sed -i "s/127.0.0.1 localhost/127.0.0.1 localhost $(hostname)/g" /etc/hosts
+sudo sed -E -e 's/^127.0.0.1 localhost$/127.0.0.1 localhost $(hostname)/g' -i '' /etc/hosts
 
 function ensure_dns_works_with_github_actions() {
   echo "Running ensure_dns_works_with_github_actions"
