@@ -48,7 +48,7 @@ fn downloading_a_file_larger_than_available_memory_doesnt_kill_node_but_makes_it
         REQUEST_BYTES
     );
 
-    async {
+    let _ = async {
         let response = reqwest::get(&address).await.unwrap();
         assert_eq!(response.content_length(), Some(REQUEST_BYTES));
     };
