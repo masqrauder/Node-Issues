@@ -1,5 +1,5 @@
 # Copyright (c) 2017-2019, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
-FROM rust:1.23.0
+FROM rust:latest
 
 ENV SUDO_UID=1000
 ENV SUDO_GID=1000

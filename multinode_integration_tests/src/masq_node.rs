@@ -1,6 +1,5 @@
 // Copyright (c) 2017-2019, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 use crate::command::Command;
-use base64;
 use base64::STANDARD_NO_PAD;
 use masq_lib::constants::HIGHEST_USABLE_PORT;
 use node_lib::sub_lib::cryptde::{CryptDE, PublicKey};

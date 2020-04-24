@@ -1277,7 +1277,6 @@ mod tests {
     use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
     use masq_lib::ui_gateway::MessageBody;
     use masq_lib::ui_gateway::MessagePath::{OneWay, TwoWay};
-    use serde_cbor;
     use std::cell::RefCell;
     use std::convert::TryInto;
     use std::net::{IpAddr, SocketAddr};

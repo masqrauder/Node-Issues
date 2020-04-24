@@ -576,7 +576,6 @@ mod tests {
     use std::sync::Arc;
     use std::sync::Mutex;
     use std::thread;
-    use tokio;
     use tokio::prelude::Async;
 
     lazy_static! {

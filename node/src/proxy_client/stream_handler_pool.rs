@@ -522,7 +522,6 @@ mod tests {
     use std::sync::Arc;
     use std::sync::Mutex;
     use std::thread;
-    use tokio;
     use tokio::prelude::Async;
     use trust_dns_resolver::error::ResolveErrorKind;
 

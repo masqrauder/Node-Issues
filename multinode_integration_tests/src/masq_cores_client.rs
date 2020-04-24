@@ -7,7 +7,6 @@ use node_lib::sub_lib::cryptde::CryptDE;
 use node_lib::sub_lib::cryptde::PlainData;
 use node_lib::sub_lib::cryptde::PublicKey;
 use node_lib::sub_lib::hopper::IncipientCoresPackage;
-use serde_cbor;
 use std::net::SocketAddr;
 
 pub struct MASQCoresClient<'a> {

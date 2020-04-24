@@ -22,7 +22,6 @@ use clap::{crate_description, crate_version, value_t, App, AppSettings, Arg};
 use dirs::{data_local_dir, home_dir};
 use masq_lib::command::StdStreams;
 use masq_lib::multi_config::{merge, CommandLineVcl, EnvironmentVcl, MultiConfig, VclArg};
-use rpassword;
 use rpassword::read_password_with_reader;
 use rustc_hex::FromHex;
 use std::fmt::Debug;

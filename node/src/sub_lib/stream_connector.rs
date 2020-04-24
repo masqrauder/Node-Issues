@@ -166,7 +166,6 @@ mod tests {
     use std::sync::Mutex;
     use std::thread;
     use std::time::Duration;
-    use tokio;
     use tokio::io::ErrorKind;
 
     #[test]

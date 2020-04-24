@@ -100,7 +100,6 @@ mod tests {
     use std::str::FromStr;
     use std::sync::Arc;
     use std::sync::Mutex;
-    use tokio;
     use trust_dns::op::ResponseCode;
 
     struct UdpSocketWrapperMockGuts {

@@ -16,7 +16,6 @@ use node_lib::sub_lib::cryptde::PublicKey;
 use node_lib::sub_lib::cryptde_null::CryptDENull;
 use node_lib::sub_lib::node_addr::NodeAddr;
 use node_lib::tls_discriminator_factory::TlsDiscriminatorFactory;
-use serde_cbor;
 use std::cell::RefCell;
 use std::io;
 use std::io::Read;

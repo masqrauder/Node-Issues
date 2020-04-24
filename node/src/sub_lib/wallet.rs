@@ -440,7 +440,6 @@ mod tests {
     use bip39::{Language, Mnemonic, Seed};
     use rusqlite::Connection;
     use rustc_hex::FromHex;
-    use serde_cbor;
     use std::collections::hash_map::DefaultHasher;
     use std::convert::TryFrom;
     use std::str::FromStr;
