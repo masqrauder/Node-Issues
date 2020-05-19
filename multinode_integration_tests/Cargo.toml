@@ -29,7 +29,7 @@ tiny-hderive = "0.2.1"
 native-tls = "0.2.3"
 node = { path = "../node", features = [ "expose_test_privates" ] }
 uint = "0.8.2"
-web3 = {version = "0.8.0", default-features = false, features = ["http", "tls"]}
+web3 = {version = "0.11.0", default-features = false, features = ["http", "tls"]}
 
 [lib]
 name = "multinode_integration_tests_lib"
