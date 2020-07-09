@@ -16,7 +16,7 @@ serde = "1.0.99"
 serde_derive = "1.0.99"
 serde_json = "1.0.40"
 toml = "0.5.3"
-websocket = {version = "0.23.0", default-features = false, features = ["sync"]}
+websocket = {version = "0.26.2", default-features = false, features = ["sync"]}
 
 [lib]
 name = "masq_lib"
