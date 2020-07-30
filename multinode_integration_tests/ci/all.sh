@@ -16,10 +16,6 @@ export RUST_BACKTRACE=full
 # IN THE CONTEXT OF THE PARENT (host) FILESYSTEM.
 export HOST_NODE_PARENT_DIR="$1"
 
-if [ "$HOST_NODE_PARENT_DIR" == "" ]; then
-    export HOST_NODE_PARENT_DIR="$CI_DIR/../.."
-fi
-
 #[[ $GITHUB_ACTIONS -eq true && -f /etc/hosts ]] && echo "Dumping /etc/hosts before edit" && cat /etc/hosts
 
 sudo sed -E -e 's/^127.0.0.1 localhost$/127.0.0.1 localhost $(hostname)/g' -i '' /etc/hosts || echo "Hosts edit completed"

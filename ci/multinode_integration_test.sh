@@ -1,4 +1,4 @@
-#!/bin/bash -xev
+#!/bin/bash -evx
 # Copyright (c) 2017-2019, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 CI_DIR="$( cd "$( dirname "$0" )" && pwd )"
 
@@ -13,7 +13,11 @@ case "$OSTYPE" in
     echo "Multinode Integration Tests don't run under Windows"
     ;;
   Darwin | darwin*)
-    echo "Multinode Integration Tests don't run under macOS"
+    export RUSTFLAGS="-D warnings -Anon-snake-case"
+
+    pushd "$CI_DIR/../multinode_integration_tests"
+    ci/all.sh "$PARENT_DIR"
+    popd
     ;;
   linux*)
     export RUSTFLAGS="-D warnings -Anon-snake-case"
