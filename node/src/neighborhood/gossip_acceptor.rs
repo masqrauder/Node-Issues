@@ -719,8 +719,8 @@ impl IntroductionHandler {
         cryptde: &dyn CryptDE,
         introducer: AccessibleGossipRecord,
     ) -> Result<bool, String> {
-        let introducer_key = &introducer.inner.public_key.clone();
-        match database.node_by_key_mut(introducer_key) {
+        let introducer_key = introducer.inner.public_key.clone();
+        match database.node_by_key_mut(&introducer_key) {
             Some(existing_introducer_ref) => {
                 if existing_introducer_ref.version() < introducer.inner.version {
                     debug!(
@@ -753,7 +753,7 @@ impl IntroductionHandler {
             }
         }
         if database
-            .add_half_neighbor(introducer_key)
+            .add_half_neighbor(&introducer_key)
             .expect("introducer not in database")
         {
             database.root_mut().increment_version();

@@ -16,6 +16,7 @@ use trust_dns::rr::RecordType;
 const HEADER_BYTES: usize = 12;
 const UNKNOWN: &str = "<unknown>";
 
+#[allow(clippy::redundant_closure)]
 pub fn process(buf: &mut [u8], length: usize, addr: &SocketAddr, logger: &Logger) -> usize {
     let mut facade = PacketFacade::new(buf, length);
     let request_record = RequestRecord {

@@ -628,11 +628,11 @@ impl ProxyServer {
                 reception_port: Some(443),
                 ..ibcd
             },
-            None => ibcd.clone(),
+            None => ibcd,
         };
         match self.client_request_payload_factory.make(
             &new_ibcd,
-            stream_key.clone(),
+            *stream_key,
             self.alias_cryptde,
             &self.logger,
         ) {
