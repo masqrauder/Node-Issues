@@ -583,8 +583,6 @@ pub(crate) mod tests {
         )
     }
 
-=======
->>>>>>> 605f22b8... Merge upstream updates (#41):node/src/multi_config.rs
     #[test]
     fn double_provided_optional_single_valued_parameter_with_no_default_produces_second_value() {
         let schema = App::new("test").arg(

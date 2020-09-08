@@ -120,7 +120,6 @@ pub fn chain_arg<'a>() -> Arg<'a, 'a> {
         .help(CHAIN_HELP)
 }
 
->>>>>>> 605f22b8... Merge upstream updates (#41)
 pub fn earning_wallet_arg<F>(help: &str, validator: F) -> Arg
 where
     F: 'static,

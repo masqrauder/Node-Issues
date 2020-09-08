@@ -3,15 +3,17 @@
 use crate::command_context::{CommandContext, ContextError};
 use crate::command_factory::{CommandFactory, CommandFactoryError};
 use crate::command_processor::{CommandProcessor, CommandProcessorFactory};
-use crate::commands::CommandError::Transmission;
-use crate::commands::{Command, CommandError};
-use crate::websockets_client::nfum;
-use masq_lib::messages::ToMessageBody;
+use crate::commands::commands_common::CommandError::Transmission;
+use crate::commands::commands_common::{Command, CommandError};
+use crate::communications::broadcast_handler::StreamFactory;
+use crossbeam_channel::{unbounded, Receiver, Sender, TryRecvError};
 use masq_lib::test_utils::fake_stream_holder::{ByteArrayWriter, ByteArrayWriterInner};
-use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
+use masq_lib::ui_gateway::MessageBody;
 use std::cell::RefCell;
 use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use std::{io, thread};
 
 #[derive(Default)]
 pub struct CommandFactoryMock {
@@ -55,7 +57,11 @@ pub struct CommandContextMock {
 }
 
 impl CommandContext for CommandContextMock {
-    fn transact(&mut self, message: NodeFromUiMessage) -> Result<NodeToUiMessage, ContextError> {
+    fn active_port(&self) -> u16 {
+        self.active_port_results.borrow_mut().remove(0)
+    }
+
+    fn transact(&mut self, message: MessageBody) -> Result<MessageBody, ContextError> {
         self.transact_params.lock().unwrap().push(message);
         self.transact_results.borrow_mut().remove(0)
     }
@@ -84,6 +90,7 @@ impl Default for CommandContextMock {
         let stderr = ByteArrayWriter::new();
         let stderr_arc = stderr.inner_arc();
         Self {
+            active_port_results: RefCell::new(vec![]),
             transact_params: Arc::new(Mutex::new(vec![])),
             transact_results: RefCell::new(vec![]),
             stdout: Box::new(stdout),

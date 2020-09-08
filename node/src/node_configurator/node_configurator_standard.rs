@@ -1,20 +1,25 @@
 // Copyright (c) 2017-2019, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 
-use crate::bootstrapper::BootstrapperConfig;
-use crate::node_configurator;
-use crate::node_configurator::{
-    app_head, chain_arg, common_validators, config_file_arg, data_directory_arg, db_password_arg,
-    earning_wallet_arg, initialize_database, real_user_arg, ui_port_arg, NodeConfigurator,
-};
-use crate::sub_lib::crash_point::CrashPoint;
-use clap::{App, Arg};
+use clap::App;
 use indoc::indoc;
 use lazy_static::lazy_static;
-use masq_lib::command::StdStreams;
-use masq_lib::constants::{HIGHEST_USABLE_PORT, LOWEST_USABLE_INSECURE_PORT};
-use masq_lib::ui_gateway::DEFAULT_UI_PORT;
 
-pub struct NodeConfiguratorStandardPrivileged {}
+use masq_lib::command::StdStreams;
+use masq_lib::crash_point::CrashPoint;
+use masq_lib::shared_schema::{shared_app, ui_port_arg};
+use masq_lib::shared_schema::{ConfiguratorError, UI_PORT_HELP};
+
+use crate::bootstrapper::BootstrapperConfig;
+use crate::node_configurator::RealDirsWrapper;
+use crate::node_configurator::{
+    app_head, chain_arg, common_validators, config_file_arg, data_directory_arg, db_password_arg,
+    earning_wallet_arg, initialize_database, real_user_arg, ui_port_arg, DirsWrapper,
+    NodeConfigurator,
+};
+
+pub struct NodeConfiguratorStandardPrivileged {
+    dirs_wrapper: Box<dyn DirsWrapper>,
+}
 
 impl NodeConfigurator<BootstrapperConfig> for NodeConfiguratorStandardPrivileged {
     fn configure(
@@ -98,83 +103,6 @@ impl NodeConfiguratorStandardUnprivileged {
     }
 }
 
-lazy_static! {
-    pub static ref DEFAULT_UI_PORT_VALUE: String = DEFAULT_UI_PORT.to_string();
-    pub static ref DEFAULT_CRASH_POINT_VALUE: String = format!("{}", CrashPoint::None);
-    pub static ref UI_PORT_HELP: String = format!(
-        "The port at which user interfaces will connect to the Node. Best to accept the default unless \
-        you know what you're doing. Must be between {} and {}.",
-        LOWEST_USABLE_INSECURE_PORT, HIGHEST_USABLE_PORT
-    );
-    pub static ref CLANDESTINE_PORT_HELP: String = format!(
-        "The port this Node will advertise to other Nodes at which clandestine traffic will be \
-         received. If you don't specify a clandestine port, the Node will choose an unused \
-         one at random on first startup, then use that one for every subsequent run unless \
-         you change it by specifying a different clandestine port here. --clandestine-port is \
-         meaningless except in --neighborhood-mode standard. \
-         Must be between {} and {} [default: last used port]",
-        LOWEST_USABLE_INSECURE_PORT, HIGHEST_USABLE_PORT
-    );
-    pub static ref GAS_PRICE_HELP: String = format!(
-       "The Gas Price is the amount of Gwei you will pay per unit of gas used in a transaction. \
-       If left unspecified, MASQ Node will use the previously stored value (Default {}). Valid range is 1-99 Gwei.",
-       DEFAULT_GAS_PRICE);
-}
-
-const BLOCKCHAIN_SERVICE_HELP: &str = "The Ethereum client you wish to use to provide Blockchain \
-     exit services from your MASQ Node (e.g. http://localhost:8545, \
-     https://ropsten.infura.io/v3/YOUR-PROJECT-ID, https://mainnet.infura.io/v3/YOUR-PROJECT-ID).";
-const DB_PASSWORD_HELP: &str =
-    "A password or phrase to decrypt the encrypted material in the database, to include your \
-     mnemonic seed (if applicable) and your list of previous neighbors. If you don't provide this \
-     password, none of the encrypted data in your database will be used.";
-const DNS_SERVERS_HELP: &str =
-    "IP addresses of DNS Servers for host name look-up while providing exit \
-     services for other MASQ Nodes (e.g. 1.0.0.1,1.1.1.1,8.8.8.8,9.9.9.9, etc.)";
-const EARNING_WALLET_HELP: &str =
-    "An Ethereum wallet address. Addresses must begin with 0x followed by 40 hexadecimal digits \
-     (case-insensitive). If you already have a derivation-path earning wallet, don't supply this. \
-     If you have supplied an earning wallet address before, either don't supply it again or be \
-     careful to supply exactly the same one you supplied before.";
-const IP_ADDRESS_HELP: &str = "The public IP address of your MASQ Node: that is, the IPv4 \
-     address at which other Nodes can contact yours. If you're running your Node behind \
-     a router, this will be the IP address of the router. If this IP address starts with 192.168 or 10.0, \
-     it's a local address rather than a public address, and other Nodes won't be able to see yours. \
-     --ip is meaningless except in --neighborhood-mode standard.";
-const LOG_LEVEL_HELP: &str =
-    "The minimum severity of the logs that should appear in the Node's logfile. You should probably not specify \
-     a level lower than the default unless you're doing testing or forensics: a Node at the 'trace' log level \
-     generates a lot of log traffic. This will both consume your disk space and degrade your Node's performance. \
-     You should probably not specify a level higher than the default unless you have security concerns about \
-     persistent logs being kept on your computer: if your Node crashes, it's good to know why.";
-const NEIGHBORS_HELP: &str = "One or more Node descriptors for running Nodes in the MASQ \
-     Network to which you'd like your Node to connect on startup. A Node descriptor looks like \
-     this:\n\ngBviQbjOS3e5ReFQCvIhUM3i02d1zPleo1iXg/EN6zQ:86.75.30.9:5542 (initial ':' for testnet) and\n\
-     gBviQbjOS3e5ReFQCvIhUM3i02d1zPleo1iXg/EN6zQ@86.75.30.9:5542 (initial '@' for mainnet)\n\n\
-     If you have more than one, separate them with commas (but no spaces). There is no default value; \
-     if you don't specify a neighbor, your Node will start without being connected to any MASQ \
-     Network, although other Nodes will be able to connect to yours if they know your Node's descriptor. \
-     --neighbors is meaningless in --neighborhood-mode zero-hop.";
-const NEIGHBORHOOD_MODE_HELP: &str = "This configures the way the Node relates to other Nodes.\n\n\
-     zero-hop means that your Node will operate as its own MASQ Network and will not communicate with any \
-     other Nodes. --ip, --neighbors, and --clandestine-port are incompatible with --neighborhood_mode \
-     zero-hop.\n\n\
-     originate-only means that your Node will not accept connections from any other Node; it \
-     will only originate connections to other Nodes. This will reduce your Node's opportunity to route \
-     data (it will only ever have two neighbors, so the number of routes it can participate in is limited), \
-     it will reduce redundancy in the MASQ Network, and it will prevent your Node from acting as \
-     a connection point for other Nodes to get on the Network; but it will enable your Node to operate in \
-     an environment where your network hookup is preventing you from accepting connections, and it means \
-     that you don't have to forward any incoming ports through your router. --ip and --clandestine_port \
-     are incompatible with --neighborhood_mode originate-only.\n\n\
-     consume-only means that your Node will not accept connections from or route data for any other Node; \
-     it will only consume services from the MASQ Network. This mode is appropriate for devices that \
-     cannot maintain a constant IP address or stay constantly on the Network. --ip and --clandestine_port \
-     are incompatible with --neighborhood_mode consume-only.\n\n\
-     standard means that your Node will operate fully unconstrained, both originating and accepting \
-     connections, both consuming and providing services, and when you operate behind a router, it \
-     requires that you forward your clandestine port through that router to your Node's machine.";
-
 const HELP_TEXT: &str = indoc!(
     r"ADDITIONAL HELP:
     If you want to start the MASQ Daemon to manage the MASQ Node and the MASQ UIs, try:
@@ -215,123 +143,24 @@ const HELP_TEXT: &str = indoc!(
 );
 
 pub fn app() -> App<'static, 'static> {
-    app_head()
-        .after_help(HELP_TEXT)
-        .arg(
-            Arg::with_name("blockchain-service-url")
-                .long("blockchain-service-url")
-                .empty_values(false)
-                .value_name("URL")
-                .takes_value(true)
-                .help(BLOCKCHAIN_SERVICE_HELP),
-        )
-        .arg(
-            Arg::with_name("clandestine-port")
-                .long("clandestine-port")
-                .value_name("CLANDESTINE-PORT")
-                .empty_values(false)
-                .validator(validators::validate_clandestine_port)
-                .help(&CLANDESTINE_PORT_HELP),
-        )
-        .arg(config_file_arg())
-        .arg(
-            Arg::with_name("consuming-private-key")
-                .long("consuming-private-key")
-                .value_name("PRIVATE-KEY")
-                .takes_value(true)
-                .validator(validators::validate_private_key)
-                .help(node_configurator::CONSUMING_PRIVATE_KEY_HELP),
-        )
-        .arg(
-            Arg::with_name("crash-point")
-                .long("crash-point")
-                .value_name("CRASH-POINT")
-                .takes_value(true)
-                .default_value(&DEFAULT_CRASH_POINT_VALUE)
-                .possible_values(&CrashPoint::variants())
-                .case_insensitive(true)
-                .hidden(true),
-        )
-        .arg(data_directory_arg())
-        .arg(db_password_arg(DB_PASSWORD_HELP))
-        .arg(
-            Arg::with_name("dns-servers")
-                .long("dns-servers")
-                .value_name("DNS-SERVERS")
-                .takes_value(true)
-                .use_delimiter(true)
-                .validator(validators::validate_ip_address)
-                .help(DNS_SERVERS_HELP),
-        )
-        .arg(earning_wallet_arg(
-            EARNING_WALLET_HELP,
-            common_validators::validate_ethereum_address,
-        ))
-        .arg(chain_arg())
-        .arg(
-            Arg::with_name("fake-public-key")
-                .long("fake-public-key")
-                .value_name("FAKE-PUBLIC-KEY")
-                .takes_value(true)
-                .hidden(true),
-        )
-        .arg(
-            Arg::with_name("gas-price")
-                .long("gas-price")
-                .value_name("GAS-PRICE")
-                .min_values(1)
-                .max_values(1)
-                .takes_value(true)
-                .validator(validators::validate_gas_price)
-                .help(&GAS_PRICE_HELP),
-        )
-        .arg(
-            Arg::with_name("ip")
-                .long("ip")
-                .value_name("IP")
-                .takes_value(true)
-                .validator(validators::validate_ip_address)
-                .help(IP_ADDRESS_HELP),
-        )
-        .arg(
-            Arg::with_name("log-level")
-                .long("log-level")
-                .value_name("FILTER")
-                .takes_value(true)
-                .possible_values(&["off", "error", "warn", "info", "debug", "trace"])
-                .default_value("warn")
-                .case_insensitive(true)
-                .help(LOG_LEVEL_HELP),
-        )
-        .arg(
-            Arg::with_name("neighborhood-mode")
-                .long("neighborhood-mode")
-                .value_name("NEIGHBORHOOD-MODE")
-                .takes_value(true)
-                .possible_values(&["zero-hop", "originate-only", "consume-only", "standard"])
-                .default_value("standard")
-                .case_insensitive(true)
-                .help(NEIGHBORHOOD_MODE_HELP),
-        )
-        .arg(
-            Arg::with_name("neighbors")
-                .long("neighbors")
-                .value_name("NODE-DESCRIPTORS")
-                .takes_value(true)
-                .use_delimiter(true)
-                .help(NEIGHBORS_HELP),
-        )
-        .arg(real_user_arg())
-        .arg(ui_port_arg(&UI_PORT_HELP))
+    shared_app(app_head().after_help(HELP_TEXT)).arg(ui_port_arg(&UI_PORT_HELP))
 }
 
 pub mod standard {
     use super::*;
+    use std::convert::TryInto;
     use std::net::SocketAddr;
     use std::net::{IpAddr, Ipv4Addr};
+    use std::str::FromStr;
 
     use clap::value_t;
+    use itertools::Itertools;
     use log::LevelFilter;
+    use rustc_hex::{FromHex, ToHex};
+
+    use masq_lib::constants::{DEFAULT_CHAIN_NAME, DEFAULT_UI_PORT, HTTP_PORT, TLS_PORT};
+    use masq_lib::multi_config::{CommandLineVcl, ConfigFileVcl, EnvironmentVcl, MultiConfig};
+    use masq_lib::shared_schema::{ConfiguratorError, ParamError};
 
     use crate::blockchain::bip32::Bip32ECKeyPair;
     use crate::blockchain::blockchain_interface::chain_id_from_name;
@@ -341,7 +170,7 @@ pub mod standard {
         data_directory_from_context, determine_config_file_path, mnemonic_seed_exists,
         real_user_data_directory_opt_and_chain_name, request_existing_db_password, DirsWrapper,
     };
-    use crate::persistent_configuration::PersistentConfiguration;
+    use crate::persistent_configuration::{PersistentConfigError, PersistentConfiguration};
     use crate::sub_lib::accountant::DEFAULT_EARNING_WALLET;
     use crate::sub_lib::cryptde::{CryptDE, PlainData, PublicKey};
     use crate::sub_lib::cryptde_null::CryptDENull;
@@ -354,12 +183,6 @@ pub mod standard {
     use crate::sub_lib::wallet::Wallet;
     use crate::test_utils::DEFAULT_CHAIN_ID;
     use crate::tls_discriminator_factory::TlsDiscriminatorFactory;
-    use itertools::Itertools;
-    use masq_lib::constants::{HTTP_PORT, TLS_PORT};
-    use masq_lib::multi_config::{CommandLineVcl, ConfigFileVcl, EnvironmentVcl, MultiConfig};
-    use rustc_hex::{FromHex, ToHex};
-    use std::convert::TryInto;
-    use std::str::FromStr;
 
     pub fn make_service_mode_multi_config<'a>(
         dirs_wrapper: &dyn DirsWrapper,
@@ -891,19 +714,101 @@ pub mod standard {
         db_password_opt
     }
 
-mod validators {
-    use masq_lib::constants::LOWEST_USABLE_INSECURE_PORT;
-    use regex::Regex;
-    use std::net::IpAddr;
-    use std::str::FromStr;
+    #[cfg(test)]
+    mod tests {
+        use masq_lib::multi_config::VirtualCommandLine;
+        use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
+
+        use crate::persistent_configuration::PersistentConfigError;
+        use crate::sub_lib::utils::make_new_test_multi_config;
+        use crate::test_utils::persistent_configuration_mock::PersistentConfigurationMock;
+        use crate::test_utils::ArgsBuilder;
+
+        use super::*;
+
+        #[test]
+        fn get_wallets_handles_consuming_private_key_and_earning_wallet_address_when_database_contains_mnemonic_seed(
+        ) {
+            let mut holder = FakeStreamHolder::new();
+            let args = ArgsBuilder::new()
+                .param(
+                    "--consuming-private-key",
+                    "00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF",
+                )
+                .param(
+                    "--earning-wallet",
+                    "0x0123456789012345678901234567890123456789",
+                )
+                .param("--db-password", "booga");
+            let vcls: Vec<Box<dyn VirtualCommandLine>> =
+                vec![Box::new(CommandLineVcl::new(args.into()))];
+            let multi_config = make_new_test_multi_config(&app(), vcls).unwrap();
+            let persistent_config = PersistentConfigurationMock::new()
+                .earning_wallet_from_address_result(None)
+                .consuming_wallet_public_key_result(None)
+                .mnemonic_seed_result(Ok(Some(PlainData::new(b"mnemonic seed"))));
+            let mut bootstrapper_config = BootstrapperConfig::new();
+
+            let result = standard::get_wallets(
+                &mut holder.streams(),
+                &multi_config,
+                &persistent_config,
+                &mut bootstrapper_config,
+            )
+            .err()
+            .unwrap();
 
             assert_eq! (result, ConfiguratorError::required("consuming-private-key", "Cannot use --consuming-private-key and --earning-wallet when database contains mnemonic seed"))
         }
 
-    pub fn validate_clandestine_port(clandestine_port: String) -> Result<(), String> {
-        match clandestine_port.parse::<u16>() {
-            Ok(clandestine_port) if clandestine_port >= LOWEST_USABLE_INSECURE_PORT => Ok(()),
-            _ => Err(clandestine_port),
+        #[test]
+        fn get_wallets_handles_consuming_private_key_with_mnemonic_seed_and_consuming_wallet_derivation_path(
+        ) {
+            let mut holder = FakeStreamHolder::new();
+            let args = ArgsBuilder::new()
+                .param(
+                    "--consuming-private-key",
+                    "00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF",
+                )
+                .param("--db-password", "booga");
+            let vcls: Vec<Box<dyn VirtualCommandLine>> =
+                vec![Box::new(CommandLineVcl::new(args.into()))];
+            let multi_config = make_new_test_multi_config(&app(), vcls).unwrap();
+            let persistent_config = PersistentConfigurationMock::new()
+                .earning_wallet_from_address_result (None)
+                .mnemonic_seed_result (Ok(Some(PlainData::new(b"mnemonic seed"))))
+                .consuming_wallet_derivation_path_result(Some("path".to_string()))
+                .consuming_wallet_public_key_result(Some("c2a4c3969a1acfd0a67f8881a894f0db3b36f7f1dde0b053b988bf7cff325f6c3129d83b9d6eeb205e3274193b033f106bea8bbc7bdd5f85589070effccbf55e".to_string()));
+            let mut bootstrapper_config = BootstrapperConfig::new();
+
+            let result = standard::get_wallets(
+                &mut holder.streams(),
+                &multi_config,
+                &persistent_config,
+                &mut bootstrapper_config,
+            )
+            .err()
+            .unwrap();
+
+            assert_eq! (result, ConfiguratorError::required("consuming-private-key", "Cannot use when database contains mnemonic seed and consuming wallet derivation path"))
+        }
+
+        #[test]
+        fn convert_ci_configs_handles_bad_syntax() {
+            let args = ArgsBuilder::new().param("--neighbors", "booga");
+            let vcls: Vec<Box<dyn VirtualCommandLine>> =
+                vec![Box::new(CommandLineVcl::new(args.into()))];
+            let multi_config = make_new_test_multi_config(&app(), vcls).unwrap();
+
+            let result = standard::convert_ci_configs(&multi_config).err().unwrap();
+
+            assert_eq!(
+                result,
+                ConfiguratorError::required(
+                    "neighbors",
+                    "Should be <public key>[@ | :]<node address>, not 'booga'"
+                )
+            )
         }
 
         #[test]
@@ -1028,7 +933,26 @@ mod validators {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::fs::File;
+    use std::io::Cursor;
+    use std::io::Write;
+    use std::net::IpAddr;
+    use std::net::SocketAddr;
+    use std::path::PathBuf;
+    use std::str::FromStr;
+    use std::sync::{Arc, Mutex};
+
+    use rustc_hex::{FromHex, ToHex};
+
+    use masq_lib::constants::{DEFAULT_CHAIN_NAME, DEFAULT_GAS_PRICE, DEFAULT_UI_PORT};
+    use masq_lib::multi_config::{
+        CommandLineVcl, ConfigFileVcl, MultiConfig, NameValueVclArg, VclArg, VirtualCommandLine,
+    };
+    use masq_lib::shared_schema::{ConfiguratorError, ParamError};
+    use masq_lib::test_utils::environment_guard::{ClapGuard, EnvironmentGuard};
+    use masq_lib::test_utils::fake_stream_holder::{ByteArrayWriter, FakeStreamHolder};
+    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
+
     use crate::blockchain::bip32::Bip32ECKeyPair;
     use crate::blockchain::blockchain_interface::{
         chain_id_from_name, chain_name_from_id, contract_address,
@@ -1036,6 +960,7 @@ mod tests {
     use crate::bootstrapper::RealUser;
     use crate::config_dao::{ConfigDao, ConfigDaoReal};
     use crate::database::db_initializer::{DbInitializer, DbInitializerReal};
+    use crate::node_configurator::RealDirsWrapper;
     use crate::persistent_configuration::{PersistentConfigError, PersistentConfigurationReal};
     use crate::sub_lib::accountant::DEFAULT_EARNING_WALLET;
     use crate::sub_lib::cryptde::{CryptDE, PlainData, PublicKey};
@@ -1048,182 +973,15 @@ mod tests {
     use crate::sub_lib::utils::make_new_test_multi_config;
     use crate::sub_lib::wallet::Wallet;
     use crate::test_utils::persistent_configuration_mock::PersistentConfigurationMock;
-    use crate::test_utils::ByteArrayWriter;
-    use crate::test_utils::{main_cryptde, ArgsBuilder, TEST_DEFAULT_CHAIN_NAME};
-    use crate::test_utils::{make_default_persistent_configuration, DEFAULT_CHAIN_ID};
-    use masq_lib::multi_config::{
-        CommandLineVcl, ConfigFileVcl, MultiConfig, NameValueVclArg, VclArg, VirtualCommandLine,
+    use crate::test_utils::{
+        assert_string_contains, main_cryptde, ArgsBuilder, TEST_DEFAULT_CHAIN_NAME,
     };
-    use masq_lib::test_utils::environment_guard::EnvironmentGuard;
-    use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
-    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
-    use rustc_hex::{FromHex, ToHex};
-    use std::fs::File;
-    use std::io::Cursor;
-    use std::io::Write;
-    use std::net::IpAddr;
-    use std::net::SocketAddr;
-    use std::path::PathBuf;
-    use std::str::FromStr;
-    use std::sync::{Arc, Mutex};
+    use crate::test_utils::{make_default_persistent_configuration, DEFAULT_CHAIN_ID};
+
+    use super::*;
 
     fn make_default_cli_params() -> ArgsBuilder {
-        ArgsBuilder::new()
-            .param("--dns-servers", "222.222.222.222")
-            .param("--ip", "1.2.3.4")
-    }
-
-    #[test]
-    fn validate_private_key_requires_a_key_that_is_64_characters_long() {
-        let result = validators::validate_private_key(String::from("42"));
-
-        assert_eq!(Err("42".to_string()), result);
-    }
-
-    #[test]
-    fn validate_private_key_must_contain_only_hex_characters() {
-        let result = validators::validate_private_key(String::from(
-            "cc46befe8d169b89db447bd725fc2368b12542113555302598430cinvalidhex",
-        ));
-
-        assert_eq!(
-            Err("cc46befe8d169b89db447bd725fc2368b12542113555302598430cinvalidhex".to_string()),
-            result
-        );
-    }
-
-    #[test]
-    fn validate_private_key_handles_happy_path() {
-        let result = validators::validate_private_key(String::from(
-            "cc46befe8d169b89db447bd725fc2368b12542113555302598430cb5d5c74ea9",
-        ));
-
-        assert_eq!(Ok(()), result);
-    }
-
-    #[test]
-    fn validate_ip_address_given_invalid_input() {
-        assert_eq!(
-            Err(String::from("not-a-valid-IP")),
-            validators::validate_ip_address(String::from("not-a-valid-IP")),
-        );
-    }
-
-    #[test]
-    fn validate_ip_address_given_valid_input() {
-        assert_eq!(
-            Ok(()),
-            validators::validate_ip_address(String::from("1.2.3.4"))
-        );
-    }
-
-    #[test]
-    fn validate_ui_port_complains_about_non_numeric_ui_port() {
-        let result = common_validators::validate_ui_port(String::from("booga"));
-
-        assert_eq!(Err(String::from("booga")), result);
-    }
-
-    #[test]
-    fn validate_ui_port_complains_about_ui_port_too_low() {
-        let result = common_validators::validate_ui_port(String::from("1023"));
-
-        assert_eq!(Err(String::from("1023")), result);
-    }
-
-    #[test]
-    fn validate_ui_port_complains_about_ui_port_too_high() {
-        let result = common_validators::validate_ui_port(String::from("65536"));
-
-        assert_eq!(Err(String::from("65536")), result);
-    }
-
-    #[test]
-    fn validate_ui_port_works() {
-        let result = common_validators::validate_ui_port(String::from("5335"));
-
-        assert_eq!(Ok(()), result);
-    }
-
-    #[test]
-    fn validate_clandestine_port_rejects_badly_formatted_port_number() {
-        let result = validators::validate_clandestine_port(String::from("booga"));
-
-        assert_eq!(Err(String::from("booga")), result);
-    }
-
-    #[test]
-    fn validate_clandestine_port_rejects_port_number_too_low() {
-        let result = validators::validate_clandestine_port(String::from("1024"));
-
-        assert_eq!(Err(String::from("1024")), result);
-    }
-
-    #[test]
-    fn validate_clandestine_port_rejects_port_number_too_high() {
-        let result = validators::validate_clandestine_port(String::from("65536"));
-
-        assert_eq!(Err(String::from("65536")), result);
-    }
-
-    #[test]
-    fn validate_clandestine_port_accepts_port_if_provided() {
-        let result = validators::validate_clandestine_port(String::from("4567"));
-
-        assert!(result.is_ok());
-        assert_eq!(Ok(()), result);
-    }
-
-    #[test]
-    fn validate_gas_price_zero() {
-        let result = validators::validate_gas_price("0".to_string());
-
-        assert!(result.is_err());
-        assert_eq!(Err(String::from("0")), result);
-    }
-
-    #[test]
-    fn validate_gas_price_normal_ropsten() {
-        let result = validators::validate_gas_price("2".to_string());
-
-        assert!(result.is_ok());
-        assert_eq!(Ok(()), result);
-    }
-
-    #[test]
-    fn validate_gas_price_normal_mainnet() {
-        let result = validators::validate_gas_price("20".to_string());
-
-        assert!(result.is_ok());
-        assert_eq!(Ok(()), result);
-    }
-
-    #[test]
-    fn validate_gas_price_max() {
-        let result = validators::validate_gas_price("99".to_string());
-        assert!(result.is_ok());
-        assert_eq!(Ok(()), result);
-    }
-
-    #[test]
-    fn validate_gas_price_too_large_and_fails() {
-        let result = validators::validate_gas_price("100".to_string());
-        assert!(result.is_err());
-        assert_eq!(Err(String::from("100")), result);
-    }
-
-    #[test]
-    fn validate_gas_price_not_digits_fails() {
-        let result = validators::validate_gas_price("not".to_string());
-        assert!(result.is_err());
-        assert_eq!(Err(String::from("not")), result);
-    }
-
-    #[test]
-    fn validate_gas_price_hex_fails() {
-        let result = validators::validate_gas_price("0x0".to_string());
-        assert!(result.is_err());
-        assert_eq!(Err(String::from("0x0")), result);
+        ArgsBuilder::new().param("--ip", "1.2.3.4")
     }
 
     #[test]

@@ -534,7 +534,6 @@ mod tests {
         expected_pairs.insert("dns-servers".to_string(), "192.168.0.1".to_string());
 
         assert_eq!(actual_pairs, expected_pairs);
->>>>>>> 605f22b8... Merge upstream updates (#41)
     }
 
     #[test]
