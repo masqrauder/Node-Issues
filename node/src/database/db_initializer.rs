@@ -18,8 +18,8 @@ pub const DATABASE_FILE: &str = "node-data.db";
 pub const CURRENT_SCHEMA_VERSION: &str = "0.0.10";
 
 pub trait ConnectionWrapper: Debug + Send {
-    fn prepare(&self, query: &str) -> Result<Statement, rusqlite::Error>;
-    fn transaction(&mut self) -> Result<Transaction, rusqlite::Error>;
+    fn prepare(&self, query: &str) -> Result<Statement<'_>, rusqlite::Error>;
+    fn transaction(&mut self) -> Result<Transaction<'_>, rusqlite::Error>;
 }
 
 #[derive(Debug)]
@@ -28,10 +28,10 @@ pub struct ConnectionWrapperReal {
 }
 
 impl ConnectionWrapper for ConnectionWrapperReal {
-    fn prepare(&self, query: &str) -> Result<Statement, Error> {
+    fn prepare(&self, query: &str) -> Result<Statement<'_>, Error> {
         self.conn.prepare(query)
     }
-    fn transaction(&mut self) -> Result<Transaction, Error> {
+    fn transaction(&mut self) -> Result<Transaction<'_>, Error> {
         self.conn.transaction()
     }
 }
@@ -363,7 +363,7 @@ pub mod test_utils {
     }
 
     impl<'a> ConnectionWrapper for ConnectionWrapperMock<'a> {
-        fn prepare(&self, query: &str) -> Result<Statement, Error> {
+        fn prepare(&self, query: &str) -> Result<Statement<'_>, Error> {
             self.prepare_parameters
                 .lock()
                 .unwrap()
@@ -371,7 +371,7 @@ pub mod test_utils {
             self.prepare_results.borrow_mut().remove(0)
         }
 
-        fn transaction(&mut self) -> Result<Transaction, Error> {
+        fn transaction(&mut self) -> Result<Transaction<'_>, Error> {
             self.transaction_results.borrow_mut().remove(0)
         }
     }

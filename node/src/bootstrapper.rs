@@ -115,7 +115,7 @@ pub struct RealUser {
 }
 
 impl Debug for RealUser {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(
             f,
             "uid: {:?}, gid: {:?}, home_dir: {:?}",
@@ -361,7 +361,7 @@ impl SocketServer<BootstrapperConfig> for Bootstrapper {
         &self.config
     }
 
-    fn initialize_as_privileged(&mut self, args: &[String], streams: &mut StdStreams) {
+    fn initialize_as_privileged(&mut self, args: &[String], streams: &mut StdStreams<'_>) {
         self.config = NodeConfiguratorStandardPrivileged {}.configure(&args.to_vec(), streams);
 
         self.logger_initializer.init(
@@ -388,7 +388,7 @@ impl SocketServer<BootstrapperConfig> for Bootstrapper {
             });
     }
 
-    fn initialize_as_unprivileged(&mut self, args: &[String], streams: &mut StdStreams) {
+    fn initialize_as_unprivileged(&mut self, args: &[String], streams: &mut StdStreams<'_>) {
         // NOTE: The following line of code is not covered by unit tests
         fdlimit::raise_fd_limit();
         let unprivileged_config = NodeConfiguratorStandardUnprivileged::new(&self.config)

@@ -18,7 +18,7 @@ use masq_lib::ui_gateway::DEFAULT_UI_PORT;
 pub struct NodeConfiguratorStandardPrivileged {}
 
 impl NodeConfigurator<BootstrapperConfig> for NodeConfiguratorStandardPrivileged {
-    fn configure(&self, args: &Vec<String>, streams: &mut StdStreams) -> BootstrapperConfig {
+    fn configure(&self, args: &Vec<String>, streams: &mut StdStreams<'_>) -> BootstrapperConfig {
         let app = app();
         let multi_config = standard::make_service_mode_multi_config(&app, args);
         let mut bootstrapper_config = BootstrapperConfig::new();
@@ -313,7 +313,10 @@ pub mod standard {
     use std::convert::TryInto;
     use std::str::FromStr;
 
-    pub fn make_service_mode_multi_config<'a>(app: &'a App, args: &Vec<String>) -> MultiConfig<'a> {
+    pub fn make_service_mode_multi_config<'a>(
+        app: &'a App<'_, '_>,
+        args: &Vec<String>,
+    ) -> MultiConfig<'a> {
         let (config_file_path, user_specified) = determine_config_file_path(app, args);
         MultiConfig::new(
             &app,
@@ -346,7 +349,7 @@ pub mod standard {
     }
 
     pub fn privileged_parse_args(
-        multi_config: &MultiConfig,
+        multi_config: &MultiConfig<'_>,
         privileged_config: &mut BootstrapperConfig,
         _streams: &mut StdStreams<'_>,
     ) {
@@ -406,7 +409,7 @@ pub mod standard {
     }
 
     pub fn unprivileged_parse_args(
-        multi_config: &MultiConfig,
+        multi_config: &MultiConfig<'_>,
         unprivileged_config: &mut BootstrapperConfig,
         streams: &mut StdStreams<'_>,
         persistent_config: &dyn PersistentConfiguration,
@@ -462,8 +465,8 @@ pub mod standard {
     }
 
     pub fn get_wallets(
-        streams: &mut StdStreams,
-        multi_config: &MultiConfig,
+        streams: &mut StdStreams<'_>,
+        multi_config: &MultiConfig<'_>,
         persistent_config: &dyn PersistentConfiguration,
         config: &mut BootstrapperConfig,
     ) {
@@ -505,8 +508,8 @@ pub mod standard {
     }
 
     pub fn make_neighborhood_config(
-        multi_config: &MultiConfig,
-        streams: &mut StdStreams,
+        multi_config: &MultiConfig<'_>,
+        streams: &mut StdStreams<'_>,
         persistent_config: &dyn PersistentConfiguration,
         unprivileged_config: &mut BootstrapperConfig,
     ) -> NeighborhoodConfig {
@@ -526,7 +529,7 @@ pub mod standard {
         }
     }
 
-    pub fn convert_ci_configs(multi_config: &MultiConfig) -> Option<Vec<NodeDescriptor>> {
+    pub fn convert_ci_configs(multi_config: &MultiConfig<'_>) -> Option<Vec<NodeDescriptor>> {
         let cli_configs = values_m!(multi_config, "neighbors", String);
         if !cli_configs.is_empty() {
             let dummy_cryptde: Box<dyn CryptDE> = {
@@ -553,8 +556,8 @@ pub mod standard {
     }
 
     pub fn get_past_neighbors(
-        multi_config: &MultiConfig,
-        streams: &mut StdStreams,
+        multi_config: &MultiConfig<'_>,
+        streams: &mut StdStreams<'_>,
         persistent_config: &dyn PersistentConfiguration,
         unprivileged_config: &mut BootstrapperConfig,
     ) -> Vec<NodeDescriptor> {
@@ -574,7 +577,7 @@ pub mod standard {
     }
 
     fn make_neighborhood_mode(
-        multi_config: &MultiConfig,
+        multi_config: &MultiConfig<'_>,
         neighbor_configs: Vec<NodeDescriptor>,
     ) -> NeighborhoodMode {
         match value_m!(multi_config, "neighborhood-mode", String) {
@@ -619,7 +622,7 @@ pub mod standard {
     }
 
     fn get_earning_wallet_from_address(
-        multi_config: &MultiConfig,
+        multi_config: &MultiConfig<'_>,
         persistent_config: &dyn PersistentConfiguration,
     ) -> Option<Wallet> {
         let earning_wallet_from_command_line_opt = value_m!(multi_config, "earning-wallet", String);
@@ -669,7 +672,7 @@ pub mod standard {
     }
 
     fn get_consuming_wallet_from_private_key(
-        multi_config: &MultiConfig,
+        multi_config: &MultiConfig<'_>,
         persistent_config: &dyn PersistentConfiguration,
     ) -> Option<Wallet> {
         match value_m!(multi_config, "consuming-private-key", String) {
@@ -699,8 +702,8 @@ pub mod standard {
     }
 
     pub fn get_db_password(
-        multi_config: &MultiConfig,
-        streams: &mut StdStreams,
+        multi_config: &MultiConfig<'_>,
+        streams: &mut StdStreams<'_>,
         config: &mut BootstrapperConfig,
         persistent_config: &dyn PersistentConfiguration,
     ) -> Option<String> {

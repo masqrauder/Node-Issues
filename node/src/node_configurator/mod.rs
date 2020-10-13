@@ -134,7 +134,7 @@ pub fn chain_arg<'a>() -> Arg<'a, 'a> {
         .help(CHAIN_HELP)
 }
 
-pub fn earning_wallet_arg<F>(help: &str, validator: F) -> Arg
+pub fn earning_wallet_arg<F>(help: &str, validator: F) -> Arg<'_, '_>
 where
     F: 'static,
     F: Fn(String) -> Result<(), String>,
@@ -193,7 +193,7 @@ pub fn real_user_arg<'a>() -> Arg<'a, 'a> {
         .hidden(true)
 }
 
-pub fn ui_port_arg(help: &str) -> Arg {
+pub fn ui_port_arg(help: &str) -> Arg<'_, '_> {
     Arg::with_name("ui-port")
         .long("ui-port")
         .value_name("UI-PORT")
@@ -203,7 +203,7 @@ pub fn ui_port_arg(help: &str) -> Arg {
         .help(help)
 }
 
-pub fn db_password_arg(help: &str) -> Arg {
+pub fn db_password_arg(help: &str) -> Arg<'_, '_> {
     Arg::with_name("db-password")
         .long("db-password")
         .value_name("DB-PASSWORD")
@@ -214,7 +214,7 @@ pub fn db_password_arg(help: &str) -> Arg {
         .help(help)
 }
 
-pub fn determine_config_file_path(app: &App, args: &Vec<String>) -> (PathBuf, bool) {
+pub fn determine_config_file_path(app: &App<'_, '_>, args: &Vec<String>) -> (PathBuf, bool) {
     let orientation_schema = App::new("MASQNode")
         .arg(chain_arg())
         .arg(real_user_arg())
@@ -294,7 +294,7 @@ pub fn update_db_password(
 }
 
 pub fn real_user_data_directory_and_chain_id(
-    multi_config: &MultiConfig,
+    multi_config: &MultiConfig<'_>,
 ) -> (RealUser, PathBuf, u8) {
     let real_user = match value_m!(multi_config, "real-user", RealUser) {
         None => RealUser::null().populate(),
@@ -340,7 +340,7 @@ pub fn real_user_data_directory_and_chain_id(
 }
 
 pub fn prepare_initialization_mode<'a>(
-    app: &'a App,
+    app: &'a App<'_, '_>,
     args: &Vec<String>,
 ) -> (MultiConfig<'a>, Box<dyn PersistentConfiguration>) {
     let multi_config = MultiConfig::new(
@@ -360,7 +360,7 @@ pub fn prepare_initialization_mode<'a>(
 }
 
 pub fn request_new_db_password(
-    streams: &mut StdStreams,
+    streams: &mut StdStreams<'_>,
     possible_preamble: Option<&str>,
     prompt: &str,
     confirmation_prompt: &str,
@@ -390,7 +390,7 @@ pub fn request_new_db_password(
 }
 
 pub fn request_existing_db_password(
-    streams: &mut StdStreams,
+    streams: &mut StdStreams<'_>,
     possible_preamble: Option<&str>,
     prompt: &str,
     persistent_config: &dyn PersistentConfiguration,
@@ -450,7 +450,7 @@ pub enum PasswordError {
 }
 
 pub fn request_existing_password<F>(
-    streams: &mut StdStreams,
+    streams: &mut StdStreams<'_>,
     verifier: F,
 ) -> Result<String, PasswordError>
 where
@@ -468,7 +468,7 @@ where
 pub fn request_password_with_confirmation<F>(
     confirmation_prompt: &str,
     mismatch_msg: &str,
-    streams: &mut StdStreams,
+    streams: &mut StdStreams<'_>,
     verifier: F,
 ) -> Result<String, PasswordError>
 where
@@ -494,11 +494,11 @@ where
 
 pub fn request_password_with_retry<R>(
     prompt: &str,
-    streams: &mut StdStreams,
+    streams: &mut StdStreams<'_>,
     requester: R,
 ) -> Result<String, PasswordError>
 where
-    R: Fn(&mut StdStreams) -> Result<String, PasswordError>,
+    R: Fn(&mut StdStreams<'_>) -> Result<String, PasswordError>,
 {
     for attempt in &["Try again.", "Try again.", "Giving up."] {
         flushed_write(streams.stdout, prompt);
@@ -517,7 +517,7 @@ where
 }
 
 pub fn possible_reader_from_stream(
-    streams: &'_ mut StdStreams,
+    streams: &'_ mut StdStreams<'_>,
 ) -> Option<::std::io::Cursor<Vec<u8>>> {
     if cfg!(test) {
         let inner = streams
@@ -656,7 +656,7 @@ pub struct WalletCreationConfig {
 pub trait WalletCreationConfigMaker {
     fn make_wallet_creation_config(
         &self,
-        multi_config: &MultiConfig,
+        multi_config: &MultiConfig<'_>,
         streams: &mut StdStreams<'_>,
     ) -> WalletCreationConfig {
         let mnemonic_passphrase = match value_m!(multi_config, "mnemonic-passphrase", String) {
@@ -714,7 +714,7 @@ pub trait WalletCreationConfigMaker {
         }
     }
 
-    fn make_db_password(&self, streams: &mut StdStreams) -> String {
+    fn make_db_password(&self, streams: &mut StdStreams<'_>) -> String {
         match request_new_db_password(
             streams,
             Some("\n\nPlease provide a password to encrypt your wallet (This password can be changed later)..."),
@@ -726,23 +726,23 @@ pub trait WalletCreationConfigMaker {
         }
     }
 
-    fn make_consuming_derivation_path(&self, _streams: &mut StdStreams) -> String {
+    fn make_consuming_derivation_path(&self, _streams: &mut StdStreams<'_>) -> String {
         DEFAULT_CONSUMING_DERIVATION_PATH.to_string()
     }
 
-    fn make_earning_wallet_info(&self, _streams: &mut StdStreams) -> Either<String, String> {
+    fn make_earning_wallet_info(&self, _streams: &mut StdStreams<'_>) -> Either<String, String> {
         Either::Right(DEFAULT_EARNING_DERIVATION_PATH.to_string())
     }
 
     fn make_mnemonic_passphrase(
         &self,
-        multi_config: &MultiConfig,
+        multi_config: &MultiConfig<'_>,
         streams: &mut StdStreams<'_>,
     ) -> String;
 
     fn make_mnemonic_seed(
         &self,
-        multi_config: &MultiConfig,
+        multi_config: &MultiConfig<'_>,
         streams: &mut StdStreams<'_>,
         mnemonic_passphrase: &str,
         consuming_derivation_path: &str,
@@ -1377,8 +1377,8 @@ mod tests {
     impl WalletCreationConfigMaker for TameWalletCreationConfigMaker {
         fn make_mnemonic_passphrase(
             &self,
-            _multi_config: &MultiConfig,
-            streams: &mut StdStreams,
+            _multi_config: &MultiConfig<'_>,
+            streams: &mut StdStreams<'_>,
         ) -> String {
             flushed_write(streams.stdout, "Enter mnemonic passphrase: ");
             "mnemonic passphrase".to_string()
@@ -1386,8 +1386,8 @@ mod tests {
 
         fn make_mnemonic_seed(
             &self,
-            _multi_config: &MultiConfig,
-            _streams: &mut StdStreams,
+            _multi_config: &MultiConfig<'_>,
+            _streams: &mut StdStreams<'_>,
             _mnemonic_passphrase: &str,
             _consuming_derivation_path: &str,
             _earning_wallet_info: &Either<String, String>,

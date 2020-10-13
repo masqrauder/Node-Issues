@@ -2084,10 +2084,10 @@ pub mod tests {
 
         subject.scan_for_delinquencies();
 
-        let new_delinquencies_parameters: MutexGuard<Vec<(SystemTime, PaymentCurves)>> =
+        let new_delinquencies_parameters: MutexGuard<'_, Vec<(SystemTime, PaymentCurves)>> =
             new_delinquencies_parameters_arc.lock().unwrap();
         assert_eq!(PAYMENT_CURVES.clone(), new_delinquencies_parameters[0].1);
-        let paid_delinquencies_parameters: MutexGuard<Vec<PaymentCurves>> =
+        let paid_delinquencies_parameters: MutexGuard<'_, Vec<PaymentCurves>> =
             paid_delinquencies_parameters_arc.lock().unwrap();
         assert_eq!(PAYMENT_CURVES.clone(), paid_delinquencies_parameters[0]);
         let ban_parameters = ban_parameters_arc.lock().unwrap();

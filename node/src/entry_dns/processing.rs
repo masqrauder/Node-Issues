@@ -37,7 +37,7 @@ pub fn process(buf: &mut [u8], length: usize, addr: &SocketAddr, logger: &Logger
     response_size
 }
 
-fn make_response(mut facade: &mut PacketFacade) -> usize {
+fn make_response(mut facade: &mut PacketFacade<'_>) -> usize {
     match facade.get_opcode() {
         None => return make_format_error(facade),
         Some(opcode) if opcode == u8::from(OpCode::Query) => (),

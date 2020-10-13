@@ -157,7 +157,7 @@ struct AltLocation {
 
 // Location can't be constructed in a test; therefore this implementation is untestable
 impl<'a> From<&'a Location<'a>> for AltLocation {
-    fn from(location: &Location) -> Self {
+    fn from(location: &Location<'_>) -> Self {
         AltLocation {
             file: location.file().to_string(),
             line: location.line(),
@@ -173,7 +173,7 @@ struct AltPanicInfo<'a> {
 
 // PanicInfo can't be constructed in a test; therefore this implementation is untestable
 impl<'a> From<&'a PanicInfo<'a>> for AltPanicInfo<'a> {
-    fn from(panic_info: &'a PanicInfo) -> Self {
+    fn from(panic_info: &'a PanicInfo<'_>) -> Self {
         AltPanicInfo {
             payload: panic_info.payload(),
             location: match panic_info.location() {
@@ -184,7 +184,7 @@ impl<'a> From<&'a PanicInfo<'a>> for AltPanicInfo<'a> {
     }
 }
 
-fn panic_hook(panic_info: AltPanicInfo) {
+fn panic_hook(panic_info: AltPanicInfo<'_>) {
     let location = match panic_info.location {
         None => "<unknown location>".to_string(),
         Some(location) => format!("{}:{}:{}", location.file, location.line, location.col),
@@ -206,7 +206,7 @@ fn panic_hook(panic_info: AltPanicInfo) {
 fn format_function(
     write: &mut dyn io::Write,
     now: &mut DeferredNow,
-    record: &Record,
+    record: &Record<'_>,
 ) -> Result<(), io::Error> {
     real_format_function(write, now.now(), record)
 }
@@ -215,7 +215,7 @@ fn format_function(
 pub fn real_format_function(
     write: &mut dyn io::Write,
     timestamp: &DateTime<Local>,
-    record: &Record,
+    record: &Record<'_>,
 ) -> Result<(), io::Error> {
     let timestamp = timestamp.naive_local().format("%Y-%m-%dT%H:%M:%S%.3f");
     let thread_id_str = format!("{:?}", thread::current().id());
@@ -370,14 +370,14 @@ pub mod tests {
             &self.get_configuration_result
         }
 
-        fn initialize_as_privileged(&mut self, args: &[String], _streams: &mut StdStreams) {
+        fn initialize_as_privileged(&mut self, args: &[String], _streams: &mut StdStreams<'_>) {
             self.initialize_as_privileged_params
                 .lock()
                 .unwrap()
                 .push(args.to_vec());
         }
 
-        fn initialize_as_unprivileged(&mut self, args: &[String], _streams: &mut StdStreams) {
+        fn initialize_as_unprivileged(&mut self, args: &[String], _streams: &mut StdStreams<'_>) {
             self.initialize_as_unprivileged_params
                 .lock()
                 .unwrap()

@@ -30,13 +30,13 @@ impl FromStr for DataVersion {
 }
 
 impl Debug for DataVersion {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self)
     }
 }
 
 impl fmt::Display for DataVersion {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{}", self.major(), self.minor())
     }
 }

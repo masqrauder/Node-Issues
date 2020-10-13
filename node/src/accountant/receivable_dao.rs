@@ -314,7 +314,7 @@ impl ReceivableDaoReal {
         tx.commit().map_err(|e| e.to_string())
     }
 
-    fn row_to_account(row: &Row) -> rusqlite::Result<ReceivableAccount> {
+    fn row_to_account(row: &Row<'_>) -> rusqlite::Result<ReceivableAccount> {
         let wallet: Result<Wallet, rusqlite::Error> = row.get(0);
         let balance_result = row.get(1);
         let last_received_timestamp_result = row.get(2);

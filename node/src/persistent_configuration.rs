@@ -52,7 +52,11 @@ pub trait PersistentConfiguration: Send {
         db_password: &str,
     ) -> Result<(), PersistentConfigError>;
     fn start_block(&self) -> u64;
-    fn set_start_block_transactionally(&self, tx: &Transaction, value: u64) -> Result<(), String>;
+    fn set_start_block_transactionally(
+        &self,
+        tx: &Transaction<'_>,
+        value: u64,
+    ) -> Result<(), String>;
 }
 
 pub struct PersistentConfigurationReal {
@@ -379,7 +383,11 @@ impl PersistentConfiguration for PersistentConfigurationReal {
         })
     }
 
-    fn set_start_block_transactionally(&self, tx: &Transaction, value: u64) -> Result<(), String> {
+    fn set_start_block_transactionally(
+        &self,
+        tx: &Transaction<'_>,
+        value: u64,
+    ) -> Result<(), String> {
         self.dao
             .set_u64_transactional(tx, "start_block", value)
             .map_err(|e| match e {

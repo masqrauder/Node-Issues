@@ -74,8 +74,8 @@ const HELP_TEXT: &str = indoc!(
 impl WalletCreationConfigMaker for NodeConfiguratorGenerateWallet {
     fn make_mnemonic_passphrase(
         &self,
-        multi_config: &MultiConfig,
-        streams: &mut StdStreams,
+        multi_config: &MultiConfig<'_>,
+        streams: &mut StdStreams<'_>,
     ) -> String {
         match value_m!(multi_config, "mnemonic-passphrase", String) {
             Some(mp) => mp,
@@ -88,8 +88,8 @@ impl WalletCreationConfigMaker for NodeConfiguratorGenerateWallet {
 
     fn make_mnemonic_seed(
         &self,
-        multi_config: &MultiConfig,
-        streams: &mut StdStreams,
+        multi_config: &MultiConfig<'_>,
+        streams: &mut StdStreams<'_>,
         mnemonic_passphrase: &str,
         consuming_derivation_path: &str,
         earning_wallet_info: &Either<String, String>,
@@ -166,7 +166,7 @@ impl NodeConfiguratorGenerateWallet {
 
     fn parse_args(
         &self,
-        multi_config: &MultiConfig,
+        multi_config: &MultiConfig<'_>,
         streams: &mut StdStreams<'_>,
         persistent_config: &dyn PersistentConfiguration,
     ) -> WalletCreationConfig {
@@ -176,7 +176,7 @@ impl NodeConfiguratorGenerateWallet {
         self.make_wallet_creation_config(multi_config, streams)
     }
 
-    fn request_mnemonic_passphrase(streams: &mut StdStreams) -> Option<String> {
+    fn request_mnemonic_passphrase(streams: &mut StdStreams<'_>) -> Option<String> {
         flushed_write(
             streams.stdout,
             "\nPlease provide an extra mnemonic passphrase to ensure your wallet is unique\n\

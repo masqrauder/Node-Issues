@@ -1069,7 +1069,7 @@ impl<'a> GossipAcceptor for GossipAcceptorReal<'a> {
 }
 
 impl<'a> GossipAcceptorReal<'a> {
-    pub fn new(cryptde: &'a dyn CryptDE) -> GossipAcceptorReal {
+    pub fn new(cryptde: &'a dyn CryptDE) -> GossipAcceptorReal<'_> {
         let logger = Logger::new("GossipAcceptor");
         GossipAcceptorReal {
             gossip_handlers: vec![

@@ -102,7 +102,7 @@ impl ConfigDao for ConfigDaoMock {
 
     fn set_u64_transactional(
         &self,
-        _transaction: &rusqlite::Transaction,
+        _transaction: &rusqlite::Transaction<'_>,
         name: &str,
         value: u64,
     ) -> Result<(), ConfigDaoError> {

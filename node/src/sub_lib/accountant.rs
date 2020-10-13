@@ -39,7 +39,7 @@ pub struct AccountantSubs {
 }
 
 impl Debug for AccountantSubs {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(f, "AccountantSubs")
     }
 }

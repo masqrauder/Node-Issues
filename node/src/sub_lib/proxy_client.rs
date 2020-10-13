@@ -72,7 +72,7 @@ pub struct ProxyClientSubs {
 }
 
 impl Debug for ProxyClientSubs {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(f, "ProxyClientSubs")
     }
 }

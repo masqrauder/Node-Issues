@@ -137,7 +137,7 @@ impl WebSocketSupervisorReal {
         WebSocketSupervisorReal { inner }
     }
 
-    fn send_msg(locked_inner: &mut MutexGuard<WebSocketSupervisorInner>, msg: NodeToUiMessage) {
+    fn send_msg(locked_inner: &mut MutexGuard<'_, WebSocketSupervisorInner>, msg: NodeToUiMessage) {
         let client_ids = match msg.target {
             MessageTarget::ClientId(n) => vec![n],
             MessageTarget::AllClients => locked_inner.client_by_id.keys().copied().collect_vec(),
@@ -425,7 +425,7 @@ impl WebSocketSupervisorReal {
     }
 
     fn send_to_clients(
-        locked_inner: &mut MutexGuard<WebSocketSupervisorInner>,
+        locked_inner: &mut MutexGuard<'_, WebSocketSupervisorInner>,
         client_ids: Vec<u64>,
         json: String,
     ) {

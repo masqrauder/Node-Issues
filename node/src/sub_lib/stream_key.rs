@@ -23,7 +23,7 @@ impl fmt::Debug for StreamKey {
 }
 
 impl fmt::Display for StreamKey {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         let debug: &dyn fmt::Debug = self;
         debug.fmt(f)
     }

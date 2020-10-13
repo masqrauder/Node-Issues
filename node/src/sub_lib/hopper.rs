@@ -137,7 +137,7 @@ pub struct HopperSubs {
 }
 
 impl Debug for HopperSubs {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(f, "HopperSubs")
     }
 }

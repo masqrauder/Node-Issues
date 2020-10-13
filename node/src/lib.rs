@@ -5,7 +5,7 @@
 pub mod sub_lib;
 
 #[cfg_attr(test, macro_use)]
-extern crate clap;
+use clap;
 
 #[macro_use]
 extern crate masq_lib;

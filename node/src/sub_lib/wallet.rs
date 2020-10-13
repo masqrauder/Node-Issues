@@ -230,7 +230,7 @@ impl From<Bip32ECKeyPair> for Wallet {
 }
 
 impl Display for Wallet {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(f, "{:#x}", self.address())
     }
 }
@@ -245,7 +245,7 @@ impl ToSql for Wallet {
 }
 
 impl FromSql for Wallet {
-    fn column_result(value: ValueRef) -> Result<Self, FromSqlError> {
+    fn column_result(value: ValueRef<'_>) -> Result<Self, FromSqlError> {
         match value.as_str() {
             Ok(address) => Wallet::from_str(address).map_err(|e| FromSqlError::Other(Box::new(e))),
             Err(e) => Err(e),
@@ -278,7 +278,7 @@ impl<'de> serde::Deserialize<'de> for Wallet {
             type Value = WalletField;
             fn expecting(
                 &self,
-                formatter: &mut serde::export::Formatter,
+                formatter: &mut serde::export::Formatter<'_>,
             ) -> serde::export::fmt::Result {
                 serde::export::Formatter::write_str(formatter, "field identifier")
             }
@@ -331,7 +331,7 @@ impl<'de> serde::Deserialize<'de> for Wallet {
             type Value = Wallet;
             fn expecting(
                 &self,
-                formatter: &mut serde::export::Formatter,
+                formatter: &mut serde::export::Formatter<'_>,
             ) -> serde::export::fmt::Result {
                 serde::export::Formatter::write_str(formatter, "struct Wallet")
             }

@@ -18,7 +18,7 @@ pub enum TrafficConversionError {
 }
 
 impl Display for TrafficConversionError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
             JsonSyntaxError(s) => write!(f, "Couldn't parse text as JSON: {}", s),
             NotJsonObjectError(s) => {
@@ -41,7 +41,7 @@ pub enum UnmarshalError {
 }
 
 impl Display for UnmarshalError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
             Critical(e) => write!(
                 f,

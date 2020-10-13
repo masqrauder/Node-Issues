@@ -59,8 +59,8 @@ const HELP_TEXT: &str = indoc!(
 impl WalletCreationConfigMaker for NodeConfiguratorRecoverWallet {
     fn make_mnemonic_passphrase(
         &self,
-        multi_config: &MultiConfig,
-        streams: &mut StdStreams,
+        multi_config: &MultiConfig<'_>,
+        streams: &mut StdStreams<'_>,
     ) -> String {
         match value_m!(multi_config, "mnemonic-passphrase", String) {
             Some(mp) => mp,
@@ -73,8 +73,8 @@ impl WalletCreationConfigMaker for NodeConfiguratorRecoverWallet {
 
     fn make_mnemonic_seed(
         &self,
-        multi_config: &MultiConfig,
-        streams: &mut StdStreams,
+        multi_config: &MultiConfig<'_>,
+        streams: &mut StdStreams<'_>,
         mnemonic_passphrase: &str,
         _consuming_derivation_path: &str,
         _earning_wallet_info: &Either<String, String>,
@@ -134,7 +134,7 @@ impl NodeConfiguratorRecoverWallet {
 
     fn parse_args(
         &self,
-        multi_config: &MultiConfig,
+        multi_config: &MultiConfig<'_>,
         streams: &mut StdStreams<'_>,
         persistent_config: &dyn PersistentConfiguration,
     ) -> WalletCreationConfig {
@@ -147,7 +147,7 @@ impl NodeConfiguratorRecoverWallet {
         self.make_wallet_creation_config(multi_config, streams)
     }
 
-    fn request_mnemonic_passphrase(streams: &mut StdStreams) -> Option<String> {
+    fn request_mnemonic_passphrase(streams: &mut StdStreams<'_>) -> Option<String> {
         flushed_write(
             streams.stdout,
             "\nPlease enter the passphrase for your mnemonic, or Enter if there is none.\n\
@@ -179,8 +179,8 @@ impl NodeConfiguratorRecoverWallet {
 
     fn get_mnemonic(
         language: Language,
-        multi_config: &MultiConfig,
-        streams: &mut StdStreams,
+        multi_config: &MultiConfig<'_>,
+        streams: &mut StdStreams<'_>,
     ) -> Mnemonic {
         let phrase_words = {
             let arg_phrase_words = values_m!(multi_config, "mnemonic", String);
@@ -198,7 +198,7 @@ impl NodeConfiguratorRecoverWallet {
         Mnemonic::from_phrase(phrase, language).expect("Error creating Mnemonic")
     }
 
-    fn request_mnemonic_phrase(streams: &mut StdStreams) -> Vec<String> {
+    fn request_mnemonic_phrase(streams: &mut StdStreams<'_>) -> Vec<String> {
         flushed_write(streams.stdout, "\nPlease provide your wallet's mnemonic phrase.\nIt must be 12, 15, 18, 21, or 24 words long.\n");
         flushed_write(streams.stdout, "Mnemonic phrase: ");
         let mut buf = [0u8; 16384];

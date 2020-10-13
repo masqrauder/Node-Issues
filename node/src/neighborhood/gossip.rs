@@ -29,7 +29,7 @@ pub struct GossipNodeRecord {
 }
 
 impl Debug for GossipNodeRecord {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         f.write_str(self.to_human_readable().as_str())
     }
 }
@@ -403,7 +403,7 @@ pub struct GossipBuilder<'a> {
 }
 
 impl<'a> GossipBuilder<'a> {
-    pub fn new(db: &NeighborhoodDatabase) -> GossipBuilder {
+    pub fn new(db: &NeighborhoodDatabase) -> GossipBuilder<'_> {
         GossipBuilder {
             db,
             gossip: Gossip_0v1::new(vec![]),

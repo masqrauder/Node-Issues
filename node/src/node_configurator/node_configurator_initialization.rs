@@ -33,7 +33,7 @@ pub struct InitializationConfig {
 pub struct NodeConfiguratorInitialization {}
 
 impl NodeConfigurator<InitializationConfig> for NodeConfiguratorInitialization {
-    fn configure(&self, args: &Vec<String>, streams: &mut StdStreams) -> InitializationConfig {
+    fn configure(&self, args: &Vec<String>, streams: &mut StdStreams<'_>) -> InitializationConfig {
         let app = app();
         let multi_config = crate::node_configurator::node_configurator_standard::standard::make_service_mode_multi_config(&app, args);
         let mut config = InitializationConfig::default();
@@ -73,7 +73,7 @@ mod initialization {
     use masq_lib::ui_gateway::DEFAULT_UI_PORT;
 
     pub fn parse_args(
-        multi_config: &MultiConfig,
+        multi_config: &MultiConfig<'_>,
         config: &mut InitializationConfig,
         _streams: &mut StdStreams<'_>,
     ) {

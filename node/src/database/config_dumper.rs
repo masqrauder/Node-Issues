@@ -16,7 +16,7 @@ use std::path::PathBuf;
 const DUMP_CONFIG_HELP: &str =
     "Dump the configuration of MASQ Node to stdout in JSON. Used chiefly by UIs.";
 
-pub fn dump_config(args: &Vec<String>, streams: &mut StdStreams) -> i32 {
+pub fn dump_config(args: &Vec<String>, streams: &mut StdStreams<'_>) -> i32 {
     let (real_user, data_directory, chain_id) = distill_args(args);
     PrivilegeDropperReal::new().drop_privileges(&real_user);
     let config_dao = make_config_dao(&data_directory, chain_id);
@@ -28,7 +28,7 @@ pub fn dump_config(args: &Vec<String>, streams: &mut StdStreams) -> i32 {
     0
 }
 
-fn write_string(streams: &mut StdStreams, json: String) {
+fn write_string(streams: &mut StdStreams<'_>, json: String) {
     streams
         .stdout
         .write_all(json.as_bytes())

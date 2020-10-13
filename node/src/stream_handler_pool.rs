@@ -85,7 +85,7 @@ impl From<SocketAddr> for StreamWriterKey {
 }
 
 impl Display for StreamWriterKey {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         if self.socket_addr.ip().is_loopback() {
             write!(f, "localhost:{}", self.socket_addr.port())
         } else {

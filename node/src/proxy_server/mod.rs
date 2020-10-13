@@ -1079,7 +1079,7 @@ mod tests {
     }
 
     fn check_exit_report(
-        accountant_recording: &MutexGuard<Recording>,
+        accountant_recording: &MutexGuard<'_, Recording>,
         idx: usize,
         wallet: &Wallet,
         payload_size: usize,
@@ -1096,7 +1096,7 @@ mod tests {
     }
 
     fn check_routing_report(
-        accountant_recording: &MutexGuard<Recording>,
+        accountant_recording: &MutexGuard<'_, Recording>,
         idx: usize,
         wallet: &Wallet,
         payload_size: usize,

@@ -36,12 +36,12 @@ impl ProtocolPack for TlsProtocolPack {
 }
 
 impl TlsProtocolPack {
-    fn is_handshake(xvsr: &mut BinaryTraverser) -> bool {
+    fn is_handshake(xvsr: &mut BinaryTraverser<'_>) -> bool {
         let handshake_content_type = 22u8;
         xvsr.get_u8() == Ok(handshake_content_type)
     }
 
-    fn is_client_hello(xvsr: &mut BinaryTraverser) -> bool {
+    fn is_client_hello(xvsr: &mut BinaryTraverser<'_>) -> bool {
         let handshake_message_type_position = 5;
         let client_hello_message_type = 1u8;
         xvsr.advance(handshake_message_type_position - xvsr.offset())
@@ -49,7 +49,7 @@ impl TlsProtocolPack {
         xvsr.get_u8() == Ok(client_hello_message_type)
     }
 
-    fn host_name_from_client_hello(xvsr: &mut BinaryTraverser) -> Result<String, ()> {
+    fn host_name_from_client_hello(xvsr: &mut BinaryTraverser<'_>) -> Result<String, ()> {
         let session_id_length_position = 43;
         let server_name_extension_type = 0u16;
         xvsr.advance(session_id_length_position - xvsr.offset())?;
@@ -72,7 +72,7 @@ impl TlsProtocolPack {
         Err(())
     }
 
-    fn host_name_from_extension(xvsr: &mut BinaryTraverser) -> Result<String, ()> {
+    fn host_name_from_extension(xvsr: &mut BinaryTraverser<'_>) -> Result<String, ()> {
         xvsr.advance(2)?;
         let server_name_list_length = xvsr.get_u16()? as usize;
         let server_name_list_end = xvsr.offset() + server_name_list_length;
@@ -87,7 +87,7 @@ impl TlsProtocolPack {
         Err(())
     }
 
-    fn host_name_from_list_entry(xvsr: &mut BinaryTraverser) -> Result<String, ()> {
+    fn host_name_from_list_entry(xvsr: &mut BinaryTraverser<'_>) -> Result<String, ()> {
         let server_name_length = xvsr.get_u16()?;
         let server_name_bytes = xvsr.next_bytes(server_name_length as usize)?;
         match String::from_utf8(Vec::from(server_name_bytes)) {

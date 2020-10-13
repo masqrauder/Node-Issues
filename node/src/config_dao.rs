@@ -41,7 +41,7 @@ pub trait ConfigDao: Send {
     fn set_u64(&self, name: &str, value: u64) -> Result<(), ConfigDaoError>;
     fn set_u64_transactional(
         &self,
-        transaction: &rusqlite::Transaction,
+        transaction: &rusqlite::Transaction<'_>,
         name: &str,
         value: u64,
     ) -> Result<(), ConfigDaoError>;
@@ -60,7 +60,7 @@ impl ConfigDao for ConfigDaoReal {
             .conn
             .prepare("select name, value from config")
             .expect("Schema error: couldn't compose query for config table");
-        let mut rows: Rows = stmt
+        let mut rows: Rows<'_> = stmt
             .query(NO_PARAMS)
             .expect("Schema error: couldn't dump config table");
         let mut results = Vec::new();
@@ -245,7 +245,7 @@ impl ConfigDao for ConfigDaoReal {
 
     fn set_u64_transactional(
         &self,
-        transaction: &rusqlite::Transaction,
+        transaction: &rusqlite::Transaction<'_>,
         name: &str,
         value: u64,
     ) -> Result<(), ConfigDaoError> {
