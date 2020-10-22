@@ -19,7 +19,7 @@ pub struct NodeAddr {
 impl NodeAddr {
     pub fn new(ip_addr: &IpAddr, ports: &Vec<u16>) -> NodeAddr {
         let mut ports = ports.clone();
-        ports.sort();
+        ports.sort_unstable();
         ports.dedup();
 
         NodeAddr {
