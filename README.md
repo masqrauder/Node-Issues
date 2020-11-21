@@ -1,6 +1,6 @@
 # MASQ Node
 
-![Rust Build](https://github.com/masqrauder/node/workflows/ci-matrix/badge.svg)
+![ci-matrix](https://github.com/MASQ-Project/Node/workflows/ci-matrix/badge.svg)
 
 ## Source
 The MASQ project was forked from Substratum's Node project in order to carry on development after Substratum ceased 
