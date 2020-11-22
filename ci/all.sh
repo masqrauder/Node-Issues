@@ -9,7 +9,7 @@ ci/format.sh
 which sccache || cargo install sccache || echo "Skipping sccache installation"  # Should do significant work only once
 export CARGO_TARGET_DIR=$HOME/.cargo/cargo-cache/
 export SCCACHE_DIR="$HOME/.cargo/sccache"
-export RUSTC_WRAPPER="$HOME/.cargo/bin/sccache"
+#export RUSTC_WRAPPER="$HOME/.cargo/bin/sccache"
 SCCACHE_IDLE_TIMEOUT=0 sccache --start-server || echo "sccache server already running"
 export RUSTFLAGS="-D warnings -Anon-snake-case"
 
