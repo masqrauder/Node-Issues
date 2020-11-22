@@ -86,7 +86,7 @@ impl ActorSystemFactoryReal {
     ) {
         let db_initializer = DbInitializerReal::new();
         // make all the actors
-        let (dispatcher_subs, pool_bind_sub) = actor_factory.make_and_start_dispatcher();
+        let (dispatcher_subs, pool_bind_sub) = actor_factory.make_and_start_dispatcher(&config);
         let proxy_server_subs = actor_factory.make_and_start_proxy_server(
             main_cryptde,
             alias_cryptde,
@@ -104,6 +104,7 @@ impl ActorSystemFactoryReal {
                 .neighborhood_config
                 .mode
                 .rate_pack()
+                .clone()
                 .exit_service_rate,
             exit_byte_rate: config.neighborhood_config.mode.rate_pack().exit_byte_rate,
         });
@@ -114,11 +115,13 @@ impl ActorSystemFactoryReal {
                 .neighborhood_config
                 .mode
                 .rate_pack()
+                .clone()
                 .routing_service_rate,
             per_routing_byte: config
                 .neighborhood_config
                 .mode
                 .rate_pack()
+                .clone()
                 .routing_byte_rate,
             is_decentralized: config.neighborhood_config.mode.is_decentralized(),
         });
@@ -182,7 +185,10 @@ impl ActorSystemFactoryReal {
 }
 
 pub trait ActorFactory: Send {
-    fn make_and_start_dispatcher(&self) -> (DispatcherSubs, Recipient<PoolBindMessage>);
+    fn make_and_start_dispatcher(
+        &self,
+        config: &BootstrapperConfig,
+    ) -> (DispatcherSubs, Recipient<PoolBindMessage>);
     fn make_and_start_proxy_server(
         &self,
         main_cryptde: &'static dyn CryptDE,
@@ -219,8 +225,14 @@ pub trait ActorFactory: Send {
 pub struct ActorFactoryReal {}
 
 impl ActorFactory for ActorFactoryReal {
-    fn make_and_start_dispatcher(&self) -> (DispatcherSubs, Recipient<PoolBindMessage>) {
-        let addr: Addr<Dispatcher> = Arbiter::start(|_| Dispatcher::new());
+    fn make_and_start_dispatcher(
+        &self,
+        config: &BootstrapperConfig,
+    ) -> (DispatcherSubs, Recipient<PoolBindMessage>) {
+        let crash_point = config.crash_point;
+        let descriptor = config.ui_gateway_config.node_descriptor.clone();
+        let addr: Addr<Dispatcher> =
+            Arbiter::start(move |_| Dispatcher::new(crash_point, descriptor));
         (
             Dispatcher::make_subs_from(&addr),
             addr.recipient::<PoolBindMessage>(),
@@ -428,24 +440,22 @@ mod tests {
     use crate::neighborhood::gossip::Gossip_0v1;
     use crate::stream_messages::AddStreamMsg;
     use crate::stream_messages::RemoveStreamMsg;
+    use crate::sub_lib::accountant::AccountantConfig;
     use crate::sub_lib::accountant::ReportRoutingServiceConsumedMessage;
     use crate::sub_lib::accountant::ReportRoutingServiceProvidedMessage;
-    use crate::sub_lib::accountant::{AccountantConfig, GetFinancialStatisticsMessage};
     use crate::sub_lib::accountant::{
         ReportExitServiceConsumedMessage, ReportExitServiceProvidedMessage,
     };
-    use crate::sub_lib::blockchain_bridge::{
-        BlockchainBridgeConfig, ReportAccountsPayable, SetDbPasswordMsg, SetGasPriceMsg,
-    };
+    use crate::sub_lib::blockchain_bridge::{BlockchainBridgeConfig, ReportAccountsPayable};
     use crate::sub_lib::cryptde::PlainData;
     use crate::sub_lib::dispatcher::{InboundClientData, StreamShutdownMsg};
     use crate::sub_lib::hopper::IncipientCoresPackage;
     use crate::sub_lib::hopper::{ExpiredCoresPackage, NoLookupIncipientCoresPackage};
+    use crate::sub_lib::neighborhood::RouteQueryMessage;
     use crate::sub_lib::neighborhood::{
         DispatcherNodeQueryMessage, GossipFailure_0v1, NodeRecordMetadataMessage,
     };
     use crate::sub_lib::neighborhood::{NeighborhoodConfig, NodeQueryMessage};
-    use crate::sub_lib::neighborhood::{NeighborhoodDotGraphRequest, RouteQueryMessage};
     use crate::sub_lib::neighborhood::{NeighborhoodMode, RemoveNeighborMessage};
     use crate::sub_lib::node_addr::NodeAddr;
     use crate::sub_lib::peer_actors::StartMessage;
@@ -459,13 +469,14 @@ mod tests {
     use crate::sub_lib::stream_handler_pool::DispatcherNodeQueryResponse;
     use crate::sub_lib::stream_handler_pool::TransmitDataMsg;
     use crate::sub_lib::ui_gateway::UiGatewayConfig;
-    use crate::sub_lib::ui_gateway::{FromUiMessage, UiCarrierMessage};
     use crate::test_utils::recorder::Recorder;
     use crate::test_utils::recorder::Recording;
     use crate::test_utils::{alias_cryptde, rate_pack};
-    use crate::test_utils::{main_cryptde, make_wallet, DEFAULT_CHAIN_ID};
+    use crate::test_utils::{main_cryptde, make_wallet};
     use actix::System;
     use log::LevelFilter;
+    use masq_lib::crash_point::CrashPoint;
+    use masq_lib::test_utils::utils::DEFAULT_CHAIN_ID;
     use masq_lib::ui_gateway::NodeFromUiMessage;
     use masq_lib::ui_gateway::NodeToUiMessage;
     use std::cell::RefCell;
@@ -505,13 +516,17 @@ mod tests {
     }
 
     impl<'a> ActorFactory for ActorFactoryMock<'a> {
-        fn make_and_start_dispatcher(&self) -> (DispatcherSubs, Recipient<PoolBindMessage>) {
+        fn make_and_start_dispatcher(
+            &self,
+            _config: &BootstrapperConfig,
+        ) -> (DispatcherSubs, Recipient<PoolBindMessage>) {
             let addr: Addr<Recorder> = ActorFactoryMock::start_recorder(&self.dispatcher);
             let dispatcher_subs = DispatcherSubs {
                 ibcd_sub: recipient!(addr, InboundClientData),
                 bind: recipient!(addr, BindMessage),
                 from_dispatcher_client: recipient!(addr, TransmitDataMsg),
                 stream_shutdown_sub: recipient!(addr, StreamShutdownMsg),
+                ui_sub: recipient!(addr, NodeFromUiMessage),
             };
             (dispatcher_subs, addr.recipient::<PoolBindMessage>())
         }
@@ -592,7 +607,6 @@ mod tests {
                 remove_neighbor: recipient!(addr, RemoveNeighborMessage),
                 stream_shutdown_sub: recipient!(addr, StreamShutdownMsg),
                 set_consuming_wallet_sub: recipient!(addr, SetConsumingWalletMessage),
-                from_ui_gateway: addr.clone().recipient::<NeighborhoodDotGraphRequest>(),
                 from_ui_message_sub: addr.clone().recipient::<NodeFromUiMessage>(),
             }
         }
@@ -627,9 +641,6 @@ mod tests {
                     .recipient::<ReportExitServiceConsumedMessage>(),
                 report_new_payments: recipient!(addr, ReceivedPayments),
                 report_sent_payments: recipient!(addr, SentPayments),
-                get_financial_statistics_sub: addr
-                    .clone()
-                    .recipient::<GetFinancialStatisticsMessage>(),
                 ui_message_sub: addr.clone().recipient::<NodeFromUiMessage>(),
             }
         }
@@ -643,10 +654,8 @@ mod tests {
             let addr: Addr<Recorder> = ActorFactoryMock::start_recorder(&self.ui_gateway);
             UiGatewaySubs {
                 bind: recipient!(addr, BindMessage),
-                ui_message_sub: recipient!(addr, UiCarrierMessage),
-                from_ui_message_sub: recipient!(addr, FromUiMessage),
-                new_from_ui_message_sub: recipient!(addr, NodeFromUiMessage),
-                new_to_ui_message_sub: recipient!(addr, NodeToUiMessage),
+                node_from_ui_message_sub: recipient!(addr, NodeFromUiMessage),
+                node_to_ui_message_sub: recipient!(addr, NodeToUiMessage),
             }
         }
 
@@ -696,8 +705,7 @@ mod tests {
                 bind: recipient!(addr, BindMessage),
                 report_accounts_payable: addr.clone().recipient::<ReportAccountsPayable>(),
                 retrieve_transactions: addr.clone().recipient::<RetrieveTransactions>(),
-                set_gas_price_sub: addr.clone().recipient::<SetGasPriceMsg>(),
-                set_consuming_db_password_sub: addr.clone().recipient::<SetDbPasswordMsg>(),
+                ui_sub: addr.clone().recipient::<NodeFromUiMessage>(),
             }
         }
     }
@@ -981,7 +989,7 @@ mod tests {
             clandestine_discriminator_factories: Vec::new(),
             ui_gateway_config: UiGatewayConfig {
                 ui_port: 5335,
-                node_descriptor: String::from(""),
+                node_descriptor: String::from("uninitialized"),
             },
             blockchain_bridge_config: BlockchainBridgeConfig {
                 blockchain_service_url: None,

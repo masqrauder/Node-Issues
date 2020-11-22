@@ -6,6 +6,7 @@ pub mod config_dao_mock;
 pub mod data_hunk;
 pub mod data_hunk_framer;
 pub mod little_tcp_server;
+pub mod logfile_name_guard;
 pub mod logging;
 pub mod neighborhood_test_utils;
 pub mod persistent_configuration_mock;
@@ -39,6 +40,7 @@ use crate::test_utils::persistent_configuration_mock::PersistentConfigurationMoc
 use ethsign_crypto::Keccak256;
 use lazy_static::lazy_static;
 use masq_lib::constants::HTTP_PORT;
+use masq_lib::test_utils::utils::DEFAULT_CHAIN_ID;
 use regex::Regex;
 use rustc_hex::ToHex;
 use std::collections::btree_set::BTreeSet;
@@ -61,9 +63,6 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
-
-pub const DEFAULT_CHAIN_ID: u8 = 3u8; //For testing only
-pub const TEST_DEFAULT_CHAIN_NAME: &str = "ropsten"; //For testing only
 
 lazy_static! {
     static ref MAIN_CRYPTDE_NULL: CryptDENull = CryptDENull::new(DEFAULT_CHAIN_ID);
@@ -326,11 +325,7 @@ pub fn encrypt_return_route_id(return_route_id: u32, cryptde: &dyn CryptDE) -> C
 }
 
 pub fn make_garbage_data(bytes: usize) -> Vec<u8> {
-    let mut data = Vec::with_capacity(bytes);
-    for _ in 0..bytes {
-        data.push(0);
-    }
-    data
+    vec![0; bytes]
 }
 
 pub fn make_request_payload(bytes: usize, cryptde: &dyn CryptDE) -> ClientRequestPayload_0v1 {
@@ -419,15 +414,41 @@ where
 {
     let real_interval_ms = interval_ms.unwrap_or(250);
     let real_limit_ms = limit_ms.unwrap_or(1000);
-    let time_limit = Instant::now() + Duration::from_millis(real_limit_ms);
-    while !f() {
+    let _ = await_value(Some((real_interval_ms, real_limit_ms)), || {
+        if f() {
+            Ok(true)
+        } else {
+            Err("false".to_string())
+        }
+    });
+}
+
+pub fn await_value<F, T, E>(interval_and_limit_ms: Option<(u64, u64)>, mut f: F) -> T
+where
+    E: Debug,
+    F: FnMut() -> Result<T, E>,
+{
+    let (interval_ms, limit_ms) = interval_and_limit_ms.unwrap_or((250, 1000));
+    let interval_dur = Duration::from_millis(interval_ms);
+    let deadline = Instant::now() + Duration::from_millis(limit_ms);
+    let mut delay = 0;
+    let mut log = "".to_string();
+    loop {
         assert_eq!(
-            Instant::now() < time_limit,
+            Instant::now() < deadline,
             true,
-            "Timeout: waited for more than {}ms",
-            real_limit_ms
+            "Timeout: waited for more than {}ms:\n{}",
+            limit_ms,
+            log
         );
-        thread::sleep(Duration::from_millis(real_interval_ms));
+        match f() {
+            Ok(t) => return t,
+            Err(e) => {
+                log.extend(format!("  +{}: {:?}\n", delay, e).chars());
+                delay += interval_ms;
+                thread::sleep(interval_dur);
+            }
+        }
     }
 }
 

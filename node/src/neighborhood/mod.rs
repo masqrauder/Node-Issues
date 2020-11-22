@@ -13,7 +13,6 @@ pub mod node_record;
 use crate::blockchain::blockchain_interface::{chain_id_from_name, contract_address};
 use crate::bootstrapper::BootstrapperConfig;
 use crate::database::db_initializer::{DbInitializer, DbInitializerReal};
-use crate::masq_lib::messages::FromMessageBody;
 use crate::neighborhood::gossip::{DotGossipEndpoint, GossipNodeRecord, Gossip_0v1};
 use crate::neighborhood::gossip_acceptor::GossipAcceptanceResult;
 use crate::neighborhood::node_record::NodeRecordInner_0v1;
@@ -27,7 +26,6 @@ use crate::sub_lib::hopper::{IncipientCoresPackage, MessageType};
 use crate::sub_lib::logger::Logger;
 use crate::sub_lib::neighborhood::ExpectedService;
 use crate::sub_lib::neighborhood::ExpectedServices;
-use crate::sub_lib::neighborhood::NeighborhoodDotGraphRequest;
 use crate::sub_lib::neighborhood::NeighborhoodSubs;
 use crate::sub_lib::neighborhood::NodeDescriptor;
 use crate::sub_lib::neighborhood::NodeQueryMessage;
@@ -44,7 +42,6 @@ use crate::sub_lib::route::Route;
 use crate::sub_lib::route::RouteSegment;
 use crate::sub_lib::set_consuming_wallet_message::SetConsumingWalletMessage;
 use crate::sub_lib::stream_handler_pool::DispatcherNodeQueryResponse;
-use crate::sub_lib::ui_gateway::{UiCarrierMessage, UiMessage};
 use crate::sub_lib::utils::NODE_MAILBOX_CAPACITY;
 use crate::sub_lib::versioned_data::VersionedData;
 use crate::sub_lib::wallet::Wallet;
@@ -59,9 +56,12 @@ use gossip_acceptor::GossipAcceptorReal;
 use gossip_producer::GossipProducer;
 use gossip_producer::GossipProducerReal;
 use itertools::Itertools;
+use masq_lib::constants::DEFAULT_CHAIN_NAME;
+use masq_lib::messages::FromMessageBody;
 use masq_lib::messages::UiMessageError::UnexpectedMessage;
 use masq_lib::messages::{UiMessageError, UiShutdownRequest};
 use masq_lib::ui_gateway::{NodeFromUiMessage, NodeToUiMessage};
+use masq_lib::utils::exit_process;
 use neighborhood_database::NeighborhoodDatabase;
 use node_record::NodeRecord;
 use std::cmp::Ordering;
@@ -69,11 +69,12 @@ use std::convert::TryFrom;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
+pub const CRASH_KEY: &str = "NEIGHBORHOOD";
+
 pub struct Neighborhood {
     cryptde: &'static dyn CryptDE,
     hopper: Option<Recipient<IncipientCoresPackage>>,
     hopper_no_lookup: Option<Recipient<NoLookupIncipientCoresPackage>>,
-    dot_graph_recipient: Option<Recipient<UiCarrierMessage>>,
     is_connected: bool,
     connected_signal: Option<Recipient<StartMessage>>,
     _to_ui_message_sub: Option<Recipient<NodeToUiMessage>>,
@@ -101,7 +102,6 @@ impl Handler<BindMessage> for Neighborhood {
         ctx.set_mailbox_capacity(NODE_MAILBOX_CAPACITY);
         self.hopper = Some(msg.peer_actors.hopper.from_hopper_client);
         self.hopper_no_lookup = Some(msg.peer_actors.hopper.from_hopper_client_no_lookup);
-        self.dot_graph_recipient = Some(msg.peer_actors.ui_gateway.ui_message_sub);
         self.connected_signal = Some(msg.peer_actors.accountant.start);
     }
 }
@@ -266,31 +266,6 @@ impl Handler<StreamShutdownMsg> for Neighborhood {
     }
 }
 
-impl Handler<NeighborhoodDotGraphRequest> for Neighborhood {
-    type Result = ();
-
-    fn handle(
-        &mut self,
-        msg: NeighborhoodDotGraphRequest,
-        _ctx: &mut Self::Context,
-    ) -> Self::Result {
-        info!(
-            self.logger,
-            "acknowledge request for neighborhood dot graph."
-        );
-        self.dot_graph_recipient
-            .as_ref()
-            .expect("DOT graph recipient is unbound")
-            .try_send(UiCarrierMessage {
-                client_id: msg.client_id,
-                data: UiMessage::NeighborhoodDotGraphResponse(
-                    self.neighborhood_database.to_dot_graph(),
-                ),
-            })
-            .expect("DOT graph recipient is dead")
-    }
-}
-
 impl Handler<NodeFromUiMessage> for Neighborhood {
     type Result = ();
 
@@ -301,10 +276,13 @@ impl Handler<NodeFromUiMessage> for Neighborhood {
             UiShutdownRequest::fmb(msg.body);
         match result {
             Ok((payload, _)) => self.handle_shutdown_order(client_id, payload),
-            Err(UnexpectedMessage(_, _)) => (),
+            Err(UnexpectedMessage(opcode, _)) => debug!(
+                &self.logger,
+                "Ignoring '{}' request from client {}", opcode, client_id
+            ),
             Err(e) => error!(
                 &self.logger,
-                "Bad {} request from client {}: {:?}", opcode, client_id, e
+                "Failure to parse '{}' message from client {}: {:?}", opcode, client_id, e
             ),
         }
     }
@@ -367,7 +345,7 @@ impl Neighborhood {
             cryptde,
         );
         let is_mainnet =
-            || config.blockchain_bridge_config.chain_id == chain_id_from_name("mainnet");
+            || config.blockchain_bridge_config.chain_id == chain_id_from_name(DEFAULT_CHAIN_NAME);
         let initial_neighbors: Vec<NodeDescriptor> = neighborhood_config
             .mode
             .neighbor_configs()
@@ -388,7 +366,6 @@ impl Neighborhood {
             cryptde,
             hopper: None,
             hopper_no_lookup: None,
-            dot_graph_recipient: None,
             connected_signal: None,
             _to_ui_message_sub: None,
             is_connected: false,
@@ -421,7 +398,6 @@ impl Neighborhood {
             remove_neighbor: addr.clone().recipient::<RemoveNeighborMessage>(),
             stream_shutdown_sub: addr.clone().recipient::<StreamShutdownMsg>(),
             set_consuming_wallet_sub: addr.clone().recipient::<SetConsumingWalletMessage>(),
-            from_ui_gateway: addr.clone().recipient::<NeighborhoodDotGraphRequest>(),
             from_ui_message_sub: addr.clone().recipient::<NodeFromUiMessage>(),
         }
     }
@@ -600,7 +576,7 @@ impl Neighborhood {
                     self.neighborhood_database
                         .node_by_key(k)
                         .expect("Node disappeared"),
-                    self.chain_id == chain_id_from_name("mainnet"),
+                    self.chain_id == chain_id_from_name(DEFAULT_CHAIN_NAME),
                     self.cryptde,
                 ))
             })
@@ -1216,7 +1192,13 @@ impl Neighborhood {
             self.logger,
             "Received shutdown order from client {}: shutting down hard", client_id
         );
-        std::process::exit(0);
+        exit_process(
+            0,
+            &format!(
+                "Received shutdown order from client {}: shutting down hard",
+                client_id
+            ),
+        );
     }
 }
 
@@ -1254,6 +1236,7 @@ mod tests {
     use crate::sub_lib::versioned_data::VersionedData;
     use crate::test_utils::logging::init_test_logging;
     use crate::test_utils::logging::TestLogHandler;
+    use crate::test_utils::make_meaningless_route;
     use crate::test_utils::neighborhood_test_utils::{
         db_from_node, make_global_cryptde_node_record, make_node_record, make_node_record_f,
         neighborhood_from_nodes,
@@ -1266,17 +1249,19 @@ mod tests {
     use crate::test_utils::recorder::Recording;
     use crate::test_utils::vec_to_set;
     use crate::test_utils::{assert_contains, make_wallet};
-    use crate::test_utils::{assert_matches, make_meaningless_route};
-    use crate::test_utils::{main_cryptde, make_paying_wallet, DEFAULT_CHAIN_ID};
+    use crate::test_utils::{main_cryptde, make_paying_wallet};
     use actix::dev::{MessageResponse, ResponseChannel};
     use actix::Message;
     use actix::Recipient;
     use actix::System;
     use itertools::Itertools;
     use masq_lib::constants::TLS_PORT;
-    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
+    use masq_lib::test_utils::utils::{
+        ensure_node_home_directory_exists, DEFAULT_CHAIN_ID, TEST_DEFAULT_CHAIN_NAME,
+    };
     use masq_lib::ui_gateway::MessageBody;
-    use masq_lib::ui_gateway::MessagePath::{OneWay, TwoWay};
+    use masq_lib::ui_gateway::MessagePath::{Conversation, FireAndForget};
+    use masq_lib::utils::running_test;
     use serde_cbor;
     use std::cell::RefCell;
     use std::convert::TryInto;
@@ -1303,7 +1288,7 @@ mod tests {
             None,
             "cant_create_mainnet_neighborhood_with_non_mainnet_neighbors",
         );
-        bc.blockchain_bridge_config.chain_id = chain_id_from_name("mainnet");
+        bc.blockchain_bridge_config.chain_id = chain_id_from_name(DEFAULT_CHAIN_NAME);
 
         let _ = Neighborhood::new(cryptde, &bc);
     }
@@ -1325,7 +1310,7 @@ mod tests {
             None,
             "cant_create_non_mainnet_neighborhood_with_mainnet_neighbors",
         );
-        bc.blockchain_bridge_config.chain_id = chain_id_from_name("testnet");
+        bc.blockchain_bridge_config.chain_id = chain_id_from_name(TEST_DEFAULT_CHAIN_NAME);
 
         let _ = Neighborhood::new(cryptde, &bc);
     }
@@ -1437,7 +1422,7 @@ mod tests {
                         NodeAddr::new(&IpAddr::from_str("5.4.3.2").unwrap(), &[5678]),
                         vec![NodeDescriptor::from((
                             neighbor_node.public_key(),
-                            DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                            DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                             cryptde,
                         ))],
                         rate_pack(100),
@@ -1477,12 +1462,12 @@ mod tests {
                         vec![
                             NodeDescriptor::from((
                                 &one_neighbor_node,
-                                DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                                DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                                 cryptde,
                             )),
                             NodeDescriptor::from((
                                 &another_neighbor_node,
-                                DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                                DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                                 cryptde,
                             )),
                         ],
@@ -1515,12 +1500,12 @@ mod tests {
             vec![
                 NodeDescriptor::from((
                     &one_neighbor_node,
-                    DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                    DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                     cryptde,
                 )),
                 NodeDescriptor::from((
                     &another_neighbor_node,
-                    DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                    DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                     cryptde,
                 ))
             ]
@@ -1545,12 +1530,12 @@ mod tests {
                         vec![
                             NodeDescriptor::from((
                                 &one_neighbor_node,
-                                DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                                DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                                 cryptde,
                             )),
                             NodeDescriptor::from((
                                 &another_neighbor_node,
-                                DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                                DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                                 cryptde,
                             )),
                         ],
@@ -1622,7 +1607,7 @@ mod tests {
                         vec![NodeDescriptor::from((
                             &PublicKey::new(&b"booga"[..]),
                             &NodeAddr::new(&IpAddr::from_str("1.2.3.4").unwrap(), &[1234, 2345]),
-                            DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                            DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                             cryptde,
                         ))],
                         rate_pack(100),
@@ -1709,7 +1694,7 @@ mod tests {
                         vec![NodeDescriptor::from((
                             &PublicKey::new(&b"booga"[..]),
                             &NodeAddr::new(&IpAddr::from_str("1.2.3.4").unwrap(), &[1234, 2345]),
-                            DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                            DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                             cryptde,
                         ))],
                         rate_pack(100),
@@ -1749,7 +1734,7 @@ mod tests {
                         node_record.node_addr_opt().unwrap(),
                         vec![NodeDescriptor::from((
                             &node_record,
-                            DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                            DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                             cryptde,
                         ))],
                         rate_pack(100),
@@ -2770,7 +2755,6 @@ mod tests {
     fn bind_subject(subject: &mut Neighborhood, peer_actors: PeerActors) {
         subject.hopper = Some(peer_actors.hopper.from_hopper_client);
         subject.hopper_no_lookup = Some(peer_actors.hopper.from_hopper_client_no_lookup);
-        subject.dot_graph_recipient = Some(peer_actors.ui_gateway.ui_message_sub);
         subject.connected_signal = Some(peer_actors.accountant.start);
     }
 
@@ -2922,7 +2906,7 @@ mod tests {
             &neighbors,
             &NodeDescriptor::from((
                 &old_neighbor,
-                DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                 cryptde,
             )),
         );
@@ -2930,7 +2914,7 @@ mod tests {
             &neighbors,
             &NodeDescriptor::from((
                 &new_neighbor,
-                DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                 cryptde,
             )),
         );
@@ -3449,7 +3433,7 @@ mod tests {
                         NodeAddr::new(&IpAddr::from_str("5.4.3.2").unwrap(), &[1234]),
                         vec![NodeDescriptor::from((
                             &neighbor_inside,
-                            DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                            DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                             cryptde,
                         ))],
                         rate_pack(100),
@@ -3568,7 +3552,7 @@ mod tests {
         NodeDescriptor::from((
             &node_record_ref.public_key().clone(),
             &node_record_ref.node_addr_opt().unwrap().clone(),
-            DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+            DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
             cryptde,
         ))
     }
@@ -3636,7 +3620,7 @@ mod tests {
                                     &IpAddr::from_str("1.2.3.4").unwrap(),
                                     &[1234, 2345],
                                 ),
-                                DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                                DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                                 cryptde,
                             ))],
                             rate_pack(100),
@@ -3763,7 +3747,7 @@ mod tests {
                                     &IpAddr::from_str("1.2.3.4").unwrap(),
                                     &[1234, 2345],
                                 ),
-                                DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                                DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                                 cryptde,
                             ))],
                             rate_pack(100),
@@ -3826,7 +3810,7 @@ mod tests {
                         node_record.node_addr_opt().unwrap(),
                         vec![NodeDescriptor::from((
                             &node_record,
-                            DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
+                            DEFAULT_CHAIN_ID == chain_id_from_name(DEFAULT_CHAIN_NAME),
                             cryptde,
                         ))],
                         rate_pack(100),
@@ -3867,68 +3851,6 @@ mod tests {
             )
         );
         assert_eq!(message.context, context_a);
-    }
-
-    #[test]
-    fn neighborhood_responds_with_dot_graph_when_requested_and_logs_acknowledgement() {
-        init_test_logging();
-        let cryptde: &dyn CryptDE = main_cryptde();
-
-        let (recorder, awaiter, recording_arc) = make_recorder();
-        let node_record = make_node_record(1234, true);
-        let another_node_record = make_node_record(2345, true);
-        let another_node_record_a = another_node_record.clone();
-
-        thread::spawn(move || {
-            let system = System::new("neighborhood_responds_with_dot_graph_when_requested");
-            let addr: Addr<Recorder> = recorder.start();
-            let recipient: Recipient<UiCarrierMessage> = addr.recipient::<UiCarrierMessage>();
-            let config = bc_from_nc_plus(
-                NeighborhoodConfig {
-                    mode: NeighborhoodMode::Standard(
-                        node_record.node_addr_opt().unwrap(),
-                        vec![NodeDescriptor::from((
-                            &node_record,
-                            DEFAULT_CHAIN_ID == chain_id_from_name("mainnet"),
-                            cryptde,
-                        ))],
-                        rate_pack(100),
-                    ),
-                },
-                node_record.earning_wallet(),
-                None,
-                "neighborhood_responds_with_dot_graph_when_requested_and_logs_acknowledgement",
-            );
-            let mut subject = Neighborhood::new(cryptde, &config);
-            subject.dot_graph_recipient = Some(recipient);
-            subject
-                .neighborhood_database
-                .add_node(another_node_record_a)
-                .unwrap();
-            let addr: Addr<Neighborhood> = subject.start();
-            let sub: Recipient<NeighborhoodDotGraphRequest> =
-                addr.recipient::<NeighborhoodDotGraphRequest>();
-
-            sub.try_send(NeighborhoodDotGraphRequest { client_id: 0 })
-                .unwrap();
-
-            system.run();
-        });
-
-        awaiter.await_message_count(1);
-
-        let ui_gateway_recording = recording_arc.lock().unwrap();
-        let response = ui_gateway_recording.get_record::<UiCarrierMessage>(0);
-        match &response.data {
-            UiMessage::NeighborhoodDotGraphResponse(s) => {
-                assert_matches(s.as_str(), r#"digraph db . ".*" .*; ".*" .*; ."#)
-            }
-            _ => assert!(false, "Failed to match "),
-        }
-
-        TestLogHandler::new().exists_log_containing(
-            "INFO: Neighborhood: acknowledge request for neighborhood dot graph.",
-        );
     }
 
     #[test]
@@ -4216,6 +4138,7 @@ mod tests {
     #[should_panic(expected = "0: Received shutdown order from client 1234: shutting down hard")]
     #[test]
     fn shutdown_instruction_generates_log() {
+        running_test();
         init_test_logging();
         let system = System::new("test");
         let subject = Neighborhood::new(
@@ -4239,7 +4162,7 @@ mod tests {
                 client_id: 1234,
                 body: MessageBody {
                     opcode: "shutdown".to_string(),
-                    path: TwoWay(4321),
+                    path: Conversation(4321),
                     payload: Ok("{}".to_string()),
                 },
             })
@@ -4289,7 +4212,7 @@ mod tests {
         let ui_gateway_recording = ui_gateway_recording_arc.lock().unwrap();
         assert_eq!(ui_gateway_recording.len(), 0);
         TestLogHandler::new().exists_log_containing(
-            "ERROR: Neighborhood: Bad booga request from client 1234: BadOpcode",
+            "DEBUG: Neighborhood: Ignoring 'booga' request from client 1234",
         );
     }
 

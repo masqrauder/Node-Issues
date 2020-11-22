@@ -16,12 +16,14 @@ use flexi_logger::Logger;
 use flexi_logger::{Cleanup, Criterion, LevelFilter, Naming};
 use flexi_logger::{DeferredNow, Duplicate, Record};
 use futures::try_ready;
+use lazy_static::lazy_static;
 use masq_lib::command::Command;
 use masq_lib::command::StdStreams;
 use std::any::Any;
 use std::fmt::Debug;
 use std::panic::{Location, PanicInfo};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, MutexGuard};
 use std::{io, thread};
 use tokio::prelude::Async;
 use tokio::prelude::Future;
@@ -113,6 +115,10 @@ impl Default for ServerInitializer {
     }
 }
 
+lazy_static! {
+    pub static ref LOGFILE_NAME: Mutex<PathBuf> = Mutex::new(PathBuf::from("uninitialized"));
+}
+
 pub trait LoggerInitializerWrapper: Send {
     fn init(
         &mut self,
@@ -164,9 +170,29 @@ impl LoggerInitializerWrapper for LoggerInitializerWrapperReal {
             }
         ));
         privilege_dropper.chown(&logfile_name, real_user);
+        *(Self::logfile_name_guard()) = logfile_name;
         std::panic::set_hook(Box::new(|panic_info| {
             panic_hook(AltPanicInfo::from(panic_info))
         }));
+    }
+}
+
+impl LoggerInitializerWrapperReal {
+    pub fn get_logfile_name() -> PathBuf {
+        let path: &Path = &(*(Self::logfile_name_guard()).clone());
+        path.to_path_buf()
+    }
+
+    #[cfg(test)]
+    pub fn set_logfile_name(logfile_name: PathBuf) {
+        *(Self::logfile_name_guard()) = logfile_name;
+    }
+
+    fn logfile_name_guard<'a>() -> MutexGuard<'a, PathBuf> {
+        match LOGFILE_NAME.lock() {
+            Ok(guard) => guard,
+            Err(poison_err) => poison_err.into_inner(),
+        }
     }
 }
 
@@ -371,6 +397,7 @@ pub mod tests {
     use super::*;
     use crate::crash_test_dummy::CrashTestDummy;
     use crate::server_initializer::test_utils::PrivilegeDropperMock;
+    use crate::test_utils::logfile_name_guard::LogfileNameGuard;
     use crate::test_utils::logging::{init_test_logging, TestLogHandler};
     use crate::test_utils::ByteArrayReader;
     use crate::test_utils::ByteArrayWriter;
@@ -615,6 +642,7 @@ pub mod tests {
 
     #[test]
     fn exits_after_all_socket_servers_exit() {
+        let _ = LogfileNameGuard::new(&PathBuf::from("uninitialized"));
         let dns_socket_server = CrashTestDummy::new(CrashPoint::Error, ());
         let bootstrapper = CrashTestDummy::new(CrashPoint::Error, BootstrapperConfig::new());
 
@@ -694,6 +722,7 @@ pub mod tests {
 
     #[test]
     fn go_should_drop_privileges() {
+        let _ = LogfileNameGuard::new(&PathBuf::from("uninitialized"));
         let real_user = RealUser::new(Some(123), Some(456), Some("booga".into()));
         let mut bootstrapper_config = BootstrapperConfig::new();
         bootstrapper_config.real_user = real_user.clone();
@@ -734,6 +763,7 @@ pub mod tests {
     }
 
     fn go_with_something_should_print_something_and_artificially_panic(parameter: &str) {
+        let _ = LogfileNameGuard::new(&PathBuf::from("uninitialized"));
         let dns_socket_server = SocketServerMock::new(());
         let bootstrapper = SocketServerMock::new(BootstrapperConfig::new());
         let privilege_dropper = PrivilegeDropperMock::new();
@@ -749,6 +779,7 @@ pub mod tests {
 
     #[test]
     fn go_should_combine_errors() {
+        let _ = LogfileNameGuard::new(&PathBuf::from("uninitialized"));
         let dns_socket_server = SocketServerMock::new(())
             .initialize_as_privileged_result(Err(ConfiguratorError::required(
                 "dns-iap",

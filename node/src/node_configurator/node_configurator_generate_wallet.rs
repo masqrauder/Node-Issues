@@ -17,6 +17,9 @@ use clap::{value_t, App, Arg};
 use indoc::indoc;
 use masq_lib::command::StdStreams;
 use masq_lib::multi_config::MultiConfig;
+use masq_lib::shared_schema::{
+    chain_arg, data_directory_arg, db_password_arg, real_user_arg, ConfiguratorError,
+};
 use std::str::FromStr;
 use unindent::unindent;
 
@@ -350,9 +353,12 @@ mod tests {
     use crate::sub_lib::wallet::DEFAULT_EARNING_DERIVATION_PATH;
     use crate::test_utils::*;
     use bip39::Seed;
-    use masq_lib::multi_config::{CommandLineVcl, MultiConfig, VirtualCommandLine};
-    use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
-    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
+    use masq_lib::multi_config::{CommandLineVcl, VirtualCommandLine};
+    use masq_lib::test_utils::environment_guard::ClapGuard;
+    use masq_lib::test_utils::fake_stream_holder::{ByteArrayWriter, FakeStreamHolder};
+    use masq_lib::test_utils::utils::{
+        ensure_node_home_directory_exists, DEFAULT_CHAIN_ID, TEST_DEFAULT_CHAIN_NAME,
+    };
     use regex::Regex;
     use std::cell::RefCell;
     use std::io::Cursor;

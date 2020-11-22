@@ -10,19 +10,24 @@ use crate::blockchain::bip39::Bip39;
 use crate::blockchain::blockchain_interface::chain_id_from_name;
 use crate::bootstrapper::RealUser;
 use crate::database::db_initializer::{DbInitializer, DbInitializerReal, DATABASE_FILE};
-use crate::node_configurator::node_configurator_standard::DEFAULT_UI_PORT_VALUE;
 use crate::persistent_configuration::{
     PersistentConfigError, PersistentConfiguration, PersistentConfigurationReal,
 };
 use crate::sub_lib::cryptde::PlainData;
+use crate::sub_lib::utils::make_new_multi_config;
 use crate::sub_lib::wallet::Wallet;
 use crate::sub_lib::wallet::{DEFAULT_CONSUMING_DERIVATION_PATH, DEFAULT_EARNING_DERIVATION_PATH};
 use bip39::Language;
 use clap::{crate_description, value_t, App, AppSettings, Arg};
 use dirs::{data_local_dir, home_dir};
 use masq_lib::command::StdStreams;
+use masq_lib::constants::DEFAULT_CHAIN_NAME;
 use masq_lib::multi_config::{merge, CommandLineVcl, EnvironmentVcl, MultiConfig, VclArg};
-use rpassword;
+use masq_lib::shared_schema::{
+    chain_arg, config_file_arg, data_directory_arg, real_user_arg, ConfiguratorError,
+};
+use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
+use masq_lib::utils::{exit_process, localhost};
 use rpassword::read_password_with_reader;
 use rustc_hex::FromHex;
 use std::fmt::Debug;
@@ -34,26 +39,13 @@ use std::str::FromStr;
 use tiny_hderive::bip44::DerivationPath;
 
 pub trait NodeConfigurator<T> {
-    fn configure(&self, args: &Vec<String>, streams: &mut StdStreams<'_>) -> T;
+    fn configure(
+        &self,
+        args: &[String],
+        streams: &mut StdStreams<'_>,
+    ) -> Result<T, ConfiguratorError>;
 }
 
-const CHAIN_HELP: &str =
-    "The blockchain network MASQ Node will configure itself to use. You must ensure the \
-    Ethereum client specified by --blockchain-service-url communicates with the same blockchain network.";
-pub const CONFIG_FILE_HELP: &str =
-    "Optional TOML file containing configuration that doesn't often change. Should contain only \
-     scalar items, string or numeric, whose names are exactly the same as the command-line parameters \
-     they replace (except no '--' prefix). If you specify a relative path, or no path, the Node will \
-     look for your config file starting in the --data-directory. If you specify an absolute path, \
-     --data-directory will be ignored when searching for the config file. A few parameters \
-     (such as --config-file, --generate-wallet, and --recover-wallet) must not be specified in a config file.";
-pub const CONSUMING_PRIVATE_KEY_HELP: &str = "The private key for the Ethereum wallet from which you wish to pay \
-     other Nodes for routing and exit services. Mostly this is used for testing; be careful using it for real \
-     traffic, because this value is very sensitive: anyone who sees it can use it to drain your consuming wallet. \
-     If you use it, don't put it on the command line (the environment is good, the config file is less so), \
-     make sure you haven't already set up a consuming wallet with a derivation path, and make sure that you always \
-     supply exactly the same private key every time you run the Node. A consuming private key is 64 case-insensitive \
-     hexadecimal digits.";
 pub const CONSUMING_WALLET_HELP: &str = "The BIP32 derivation path for the wallet from which your Node \
      should pay other Nodes for routing and exit services. (If the path includes single quotes, enclose it in \
      double quotes.) Defaults to m/44'/60'/0'/0/0.";
@@ -98,28 +90,6 @@ pub fn consuming_wallet_arg<'a>() -> Arg<'a, 'a> {
         .help(&CONSUMING_WALLET_HELP)
 }
 
-pub fn data_directory_arg<'a>() -> Arg<'a, 'a> {
-    Arg::with_name("data-directory")
-        .long("data-directory")
-        .value_name("DATA-DIRECTORY")
-        .required(false)
-        .takes_value(true)
-        .empty_values(false)
-        .help(DATA_DIRECTORY_HELP)
-}
-
-pub fn chain_arg<'a>() -> Arg<'a, 'a> {
-    Arg::with_name("chain")
-        .long("chain")
-        .value_name("CHAIN")
-        .min_values(1)
-        .max_values(1)
-        .takes_value(true)
-        .possible_values(&["dev", "mainnet", "ropsten"])
-        .default_value(DEFAULT_CHAIN_NAME)
-        .help(CHAIN_HELP)
-}
-
 pub fn earning_wallet_arg<F>(help: &str, validator: F) -> Arg
 where
     F: 'static,
@@ -157,50 +127,11 @@ pub fn mnemonic_passphrase_arg<'a>() -> Arg<'a, 'a> {
         .help(MNEMONIC_PASSPHRASE_HELP)
 }
 
-#[cfg(not(target_os = "windows"))]
-pub fn real_user_arg<'a>() -> Arg<'a, 'a> {
-    Arg::with_name("real-user")
-        .long("real-user")
-        .value_name("REAL-USER")
-        .required(false)
-        .takes_value(true)
-        .validator(common_validators::validate_real_user)
-        .help(REAL_USER_HELP)
-}
-
-#[cfg(target_os = "windows")]
-pub fn real_user_arg<'a>() -> Arg<'a, 'a> {
-    Arg::with_name("real-user")
-        .long("real-user")
-        .value_name("REAL-USER")
-        .required(false)
-        .takes_value(true)
-        .validator(common_validators::validate_real_user)
-        .hidden(true)
-}
-
-pub fn ui_port_arg(help: &str) -> Arg {
-    Arg::with_name("ui-port")
-        .long("ui-port")
-        .value_name("UI-PORT")
-        .takes_value(true)
-        .default_value(&DEFAULT_UI_PORT_VALUE)
-        .validator(crate::node_configurator::common_validators::validate_ui_port)
-        .help(help)
-}
-
-pub fn db_password_arg(help: &str) -> Arg {
-    Arg::with_name("db-password")
-        .long("db-password")
-        .value_name("DB-PASSWORD")
-        .required(false)
-        .takes_value(true)
-        .min_values(0)
-        .max_values(1)
-        .help(help)
-}
-
-pub fn determine_config_file_path(app: &App, args: &Vec<String>) -> (PathBuf, bool) {
+pub fn determine_config_file_path(
+    dirs_wrapper: &dyn DirsWrapper,
+    app: &App,
+    args: &[String],
+) -> Result<(PathBuf, bool), ConfiguratorError> {
     let orientation_schema = App::new("MASQNode")
         .arg(chain_arg())
         .arg(real_user_arg())
@@ -221,12 +152,19 @@ pub fn determine_config_file_path(app: &App, args: &Vec<String>) -> (PathBuf, bo
     .map(|vcl_arg| vcl_arg.dup())
     .collect();
     let orientation_vcl = CommandLineVcl::from(orientation_args);
-    let multi_config = MultiConfig::new(&orientation_schema, vec![Box::new(orientation_vcl)]);
+    let multi_config = make_new_multi_config(
+        &orientation_schema,
+        vec![Box::new(orientation_vcl)],
+        &mut FakeStreamHolder::new().streams(),
+    )?;
     let config_file_path =
         value_m!(multi_config, "config-file", PathBuf).expect("config-file should be defaulted");
     let user_specified = multi_config.arg_matches().occurrences_of("config-file") > 0;
-    let (_, data_directory, _) = real_user_data_directory_and_chain_id(&multi_config);
-    (data_directory.join(config_file_path), user_specified)
+    let (real_user, data_directory_opt, chain_name) =
+        real_user_data_directory_opt_and_chain_name(dirs_wrapper, &multi_config);
+    let directory =
+        data_directory_from_context(dirs_wrapper, &real_user, &data_directory_opt, &chain_name);
+    Ok((directory.join(config_file_path), user_specified))
 }
 
 pub fn create_wallet(
@@ -288,11 +226,19 @@ pub fn real_user_data_directory_opt_and_chain_name(
         Some(real_user) => real_user.populate(dirs_wrapper),
     };
     let chain_name =
-        value_m!(multi_config, "chain", String).expect("--chain improperly defined in clap schema");
-    let dirs_wrapper = RealDirsWrapper {};
+        value_m!(multi_config, "chain", String).unwrap_or_else(|| DEFAULT_CHAIN_NAME.to_string());
+    let data_directory_opt = value_m!(multi_config, "data-directory", PathBuf);
+    (real_user, data_directory_opt, chain_name)
+}
 
-    let data_directory = match value_m!(multi_config, "data-directory", PathBuf) {
-        Some(data_directory) => data_directory,
+pub fn data_directory_from_context(
+    dirs_wrapper: &dyn DirsWrapper,
+    real_user: &RealUser,
+    data_directory_opt: &Option<PathBuf>,
+    chain_name: &str,
+) -> PathBuf {
+    match data_directory_opt {
+        Some(data_directory) => data_directory.clone(),
         None => {
             let right_home_dir = real_user
                 .home_dir
@@ -316,13 +262,7 @@ pub fn real_user_data_directory_opt_and_chain_name(
                 .join("MASQ")
                 .join(chain_name)
         }
-    };
-
-    (
-        real_user,
-        data_directory,
-        chain_id_from_name(chain_name.as_str()),
-    )
+    }
 }
 
 pub fn prepare_initialization_mode<'a>(
@@ -350,15 +290,7 @@ pub fn prepare_initialization_mode<'a>(
     );
     let persistent_config_box = initialize_database(&directory, chain_id_from_name(&chain_name));
     if mnemonic_seed_exists(persistent_config_box.as_ref()) {
-        #[cfg(test)]
-        let running_test = true;
-        #[cfg(not(test))]
-        let running_test = false;
-        exit_process(
-            1,
-            "Cannot re-initialize Node: already initialized",
-            running_test,
-        )
+        exit_process(1, "Cannot re-initialize Node: already initialized")
     }
     Ok((multi_config, persistent_config_box))
 }
@@ -440,10 +372,7 @@ pub fn cannot_be_blank(password: &str) -> Result<(), String> {
 }
 
 pub fn mnemonic_seed_exists(persistent_config: &dyn PersistentConfiguration) -> bool {
-    match persistent_config.mnemonic_seed("bad password") {
-        Ok(Some(_)) | Err(PersistentConfigError::PasswordError) => true,
-        _ => false,
-    }
+    matches! (persistent_config.mnemonic_seed("bad password"), Ok(Some(_)) | Err(PersistentConfigError::PasswordError))
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -771,13 +700,17 @@ mod tests {
     use crate::sub_lib::utils::make_new_test_multi_config;
     use crate::sub_lib::wallet::{Wallet, DEFAULT_EARNING_DERIVATION_PATH};
     use crate::test_utils::persistent_configuration_mock::PersistentConfigurationMock;
-    use crate::test_utils::{
-        ArgsBuilder, ByteArrayWriter, DEFAULT_CHAIN_ID, TEST_DEFAULT_CHAIN_NAME,
-    };
+    use crate::test_utils::ArgsBuilder;
     use bip39::{Mnemonic, MnemonicType, Seed};
+    use masq_lib::constants::DEFAULT_CHAIN_NAME;
     use masq_lib::multi_config::MultiConfig;
+    use masq_lib::shared_schema::db_password_arg;
     use masq_lib::test_utils::environment_guard::EnvironmentGuard;
-    use masq_lib::test_utils::utils::ensure_node_home_directory_exists;
+    use masq_lib::test_utils::fake_stream_holder::{ByteArrayWriter, FakeStreamHolder};
+    use masq_lib::test_utils::utils::{
+        ensure_node_home_directory_exists, DEFAULT_CHAIN_ID, TEST_DEFAULT_CHAIN_NAME,
+    };
+    use masq_lib::utils::{find_free_port, running_test};
     use std::io::Cursor;
     use std::net::{SocketAddr, TcpListener};
     use std::sync::{Arc, Mutex};
@@ -1072,12 +1005,17 @@ mod tests {
     #[test]
     fn determine_config_file_path_finds_path_in_environment() {
         let _guard = EnvironmentGuard::new();
-        let args = ArgsBuilder::new().param("--dns-servers", "1.2.3.4");
+        let args = ArgsBuilder::new();
+        let args_vec: Vec<String> = args.into();
         std::env::set_var("MASQ_DATA_DIRECTORY", "data_dir");
         std::env::set_var("MASQ_CONFIG_FILE", "booga.toml");
 
-        let (config_file_path, user_specified) =
-            determine_config_file_path(&determine_config_file_path_app(), &args.into());
+        let (config_file_path, user_specified) = determine_config_file_path(
+            &RealDirsWrapper {},
+            &determine_config_file_path_app(),
+            args_vec.as_slice(),
+        )
+        .unwrap();
 
         assert_eq!(
             "data_dir",
@@ -1519,6 +1457,7 @@ mod tests {
 
     #[test]
     fn make_wallet_creation_config_non_defaults_with_earning_derivation_path() {
+        running_test();
         let earning_path = "m/44'/60'/3'/2/1";
         let subject = TameWalletCreationConfigMaker::new();
         let args = ArgsBuilder::new()
@@ -1564,6 +1503,7 @@ mod tests {
 
     #[test]
     fn make_wallet_creation_config_non_defaults_with_earning_address() {
+        running_test();
         let subject = TameWalletCreationConfigMaker::new();
         let args = ArgsBuilder::new()
             .param("--consuming-wallet", "m/44'/60'/1'/2/3")
@@ -1607,6 +1547,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "Wallet encryption password is required!")]
     fn make_wallet_creation_config_panics_after_three_password_mismatches() {
+        running_test();
         let subject = TameWalletCreationConfigMaker::new();
         let streams = &mut StdStreams {
             stdin: &mut Cursor::new(&b"one\n\ntwo\n\nthree\n\n"[..]),
