@@ -12,10 +12,7 @@
 | Clandestine Routing | [In progress](#clandestine) |
 | Docker Style CLI | [In progress](#docker-cli) |
 | Founding Principles | [Navigate](#founding-principles) |
-| Key Goals Currently | [Navigate](#key-goals) |
-| Docker Style CLI | [In progress](#docker-cli) |
-| Graphic User Interface (GUI) | [In progress](#gui) |
-| Clandestine Routing | [In progress](#clandestine) |
+| Key Project Goals Currently | [Navigate](#key-goals) |
 | Next Steps | [Navigate](#next-steps) |
 | Tokenomics | [Navigate](#tokenomics)  |
 | Don the MASQ & Get Involved | [Support Us](#support-us) |
@@ -84,15 +81,7 @@ MASQ intends to keep user privacy as an utmost priority, as without true privacy
 Similarly, members of the Committee will remain pseudo-anonymous until such time that the network will be completely immutable, and there is little to no external threat to them. Some of the Committee are willing to be openly identified.
  
 <a id="key-goals"></a>
-# KEY GOALS CURRENTLY
-
-<a id="docker-cli"></a>
-### Docker-Style CLI Interface - in progress, nearing completion
-We have discontinued development and maintenance on the dated GUI, which was not only inefficient, but didn't reflect the features of Node entirely. From here our development is focused on the skeleton behind any GUI, and is now based on a Command Line interface, which will be adapted to be used on the main platforms.
-
-Our goal is to have a configuration file be set up and referenced by the software Daemon, and then Node can be initialized by the user with a few simple commands on a Command Prompt in Windows, Linux or Mac
-
-After more of our UI-Gateway design is developed and implemented, further UI components and GUIs can be designed and built on top for more user-friendly adoption and full-fledged visual features.
+# KEY PROJECT GOALS CURRENTLY
 
 <a id="docker-cli"></a>
 ### Docker-Style CLI Interface
@@ -108,6 +97,7 @@ After more of our UI-gateway design is developed and implemented, further UI com
 
 ### Terminal Intelligence
 
+### Auto Port-Forwarding
 
 # NEXT STEPS
 

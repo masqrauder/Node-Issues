@@ -109,7 +109,7 @@ impl Handler<BindMessage> for UiGateway {
             msg.peer_actors.accountant.ui_message_sub.clone(),
             msg.peer_actors.neighborhood.from_ui_message_sub.clone(),
         ];
-        self.websocket_supervisor = match WebSocketSupervisorReal::new(
+        self.websocket_supervisor = Some(Box::new(WebSocketSupervisorReal::new(
             self.port,
             msg.peer_actors.ui_gateway.from_ui_message_sub,
             msg.peer_actors.ui_gateway.new_from_ui_message_sub,
@@ -433,7 +433,7 @@ mod tests {
             client_id: 1234,
             body: MessageBody {
                 opcode: "booga".to_string(),
-                path: FireAndForget,
+                path: OneWay,
                 payload: Ok("{}".to_string()),
             },
         };
@@ -473,7 +473,7 @@ mod tests {
             target: MessageTarget::ClientId(1234),
             body: MessageBody {
                 opcode: "booga".to_string(),
-                path: FireAndForget,
+                path: OneWay,
                 payload: Ok("{}".to_string()),
             },
         };

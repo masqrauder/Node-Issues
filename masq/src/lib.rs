@@ -4,12 +4,8 @@ pub mod command_context;
 pub mod command_factory;
 pub mod command_processor;
 pub mod commands;
-pub mod communications;
-mod notifications;
 mod schema;
-
-#[macro_use]
-extern crate crossbeam_channel;
+mod websockets_client;
 
 //#[cfg(test)] // Don't understand why this has to be commented out
 pub mod test_utils;

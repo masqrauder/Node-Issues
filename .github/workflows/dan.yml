@@ -22,3 +22,4 @@ jobs:
         rustup update stable
         ./ci/all.sh
       shell: bash
+      
