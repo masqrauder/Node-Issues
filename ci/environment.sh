@@ -1,4 +1,3 @@
-#!/bin/bash -xev
 # Copyright (c) 2017-2019, Substratum LLC (https://substratum.net) and/or its affiliates. All rights reserved.
 # source this file with arguments when you need to override the default toolchain location
 TOOLCHAIN_HOME="$1"

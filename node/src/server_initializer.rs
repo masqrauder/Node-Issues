@@ -19,6 +19,7 @@ use futures::try_ready;
 use lazy_static::lazy_static;
 use masq_lib::command::Command;
 use masq_lib::command::StdStreams;
+use masq_lib::shared_schema::ConfiguratorError;
 use std::any::Any;
 use std::fmt::Debug;
 use std::panic::{Location, PanicInfo};
@@ -36,31 +37,59 @@ pub struct ServerInitializer {
 
 impl Command for ServerInitializer {
     fn go(&mut self, streams: &mut StdStreams<'_>, args: &[String]) -> u8 {
-        if args.contains(&"--help".to_string()) || args.contains(&"--version".to_string()) {
-            self.privilege_dropper
-                .drop_privileges(&RealUser::null().populate());
-            NodeConfiguratorStandardPrivileged {}.configure(&args.to_vec(), streams);
-            0
-        } else {
-            self.dns_socket_server
-                .as_mut()
-                .initialize_as_privileged(args, streams);
-            self.bootstrapper
-                .as_mut()
-                .initialize_as_privileged(args, streams);
+        let mut result: Result<(), ConfiguratorError> = Ok(());
+        let exit_code =
+            if args.contains(&"--help".to_string()) || args.contains(&"--version".to_string()) {
+                self.privilege_dropper
+                    .drop_privileges(&RealUser::null().populate(&RealDirsWrapper {}));
+                result = Self::combine_results(
+                    result,
+                    NodeConfiguratorStandardPrivileged::new().configure(&args.to_vec(), streams),
+                );
+                0
+            } else {
+                result = Self::combine_results(
+                    result,
+                    self.dns_socket_server
+                        .as_mut()
+                        .initialize_as_privileged(args, streams),
+                );
+                result = Self::combine_results(
+                    result,
+                    self.bootstrapper
+                        .as_mut()
+                        .initialize_as_privileged(args, streams),
+                );
 
-            let config = self.bootstrapper.get_configuration();
-            let real_user = config.real_user.populate();
-            self.privilege_dropper
-                .chown(&config.data_directory, &real_user);
-            self.privilege_dropper.drop_privileges(&real_user);
+                let config = self.bootstrapper.get_configuration();
+                let real_user = config.real_user.populate(&RealDirsWrapper {});
+                self.privilege_dropper
+                    .chown(&config.data_directory, &real_user);
+                self.privilege_dropper.drop_privileges(&real_user);
 
-            self.dns_socket_server
-                .as_mut()
-                .initialize_as_unprivileged(args, streams);
-            self.bootstrapper
-                .as_mut()
-                .initialize_as_unprivileged(args, streams);
+                result = Self::combine_results(
+                    result,
+                    self.dns_socket_server
+                        .as_mut()
+                        .initialize_as_unprivileged(args, streams),
+                );
+                result = Self::combine_results(
+                    result,
+                    self.bootstrapper
+                        .as_mut()
+                        .initialize_as_unprivileged(args, streams),
+                );
+                1
+            };
+        if let Some(err) = result.err() {
+            err.param_errors.into_iter().for_each(|param_error| {
+                writeln!(
+                    streams.stderr,
+                    "Problem with parameter {}: {}",
+                    param_error.parameter, param_error.reason
+                )
+                .expect("writeln! failed")
+            });
             1
         } else {
             exit_code
@@ -371,6 +400,7 @@ pub mod test_utils {
                     None => None,
                 },
             ));
+            #[cfg(not(target_os = "windows"))]
             assert!(init_test_logging());
         }
     }
@@ -399,9 +429,12 @@ pub mod tests {
     use crate::server_initializer::test_utils::PrivilegeDropperMock;
     use crate::test_utils::logfile_name_guard::LogfileNameGuard;
     use crate::test_utils::logging::{init_test_logging, TestLogHandler};
-    use crate::test_utils::ByteArrayReader;
-    use crate::test_utils::ByteArrayWriter;
-    use masq_lib::test_utils::fake_stream_holder::FakeStreamHolder;
+    use masq_lib::crash_point::CrashPoint;
+    use masq_lib::shared_schema::{ConfiguratorError, ParamError};
+    use masq_lib::test_utils::fake_stream_holder::{
+        ByteArrayReader, ByteArrayWriter, FakeStreamHolder,
+    };
+    use std::cell::RefCell;
     use std::sync::Arc;
     use std::sync::Mutex;
 
@@ -413,9 +446,21 @@ pub mod tests {
             &self.configuration
         }
 
-        fn initialize_as_privileged(&mut self, _args: &[String], _streams: &mut StdStreams<'_>) {}
+        fn initialize_as_privileged(
+            &mut self,
+            _args: &[String],
+            _streams: &mut StdStreams<'_>,
+        ) -> Result<(), ConfiguratorError> {
+            Ok(())
+        }
 
-        fn initialize_as_unprivileged(&mut self, _args: &[String], _streams: &mut StdStreams<'_>) {}
+        fn initialize_as_unprivileged(
+            &mut self,
+            _args: &[String],
+            _streams: &mut StdStreams<'_>,
+        ) -> Result<(), ConfiguratorError> {
+            Ok(())
+        }
     }
 
     struct SocketServerMock<C> {
@@ -443,18 +488,30 @@ pub mod tests {
             &self.get_configuration_result
         }
 
-        fn initialize_as_privileged(&mut self, args: &[String], _streams: &mut StdStreams) {
+        fn initialize_as_privileged(
+            &mut self,
+            args: &[String],
+            _streams: &mut StdStreams,
+        ) -> Result<(), ConfiguratorError> {
             self.initialize_as_privileged_params
                 .lock()
                 .unwrap()
                 .push(args.to_vec());
+            self.initialize_as_privileged_results.borrow_mut().remove(0)
         }
 
-        fn initialize_as_unprivileged(&mut self, args: &[String], _streams: &mut StdStreams) {
+        fn initialize_as_unprivileged(
+            &mut self,
+            args: &[String],
+            _streams: &mut StdStreams,
+        ) -> Result<(), ConfiguratorError> {
             self.initialize_as_unprivileged_params
                 .lock()
                 .unwrap()
                 .push(args.to_vec());
+            self.initialize_as_unprivileged_results
+                .borrow_mut()
+                .remove(0)
         }
     }
 
