@@ -77,8 +77,9 @@ cmake-build-debug/
 **/.idea/**/mongoSettings.xml
 
 ## File-based project format:
-*.iws
+*.iml
 *.ipr
+*.iws
 
 ## Plugin-specific files:
 

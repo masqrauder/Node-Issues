@@ -47,9 +47,9 @@ impl Recognizer for ChildWaitFailureRecognizer {
         }
         if let Some(stderr) = stderr {
             if stderr.starts_with(CHILD_WAIT_FAILURE_PREFIX) {
-                if let Some(err_msg) = stderr.strip_prefix(CHILD_WAIT_FAILURE_PREFIX) {
-                    return Some(CrashReason::ChildWaitFailure(err_msg.to_string()));
-                }
+                return stderr
+                    .strip_prefix(CHILD_WAIT_FAILURE_PREFIX)
+                    .map(|err_msg| CrashReason::ChildWaitFailure(err_msg.to_string()));
             }
         }
         None
