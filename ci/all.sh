@@ -5,6 +5,8 @@ PARENT_DIR="$1"
 
 ci/format.sh
 
+export RUST_BACKTRACE=1
+
 # Remove these two lines to slow down the build
 which sccache || cargo install sccache || echo "Skipping sccache installation"  # Should do significant work only once
 export CARGO_TARGET_DIR="$CI_DIR/../cargo-cache"
