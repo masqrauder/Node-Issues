@@ -39,7 +39,7 @@ function common() {
   "$RUSTUP" default "$RUST_VERSION"
   "$RUSTUP" component add rustfmt
   "$RUSTUP" component add clippy
-  #"$CARGO" install sccache
+  "$CARGO" install sccache
 
   mkdir -p "$CACHE_TARGET/toolchains"
   cp -pR "$HOME/.cargo" "$CACHE_TARGET"/toolchains/.cargo

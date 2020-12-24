@@ -12,7 +12,7 @@ RUN apt-get update \
     && rustup self update \
     && rustup toolchain install --profile default stable \
     && rustup default stable \
-    #&& cargo install sccache \
+    && cargo install sccache \
     && chown -R $uid:$gid /usr/local/cargo /usr/local/rustup
 
 USER masq
