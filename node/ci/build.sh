@@ -3,5 +3,6 @@
 CI_DIR="$( cd "$( dirname "$0" )" && pwd )"
 
 pushd "$CI_DIR/.."
+cargo --version
 cargo build --all --lib --bins --tests --release --verbose
 popd

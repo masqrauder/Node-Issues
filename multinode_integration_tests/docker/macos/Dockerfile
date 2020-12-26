@@ -3,11 +3,16 @@ FROM rust:stretch
 ARG uid
 ARG gid
 
-RUN (addgroup substratum --gid $gid || continue) \
-    && adduser --disabled-password --uid $uid --gid $gid --home /home/substratum substratum \
-    && chown -R $uid:$gid /home/substratum
+RUN (addgroup masq --gid $gid || continue) \
+    && adduser --disabled-password --uid $uid --gid $gid --home /home/masq masq \
+    && chown -R $uid:$gid /home/masq
 
-RUN apt-get update && apt-get install -y sudo curl && rustup component add rustfmt clippy \
-    && cargo install sccache && chown -R $uid:$gid /usr/local/cargo /usr/local/rustup
+RUN apt-get update \
+    && apt-get install -y sudo curl \
+    && rustup self update \
+    && rustup toolchain install --profile default stable \
+    && rustup default stable \
+    && cargo install sccache \
+    && chown -R $uid:$gid /usr/local/cargo /usr/local/rustup
 
-USER substratum
+USER masq
