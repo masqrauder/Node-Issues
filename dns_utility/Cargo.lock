@@ -244,9 +244,9 @@ checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 
 [[package]]
 name = "core-foundation"
-version = "0.6.4"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25b9e03f145fd4f2bf705e07b900cd41fc636598fe5dc452fd0db1441c3f496d"
+checksum = "57d24c7a13c43e870e37c1556b74555437870a04514f7685f5b354e090567171"
 dependencies = [
  "core-foundation-sys",
  "libc",
@@ -254,9 +254,9 @@ dependencies = [
 
 [[package]]
 name = "core-foundation-sys"
-version = "0.6.2"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7ca8a5221364ef15ce201e8ed2f609fc312682a8f4e0e3d4aa5879764e0fa3b"
+checksum = "b3a71ab494c0b5b860bdc8407ae08978052417070c2ced38573a9157ad75b8ac"
 
 [[package]]
 name = "crossbeam-channel"
@@ -379,7 +379,7 @@ dependencies = [
  "masq_lib",
  "regex",
  "system-configuration",
- "winreg 0.7.0",
+ "winreg 0.8.0",
 ]
 
 [[package]]
@@ -1349,19 +1349,20 @@ dependencies = [
 
 [[package]]
 name = "system-configuration"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df3dc3e701a89dd6764083d19f048b57ec01c26d0904ff8108a507059a6462e6"
+checksum = "dd4bc0637a2b8c0b1a5145cca3e21b707865edc7e32285771536af1ade129468"
 dependencies = [
+ "bitflags",
  "core-foundation",
  "system-configuration-sys",
 ]
 
 [[package]]
 name = "system-configuration-sys"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfd906a2882d54084bfdf517bf03892ac06820f1c0a3d37e48609f334798ad99"
+checksum = "269e271436d8e4bb2621c535a11fe03d5d012f74b19af72f80288f3a72f6180a"
 dependencies = [
  "core-foundation-sys",
  "libc",
@@ -1871,9 +1872,9 @@ dependencies = [
 
 [[package]]
 name = "winreg"
-version = "0.7.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0120db82e8a1e0b9fb3345a539c478767c0048d842860994d96113d5b667bd69"
+checksum = "d107f8c6e916235c4c01cabb3e8acf7bea8ef6a63ca2e7fa0527c049badfc48c"
 dependencies = [
  "winapi 0.3.8",
 ]
