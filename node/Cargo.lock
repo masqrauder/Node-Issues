@@ -1618,7 +1618,7 @@ dependencies = [
 name = "multinode_integration_tests"
 version = "1.0.0"
 dependencies = [
- "base64 0.10.1",
+ "base64 0.12.3",
  "crossbeam-channel 0.5.0",
  "ethereum-types",
  "ethsign-crypto",
@@ -1634,7 +1634,7 @@ dependencies = [
  "rusqlite",
  "rustc-hex",
  "serde",
- "serde_cbor 0.11.1",
+ "serde_cbor",
  "serde_derive",
  "sha1",
  "tiny-bip39",
@@ -1732,7 +1732,7 @@ dependencies = [
  "rusqlite",
  "rustc-hex",
  "serde",
- "serde_cbor 0.10.2",
+ "serde_cbor",
  "serde_derive",
  "serde_json",
  "serial_test",
@@ -2597,17 +2597,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b88fa983de7720629c9387e9f517353ed404164b1e482c970a90c1a4aaf7dc1a"
 dependencies = [
  "serde_derive",
-]
-
-[[package]]
-name = "serde_cbor"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f7081ed758ec726a6ed8ee7e92f5d3f6e6f8c3901b1f972e3a4a2f2599fad14f"
-dependencies = [
- "byteorder",
- "half",
- "serde",
 ]
 
 [[package]]
