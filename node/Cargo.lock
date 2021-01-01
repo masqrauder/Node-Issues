@@ -1618,7 +1618,7 @@ dependencies = [
 name = "multinode_integration_tests"
 version = "1.0.0"
 dependencies = [
- "base64 0.10.1",
+ "base64 0.12.3",
  "crossbeam-channel 0.5.0",
  "ethereum-types",
  "ethsign-crypto",
