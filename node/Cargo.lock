@@ -1627,7 +1627,7 @@ dependencies = [
  "masq_lib",
  "native-tls",
  "node",
- "pretty-hex",
+ "pretty-hex 0.2.1",
  "primitive-types 0.5.1",
  "regex",
  "reqwest",
@@ -1723,7 +1723,7 @@ dependencies = [
  "native-tls",
  "nix",
  "openssl",
- "pretty-hex",
+ "pretty-hex 0.1.1",
  "primitive-types 0.5.1",
  "rand 0.7.3",
  "regex",
@@ -2015,6 +2015,12 @@ name = "pretty-hex"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be91bcc43e73799dc46a6c194a55e7aae1d86cc867c860fd4a436019af21bd8c"
+
+[[package]]
+name = "pretty-hex"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc5c99d529f0d30937f6f4b8a86d988047327bb88d04d2c4afc356de74722131"
 
 [[package]]
 name = "primitive-types"
