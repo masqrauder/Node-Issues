@@ -15,7 +15,6 @@ use serde_derive::{Deserialize, Serialize};
 use std::collections::btree_set::BTreeSet;
 use std::collections::HashSet;
 use std::convert::TryFrom;
-use std::iter::FromIterator;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 #[allow(non_camel_case_types)]
@@ -131,7 +130,7 @@ impl NodeRecord {
     }
 
     pub fn half_neighbor_keys(&self) -> HashSet<&PublicKey> {
-        HashSet::from_iter(self.inner.neighbors.iter())
+        self.inner.neighbors.iter().collect()
     }
 
     pub fn has_half_neighbor(&self, key: &PublicKey) -> bool {
@@ -357,6 +356,7 @@ mod tests {
     use crate::test_utils::neighborhood_test_utils::{db_from_node, make_node_record};
     use crate::test_utils::{assert_contains, main_cryptde, make_wallet, rate_pack};
     use masq_lib::test_utils::utils::DEFAULT_CHAIN_ID;
+    use std::iter::FromIterator;
     use std::net::IpAddr;
     use std::str::FromStr;
 
