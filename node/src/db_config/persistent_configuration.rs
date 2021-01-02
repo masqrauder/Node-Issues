@@ -202,10 +202,10 @@ impl PersistentConfiguration for PersistentConfigurationReal {
         Ok(self.dao.get("seed")?.value_opt.is_some())
     }
 
-    fn set_mnemonic_seed<'b, 'c>(
+    fn set_mnemonic_seed(
         &mut self,
-        seed: &'b dyn AsRef<[u8]>,
-        db_password: &'c str,
+        seed: &dyn AsRef<[u8]>,
+        db_password: &str,
     ) -> Result<(), PersistentConfigError> {
         let mut writer = self.dao.start_transaction()?;
         let encoded_seed =
@@ -240,10 +240,10 @@ impl PersistentConfiguration for PersistentConfigurationReal {
         Ok(path_rec.value_opt)
     }
 
-    fn set_consuming_wallet_derivation_path<'b, 'c>(
+    fn set_consuming_wallet_derivation_path(
         &mut self,
-        derivation_path: &'b str,
-        db_password: &'c str,
+        derivation_path: &str,
+        db_password: &str,
     ) -> Result<(), PersistentConfigError> {
         let mut writer = self.dao.start_transaction()?;
         let key_rec = writer.get("consuming_wallet_public_key")?;
@@ -280,9 +280,9 @@ impl PersistentConfiguration for PersistentConfigurationReal {
         }
     }
 
-    fn set_consuming_wallet_public_key<'b>(
+    fn set_consuming_wallet_public_key(
         &mut self,
-        public_key: &'b PlainData,
+        public_key: &PlainData,
     ) -> Result<(), PersistentConfigError> {
         let public_key_text: String = public_key.as_slice().to_hex();
         let mut writer = self.dao.start_transaction()?;
@@ -316,9 +316,9 @@ impl PersistentConfiguration for PersistentConfigurationReal {
         Ok(self.dao.get("earning_wallet_address")?.value_opt)
     }
 
-    fn set_earning_wallet_address<'b>(
+    fn set_earning_wallet_address(
         &mut self,
-        new_address: &'b str,
+        new_address: &str,
     ) -> Result<(), PersistentConfigError> {
         if Wallet::from_str(new_address).is_err() {
             return Err(PersistentConfigError::BadAddressFormat(

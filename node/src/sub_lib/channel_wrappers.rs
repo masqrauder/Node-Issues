@@ -9,6 +9,7 @@ use std::net::SocketAddr;
 use tokio::prelude::Async;
 
 pub trait ReceiverWrapper<T: Send>: Send {
+    #[allow(clippy::result_unit_err)]
     fn poll(&mut self) -> Result<Async<Option<T>>, ()>;
 }
 
@@ -17,6 +18,7 @@ pub struct ReceiverWrapperReal<T> {
 }
 
 impl<T: Send> ReceiverWrapper<T> for ReceiverWrapperReal<T> {
+    #[allow(clippy::result_unit_err)]
     fn poll(&mut self) -> Result<Async<Option<T>>, ()> {
         self.delegate.poll()
     }
