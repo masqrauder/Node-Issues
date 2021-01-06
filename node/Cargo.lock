@@ -857,18 +857,6 @@ dependencies = [
 
 [[package]]
 name = "fixed-hash"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "516877b7b9a1cc2d0293cbce23cd6203f0edbfd4090e6ca4489fecb5aa73050e"
-dependencies = [
- "byteorder",
- "rand 0.5.6",
- "rustc-hex",
- "static_assertions 0.2.5",
-]
-
-[[package]]
-name = "fixed-hash"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11498d382790b7a8f2fd211780bec78619bba81cdad3a283997c0c41f836759c"
@@ -1131,6 +1119,12 @@ checksum = "5aca5565f760fb5b220e499d72710ed156fdb74e631659e99377d9ebfbd13ae8"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "hex"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "644f9158b2f133fd50f5fb3242878846d9eb792e445c893805ff0e3824006e35"
 
 [[package]]
 name = "hmac"
@@ -1802,7 +1796,7 @@ dependencies = [
  "sha1",
  "tiny-bip39",
  "tiny-hderive",
- "uint 0.8.5",
+ "uint 0.9.0",
  "web3",
 ]
 
@@ -1870,12 +1864,12 @@ dependencies = [
  "dirs",
  "ethereum-types",
  "ethsign",
- "ethsign-crypto 0.1.0",
+ "ethsign-crypto 0.2.1",
  "fdlimit",
  "flexi_logger",
  "futures",
  "heck",
- "http 0.1.21",
+ "http 0.2.2",
  "indoc",
  "itertools",
  "jsonrpc-core",
@@ -1887,7 +1881,7 @@ dependencies = [
  "nix",
  "openssl",
  "pretty-hex",
- "primitive-types 0.5.1",
+ "primitive-types 0.7.3",
  "rand 0.7.3",
  "regex",
  "rlp",
@@ -2248,19 +2242,6 @@ dependencies = [
  "impl-rlp",
  "impl-serde 0.2.3",
  "uint 0.7.1",
-]
-
-[[package]]
-name = "primitive-types"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83ef7b3b965c0eadcb6838f34f827e1dfb2939bdd5ebd43f9647e009b12b0371"
-dependencies = [
- "fixed-hash 0.4.0",
- "impl-codec 0.4.2",
- "impl-rlp",
- "impl-serde 0.2.3",
- "uint 0.8.5",
 ]
 
 [[package]]
@@ -3684,6 +3665,18 @@ dependencies = [
  "byteorder",
  "crunchy",
  "rustc-hex",
+ "static_assertions 1.1.0",
+]
+
+[[package]]
+name = "uint"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e11fe9a9348741cf134085ad57c249508345fe16411b3d7fb4ff2da2f1d6382e"
+dependencies = [
+ "byteorder",
+ "crunchy",
+ "hex",
  "static_assertions 1.1.0",
 ]
 
