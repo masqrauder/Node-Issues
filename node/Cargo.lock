@@ -1121,6 +1121,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "hex"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "644f9158b2f133fd50f5fb3242878846d9eb792e445c893805ff0e3824006e35"
+
+[[package]]
 name = "hmac"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1799,7 +1805,7 @@ dependencies = [
  "sha1",
  "tiny-bip39",
  "tiny-hderive",
- "uint 0.8.5",
+ "uint 0.9.0",
  "web3",
 ]
 
@@ -1867,7 +1873,7 @@ dependencies = [
  "dirs",
  "ethereum-types",
  "ethsign",
- "ethsign-crypto 0.1.0",
+ "ethsign-crypto 0.2.1",
  "fdlimit",
  "flexi_logger",
  "futures",
@@ -3668,6 +3674,18 @@ dependencies = [
  "byteorder",
  "crunchy",
  "rustc-hex",
+ "static_assertions 1.1.0",
+]
+
+[[package]]
+name = "uint"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e11fe9a9348741cf134085ad57c249508345fe16411b3d7fb4ff2da2f1d6382e"
+dependencies = [
+ "byteorder",
+ "crunchy",
+ "hex",
  "static_assertions 1.1.0",
 ]
 
