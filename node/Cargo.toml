@@ -14,7 +14,7 @@ members = ["../multinode_integration_tests", "../masq_lib", "../masq"]
 actix = "= 0.7.9"
 backtrace = "0.3.55"
 base64 = "0.13.0"
-bytes = "0.4.12"
+bytes = "0.5.6"
 chrono = "0.4.7"
 clap = "2.33.1"
 crossbeam-channel = "0.5.0"
