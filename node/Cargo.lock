@@ -733,7 +733,7 @@ dependencies = [
  "crunchy",
  "fixed-hash 0.3.2",
  "impl-rlp",
- "impl-serde",
+ "impl-serde 0.2.3",
  "tiny-keccak",
 ]
 
@@ -746,7 +746,7 @@ dependencies = [
  "ethbloom",
  "fixed-hash 0.3.2",
  "impl-rlp",
- "impl-serde",
+ "impl-serde 0.2.3",
  "primitive-types 0.3.0",
  "uint 0.7.1",
 ]
@@ -851,6 +851,18 @@ dependencies = [
  "rand 0.5.6",
  "rustc-hex",
  "static_assertions 0.2.5",
+]
+
+[[package]]
+name = "fixed-hash"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11498d382790b7a8f2fd211780bec78619bba81cdad3a283997c0c41f836759c"
+dependencies = [
+ "byteorder",
+ "rand 0.7.3",
+ "rustc-hex",
+ "static_assertions 1.1.0",
 ]
 
 [[package]]
@@ -1363,6 +1375,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "impl-serde"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b47ca4d2b6931707a55fce5cf66aff80e2178c8b63bbb4ecb5695cbc870ddf6f"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "indexmap"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1756,7 +1777,7 @@ dependencies = [
  "native-tls",
  "node",
  "pretty-hex",
- "primitive-types 0.5.1",
+ "primitive-types 0.7.3",
  "regex",
  "reqwest",
  "rusqlite",
@@ -2211,7 +2232,7 @@ dependencies = [
  "fixed-hash 0.3.2",
  "impl-codec 0.2.0",
  "impl-rlp",
- "impl-serde",
+ "impl-serde 0.2.3",
  "uint 0.7.1",
 ]
 
@@ -2224,7 +2245,20 @@ dependencies = [
  "fixed-hash 0.4.0",
  "impl-codec 0.4.2",
  "impl-rlp",
- "impl-serde",
+ "impl-serde 0.2.3",
+ "uint 0.8.5",
+]
+
+[[package]]
+name = "primitive-types"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7dd39dcacf71411ba488570da7bbc89b717225e46478b30ba99b92db6b149809"
+dependencies = [
+ "fixed-hash 0.6.1",
+ "impl-codec 0.4.2",
+ "impl-rlp",
+ "impl-serde 0.3.1",
  "uint 0.8.5",
 ]
 
