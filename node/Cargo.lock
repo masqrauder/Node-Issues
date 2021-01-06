@@ -722,12 +722,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebdeeea85a6d217b9fcc862906d7e283c047e04114165c433756baf5dce00a6c"
 dependencies = [
  "error-chain 0.12.4",
- "ethereum-types",
+ "ethereum-types 0.6.0",
  "rustc-hex",
  "serde",
  "serde_derive",
  "serde_json",
- "tiny-keccak",
+ "tiny-keccak 1.5.0",
 ]
 
 [[package]]
@@ -740,7 +740,20 @@ dependencies = [
  "fixed-hash 0.3.2",
  "impl-rlp 0.2.1",
  "impl-serde 0.2.3",
- "tiny-keccak",
+ "tiny-keccak 1.5.0",
+]
+
+[[package]]
+name = "ethbloom"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22a621dcebea74f2a6f2002d0a885c81ccf6cbdf86760183316a7722b5707ca4"
+dependencies = [
+ "crunchy",
+ "fixed-hash 0.7.0",
+ "impl-rlp 0.3.0",
+ "impl-serde 0.3.1",
+ "tiny-keccak 2.0.2",
 ]
 
 [[package]]
@@ -749,12 +762,26 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62d1bc682337e2c5ec98930853674dd2b4bd5d0d246933a9e98e5280f7c76c5f"
 dependencies = [
- "ethbloom",
+ "ethbloom 0.6.4",
  "fixed-hash 0.3.2",
  "impl-rlp 0.2.1",
  "impl-serde 0.2.3",
  "primitive-types 0.3.0",
  "uint 0.7.1",
+]
+
+[[package]]
+name = "ethereum-types"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05dc5f0df4915fa6dff7f975a8366ecfaaa8959c74235469495153e7bb1b280e"
+dependencies = [
+ "ethbloom 0.10.0",
+ "fixed-hash 0.7.0",
+ "impl-rlp 0.3.0",
+ "impl-serde 0.3.1",
+ "primitive-types 0.8.0",
+ "uint 0.9.0",
 ]
 
 [[package]]
@@ -782,7 +809,7 @@ dependencies = [
  "pbkdf2",
  "scrypt",
  "sha2 0.8.2",
- "tiny-keccak",
+ "tiny-keccak 1.5.0",
 ]
 
 [[package]]
@@ -796,7 +823,7 @@ dependencies = [
  "pbkdf2",
  "scrypt",
  "sha2 0.8.2",
- "tiny-keccak",
+ "tiny-keccak 1.5.0",
 ]
 
 [[package]]
@@ -859,18 +886,6 @@ dependencies = [
  "rand 0.5.6",
  "rustc-hex",
  "static_assertions 0.2.5",
-]
-
-[[package]]
-name = "fixed-hash"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11498d382790b7a8f2fd211780bec78619bba81cdad3a283997c0c41f836759c"
-dependencies = [
- "byteorder",
- "rand 0.7.3",
- "rustc-hex",
- "static_assertions 1.1.0",
 ]
 
 [[package]]
@@ -1815,7 +1830,7 @@ version = "1.0.0"
 dependencies = [
  "base64 0.13.0",
  "crossbeam-channel 0.5.0",
- "ethereum-types",
+ "ethereum-types 0.10.0",
  "ethsign-crypto 0.2.1",
  "futures",
  "itertools",
@@ -1900,7 +1915,7 @@ dependencies = [
  "crossbeam-channel 0.5.0",
  "daemonize",
  "dirs",
- "ethereum-types",
+ "ethereum-types 0.6.0",
  "ethsign",
  "ethsign-crypto 0.2.1",
  "fdlimit",
@@ -1919,7 +1934,7 @@ dependencies = [
  "nix",
  "openssl",
  "pretty-hex",
- "primitive-types 0.7.3",
+ "primitive-types 0.8.0",
  "rand 0.7.3",
  "regex",
  "rlp 0.4.6",
@@ -2280,19 +2295,6 @@ dependencies = [
  "impl-rlp 0.2.1",
  "impl-serde 0.2.3",
  "uint 0.7.1",
-]
-
-[[package]]
-name = "primitive-types"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dd39dcacf71411ba488570da7bbc89b717225e46478b30ba99b92db6b149809"
-dependencies = [
- "fixed-hash 0.6.1",
- "impl-codec 0.4.2",
- "impl-rlp 0.2.1",
- "impl-serde 0.3.1",
- "uint 0.8.5",
 ]
 
 [[package]]
@@ -3245,6 +3247,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tiny-keccak"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c9d3793400a45f954c52e73d068316d76b6f4e36977e3fcebb13a2721e80237"
+dependencies = [
+ "crunchy",
+]
+
+[[package]]
 name = "tinyvec"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3749,18 +3760,6 @@ dependencies = [
 
 [[package]]
 name = "uint"
-version = "0.8.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9db035e67dfaf7edd9aebfe8676afcd63eed53c8a4044fed514c8cccf1835177"
-dependencies = [
- "byteorder",
- "crunchy",
- "rustc-hex",
- "static_assertions 1.1.0",
-]
-
-[[package]]
-name = "uint"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e11fe9a9348741cf134085ad57c249508345fe16411b3d7fb4ff2da2f1d6382e"
@@ -4019,7 +4018,7 @@ dependencies = [
  "base64 0.10.1",
  "derive_more",
  "ethabi",
- "ethereum-types",
+ "ethereum-types 0.6.0",
  "futures",
  "hyper 0.12.35",
  "hyper-tls 0.3.2",
