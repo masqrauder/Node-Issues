@@ -857,18 +857,6 @@ dependencies = [
 
 [[package]]
 name = "fixed-hash"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "516877b7b9a1cc2d0293cbce23cd6203f0edbfd4090e6ca4489fecb5aa73050e"
-dependencies = [
- "byteorder",
- "rand 0.5.6",
- "rustc-hex",
- "static_assertions 0.2.5",
-]
-
-[[package]]
-name = "fixed-hash"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11498d382790b7a8f2fd211780bec78619bba81cdad3a283997c0c41f836759c"
@@ -1808,9 +1796,9 @@ dependencies = [
 
 [[package]]
 name = "native-tls"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fcc7939b5edc4e4f86b1b4a04bb1498afaaf871b1a6691838ed06fcb48d3a3f"
+checksum = "b8d96b2e1c8da3957d58100b09f102c6d9cfdfced01b7ec5a8974044bb09dbd4"
 dependencies = [
  "lazy_static",
  "libc",
@@ -1870,12 +1858,12 @@ dependencies = [
  "dirs",
  "ethereum-types",
  "ethsign",
- "ethsign-crypto 0.1.0",
+ "ethsign-crypto 0.2.1",
  "fdlimit",
  "flexi_logger",
  "futures",
  "heck",
- "http 0.1.21",
+ "http 0.2.2",
  "indoc",
  "itertools",
  "jsonrpc-core",
@@ -1887,7 +1875,7 @@ dependencies = [
  "nix",
  "openssl",
  "pretty-hex",
- "primitive-types 0.5.1",
+ "primitive-types 0.7.3",
  "rand 0.7.3",
  "regex",
  "rlp",
@@ -2248,19 +2236,6 @@ dependencies = [
  "impl-rlp",
  "impl-serde 0.2.3",
  "uint 0.7.1",
-]
-
-[[package]]
-name = "primitive-types"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83ef7b3b965c0eadcb6838f34f827e1dfb2939bdd5ebd43f9647e009b12b0371"
-dependencies = [
- "fixed-hash 0.4.0",
- "impl-codec 0.4.2",
- "impl-rlp",
- "impl-serde 0.2.3",
- "uint 0.8.5",
 ]
 
 [[package]]

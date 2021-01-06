@@ -27,7 +27,7 @@ serde_cbor = "0.11.1"
 sha1 = "0.6.0"
 tiny-bip39 = "0.6.2"
 tiny-hderive = "0.2.1"
-native-tls = "0.2.6"
+native-tls = "0.2.7"
 node = { path = "../node", features = [ "expose_test_privates" ] }
 uint = "0.8.1"
 web3 = {version = "0.8.0", default-features = false, features = ["http", "tls"]}
