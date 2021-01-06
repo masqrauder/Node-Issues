@@ -757,7 +757,7 @@ version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96d29647713ba24ade587139ab8ac200e390ecb49df1e1010f1b2e45e9a0e5e3"
 dependencies = [
- "ethsign-crypto",
+ "ethsign-crypto 0.1.0",
  "libsecp256k1",
  "memzero",
  "rand 0.6.5",
@@ -770,6 +770,20 @@ name = "ethsign-crypto"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0239998cf14901be86d9b30391fe873da495a80ae848016da4b8ff7cacbbc717"
+dependencies = [
+ "aes-ctr",
+ "hmac 0.7.1",
+ "pbkdf2",
+ "scrypt",
+ "sha2 0.8.2",
+ "tiny-keccak",
+]
+
+[[package]]
+name = "ethsign-crypto"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4e62e068d05d580a2504f51e2a242a9ea4a0cd2a6ba378e13de390efcc1b1753"
 dependencies = [
  "aes-ctr",
  "hmac 0.7.1",
@@ -1770,7 +1784,7 @@ dependencies = [
  "base64 0.13.0",
  "crossbeam-channel 0.5.0",
  "ethereum-types",
- "ethsign-crypto",
+ "ethsign-crypto 0.2.1",
  "futures",
  "itertools",
  "masq_lib",
@@ -1856,7 +1870,7 @@ dependencies = [
  "dirs",
  "ethereum-types",
  "ethsign",
- "ethsign-crypto",
+ "ethsign-crypto 0.1.0",
  "fdlimit",
  "flexi_logger",
  "futures",
