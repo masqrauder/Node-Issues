@@ -843,18 +843,6 @@ dependencies = [
 
 [[package]]
 name = "fixed-hash"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "516877b7b9a1cc2d0293cbce23cd6203f0edbfd4090e6ca4489fecb5aa73050e"
-dependencies = [
- "byteorder",
- "rand 0.5.6",
- "rustc-hex",
- "static_assertions 0.2.5",
-]
-
-[[package]]
-name = "fixed-hash"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11498d382790b7a8f2fd211780bec78619bba81cdad3a283997c0c41f836759c"
@@ -1466,6 +1454,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "37d572918e350e82412fe766d24b15e6682fb2ed2bbe018280caa810397cb319"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1636,7 +1633,7 @@ dependencies = [
  "actix",
  "clap",
  "crossbeam-channel 0.4.4",
- "itertools",
+ "itertools 0.10.0",
  "lazy_static",
  "regex",
  "serde",
@@ -1772,7 +1769,7 @@ dependencies = [
  "ethereum-types",
  "ethsign-crypto",
  "futures",
- "itertools",
+ "itertools 0.10.0",
  "masq_lib",
  "native-tls",
  "node",
@@ -1861,9 +1858,9 @@ dependencies = [
  "flexi_logger",
  "futures",
  "heck",
- "http 0.1.21",
+ "http 0.2.2",
  "indoc",
- "itertools",
+ "itertools 0.8.2",
  "jsonrpc-core",
  "lazy_static",
  "libsecp256k1",
@@ -1873,7 +1870,7 @@ dependencies = [
  "nix",
  "openssl",
  "pretty-hex",
- "primitive-types 0.5.1",
+ "primitive-types 0.7.3",
  "rand 0.7.3",
  "regex",
  "rlp",
@@ -2234,19 +2231,6 @@ dependencies = [
  "impl-rlp",
  "impl-serde 0.2.3",
  "uint 0.7.1",
-]
-
-[[package]]
-name = "primitive-types"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83ef7b3b965c0eadcb6838f34f827e1dfb2939bdd5ebd43f9647e009b12b0371"
-dependencies = [
- "fixed-hash 0.4.0",
- "impl-codec 0.4.2",
- "impl-rlp",
- "impl-serde 0.2.3",
- "uint 0.8.5",
 ]
 
 [[package]]
