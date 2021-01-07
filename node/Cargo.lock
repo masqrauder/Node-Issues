@@ -863,18 +863,6 @@ dependencies = [
 
 [[package]]
 name = "fixed-hash"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11498d382790b7a8f2fd211780bec78619bba81cdad3a283997c0c41f836759c"
-dependencies = [
- "byteorder",
- "rand 0.7.3",
- "rustc-hex",
- "static_assertions 1.1.0",
-]
-
-[[package]]
-name = "fixed-hash"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfcf0ed7fe52a17a03854ec54a9f76d6d84508d1c0e66bc1793301c73fc8493c"
@@ -1919,7 +1907,7 @@ dependencies = [
  "nix",
  "openssl",
  "pretty-hex",
- "primitive-types 0.7.3",
+ "primitive-types 0.8.0",
  "rand 0.7.3",
  "regex",
  "rlp 0.4.6",
@@ -2280,19 +2268,6 @@ dependencies = [
  "impl-rlp 0.2.1",
  "impl-serde 0.2.3",
  "uint 0.7.1",
-]
-
-[[package]]
-name = "primitive-types"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dd39dcacf71411ba488570da7bbc89b717225e46478b30ba99b92db6b149809"
-dependencies = [
- "fixed-hash 0.6.1",
- "impl-codec 0.4.2",
- "impl-rlp 0.2.1",
- "impl-serde 0.3.1",
- "uint 0.8.5",
 ]
 
 [[package]]
@@ -3745,18 +3720,6 @@ dependencies = [
  "crunchy",
  "heapsize",
  "rustc-hex",
-]
-
-[[package]]
-name = "uint"
-version = "0.8.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9db035e67dfaf7edd9aebfe8676afcd63eed53c8a4044fed514c8cccf1835177"
-dependencies = [
- "byteorder",
- "crunchy",
- "rustc-hex",
- "static_assertions 1.1.0",
 ]
 
 [[package]]
