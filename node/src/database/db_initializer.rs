@@ -295,7 +295,7 @@ impl DbInitializerReal {
         let mut rng = SmallRng::from_entropy();
         loop {
             let candidate_port: u16 =
-                rng.gen_range(LOWEST_USABLE_INSECURE_PORT, HIGHEST_RANDOM_CLANDESTINE_PORT);
+                rng.gen_range(LOWEST_USABLE_INSECURE_PORT..HIGHEST_RANDOM_CLANDESTINE_PORT);
             match TcpListener::bind(&SocketAddr::V4(SocketAddrV4::new(
                 Ipv4Addr::from(0),
                 candidate_port,
