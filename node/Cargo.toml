@@ -11,7 +11,7 @@ edition = "2018"
 members = ["../multinode_integration_tests", "../masq_lib", "../masq"]
 
 [dependencies]
-actix = "= 0.7.9"
+actix = "= 0.10.0"
 backtrace = "0.3.55"
 base64 = "0.13.0"
 bytes = "0.4.12"
