@@ -561,13 +561,12 @@ mod tests {
         assert_eq!(full_neighbors.len(), 2);
         assert_eq!(
             this_node.full_neighbor_keys(&database),
-            HashSet::from_iter(
-                vec![
-                    full_neighbor_one.public_key(),
-                    full_neighbor_two.public_key()
-                ]
-                .into_iter()
-            )
+            vec![
+                full_neighbor_one.public_key(),
+                full_neighbor_two.public_key()
+            ]
+            .into_iter()
+            .collect::<HashSet<&PublicKey>>()
         );
         assert_eq!(
             this_node.has_full_neighbor(&database, full_neighbor_one.public_key()),
