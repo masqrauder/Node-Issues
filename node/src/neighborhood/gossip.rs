@@ -10,7 +10,6 @@ use crate::sub_lib::cryptde::{CryptDE, CryptData, PlainData, PublicKey};
 use crate::sub_lib::hopper::MessageType;
 use crate::sub_lib::node_addr::NodeAddr;
 use crate::sub_lib::versioned_data::StepError;
-use itertools::Itertools;
 use pretty_hex::PrettyHex;
 use serde_cbor::Value;
 use serde_derive::{Deserialize, Serialize};
@@ -109,7 +108,10 @@ impl GossipNodeRecord {
                 human_readable.push_str(&format!("\n\t\trate_pack: {:?},", nri.rate_pack));
                 human_readable.push_str(&format!(
                     "\n\t\tneighbors: {:?},",
-                    nri.neighbors.clone().into_iter().collect_vec()
+                    nri.neighbors
+                        .clone()
+                        .into_iter()
+                        .collect::<Vec<PublicKey>>()
                 ));
                 human_readable.push_str(&format!("\n\t\tversion: {:?},", nri.version));
                 human_readable.push_str("\n\t},");

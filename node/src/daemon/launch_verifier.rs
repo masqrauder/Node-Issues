@@ -101,7 +101,6 @@ impl VerifierToolsReal {
 
     #[cfg(target_os = "macos")]
     fn is_alive(process_status: ProcessStatus) -> bool {
-        // ProcessStatus::Unknown(0) value was observed in practice; its meaning is unclear.
         !matches!(
             process_status,
             ProcessStatus::Zombie | ProcessStatus::Unknown(0)
