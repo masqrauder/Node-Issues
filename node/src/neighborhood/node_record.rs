@@ -356,7 +356,6 @@ mod tests {
     use crate::test_utils::neighborhood_test_utils::{db_from_node, make_node_record};
     use crate::test_utils::{assert_contains, main_cryptde, make_wallet, rate_pack};
     use masq_lib::test_utils::utils::DEFAULT_CHAIN_ID;
-    use std::iter::FromIterator;
     use std::net::IpAddr;
     use std::str::FromStr;
 
