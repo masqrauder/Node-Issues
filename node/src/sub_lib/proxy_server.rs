@@ -13,7 +13,7 @@ use crate::sub_lib::stream_key::StreamKey;
 use crate::sub_lib::versioned_data::VersionedData;
 use actix::Message;
 use actix::Recipient;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 pub const DEFAULT_MINIMUM_HOP_COUNT: usize = 3;

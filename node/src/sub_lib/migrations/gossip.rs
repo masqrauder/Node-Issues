@@ -86,7 +86,7 @@ mod tests {
     use crate::neighborhood::gossip::GossipBuilder;
     use crate::sub_lib::versioned_data::DataVersion;
     use crate::test_utils::neighborhood_test_utils::{db_from_node, make_node_record};
-    use serde_derive::{Deserialize, Serialize};
+    use serde::{Deserialize, Serialize};
 
     #[test]
     fn can_migrate_from_the_future() {

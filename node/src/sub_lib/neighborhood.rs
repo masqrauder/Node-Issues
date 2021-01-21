@@ -20,7 +20,7 @@ use core::fmt;
 use lazy_static::lazy_static;
 use masq_lib::constants::DEFAULT_CHAIN_NAME;
 use masq_lib::ui_gateway::NodeFromUiMessage;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use std::net::IpAddr;
 use std::str::FromStr;

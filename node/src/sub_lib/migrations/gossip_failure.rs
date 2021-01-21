@@ -62,7 +62,7 @@ impl TryFrom<&Value> for GossipFailure_0v1 {
 mod tests {
     use super::*;
     use crate::sub_lib::versioned_data::DataVersion;
-    use serde_derive::{Deserialize, Serialize};
+    use serde::{Deserialize, Serialize};
 
     #[test]
     fn can_migrate_from_the_future() {

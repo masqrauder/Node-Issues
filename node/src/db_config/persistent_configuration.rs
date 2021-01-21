@@ -396,7 +396,7 @@ mod tests {
     use crate::db_config::secure_config_layer::EXAMPLE_ENCRYPTED;
     use crate::test_utils::main_cryptde;
     use bip39::{Language, MnemonicType};
-    use masq_lib::utils::find_free_port;
+    use masq_lib::utils::{derivation_path, find_free_port};
     use std::net::SocketAddr;
     use std::sync::{Arc, Mutex};
 

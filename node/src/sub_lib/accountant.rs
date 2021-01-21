@@ -6,7 +6,7 @@ use actix::Message;
 use actix::Recipient;
 use lazy_static::lazy_static;
 use masq_lib::ui_gateway::NodeFromUiMessage;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;
 use std::time::Duration;

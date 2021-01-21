@@ -21,8 +21,7 @@ primitive-types = {version = "0.8.0", default-features = false, features = ["def
 regex = "1.4.3"
 rusqlite = {version = "0.20.0", features = ["bundled"]}
 rustc-hex = "2.0.1"
-serde = "1.0.120"
-serde_derive = "1.0.99"
+serde = {version = "1.0.120", features = ["derive"]}
 serde_cbor = "0.11.1"
 sha1 = "0.6.0"
 tiny-bip39 = "0.6.2"

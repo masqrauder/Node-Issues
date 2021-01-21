@@ -5,7 +5,7 @@ use ethereum_types::{Address, U256};
 use ethsign::Signature;
 use ethsign_crypto::Keccak256;
 use rlp::RlpStream;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 /// Description of a Transaction, pending or in the chain.
 #[derive(Debug, Default, Clone, PartialEq, Deserialize, Serialize)]

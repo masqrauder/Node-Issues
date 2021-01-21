@@ -1,4 +1,4 @@
-use serde_derive::*;
+use serde::*;
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::str::FromStr;

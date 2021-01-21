@@ -86,7 +86,7 @@ mod tests {
     use super::*;
     use crate::sub_lib::cryptde::PublicKey;
     use crate::sub_lib::versioned_data::DataVersion;
-    use serde_derive::{Deserialize, Serialize};
+    use serde::{Deserialize, Serialize};
     use std::net::SocketAddr;
     use std::str::FromStr;
 
