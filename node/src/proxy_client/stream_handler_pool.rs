@@ -512,6 +512,7 @@ mod tests {
     use crate::test_utils::{await_messages, make_wallet};
     use actix::System;
     use masq_lib::constants::HTTP_PORT;
+    use serial_test::serial;
     use std::cell::RefCell;
     use std::io::Error;
     use std::io::ErrorKind;
@@ -554,6 +555,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(port80)]
     fn dns_resolution_failure_sends_a_message_to_proxy_client() {
         let (proxy_client, proxy_client_awaiter, proxy_client_recording) = make_recorder();
         let stream_key = make_meaningless_stream_key();
@@ -611,6 +613,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(port80)]
     fn non_terminal_payload_can_be_sent_over_existing_connection() {
         let cryptde = main_cryptde();
         let stream_key = make_meaningless_stream_key();
@@ -670,6 +673,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(port80)]
     fn write_failure_for_nonexistent_stream_generates_termination_message() {
         init_test_logging();
         let cryptde = main_cryptde();
@@ -736,6 +740,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(port80)]
     fn when_hostname_is_ip_establish_stream_without_dns_lookup() {
         let cryptde = main_cryptde();
         let lookup_ip_parameters = Arc::new(Mutex::new(vec![]));
@@ -845,6 +850,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(port80)]
     fn ip_is_parsed_even_without_port() {
         let cryptde = main_cryptde();
         let lookup_ip_parameters = Arc::new(Mutex::new(vec![]));
@@ -954,6 +960,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(port80)]
     fn missing_hostname_for_nonexistent_stream_generates_log_and_termination_message() {
         init_test_logging();
         let cryptde = main_cryptde();
@@ -1016,6 +1023,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(port80)]
     fn nonexistent_connection_springs_into_being_and_is_persisted_to_handle_transaction() {
         let cryptde = main_cryptde();
         let lookup_ip_parameters = Arc::new(Mutex::new(vec![]));
@@ -1125,6 +1133,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(port80)]
     fn failing_to_make_a_connection_sends_an_error_response() {
         let cryptde = main_cryptde();
         let stream_key = make_meaningless_stream_key();
@@ -1206,6 +1215,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(port80)]
     fn trying_to_write_to_disconnected_stream_writer_sends_an_error_response() {
         let cryptde = main_cryptde();
         let stream_key = make_meaningless_stream_key();
@@ -1321,6 +1331,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(port80)]
     fn bad_dns_lookup_produces_log_and_sends_error_response() {
         init_test_logging();
         let cryptde = main_cryptde();
@@ -1381,6 +1392,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(port80)]
     fn error_from_tx_to_writer_removes_stream() {
         init_test_logging();
         let cryptde = main_cryptde();
@@ -1446,6 +1458,7 @@ mod tests {
     }
 
     #[test]
+    #[serial(port80)]
     fn process_package_does_not_create_new_connection_for_zero_length_data_with_unfamiliar_stream_key(
     ) {
         init_test_logging();
