@@ -161,7 +161,7 @@ mod tests {
     use super::*;
     use crate::sub_lib::neighborhood::DEFAULT_RATE_PACK;
     use crate::sub_lib::versioned_data::DataVersion;
-    use serde_derive::{Deserialize, Serialize};
+    use serde::{Deserialize, Serialize};
     use std::iter::FromIterator;
 
     #[test]

@@ -8,7 +8,7 @@ use crate::sub_lib::hop::LiveHop;
 use crate::sub_lib::hopper::IncipientCoresPackage;
 use crate::sub_lib::hopper::{ExpiredCoresPackage, MessageType, NoLookupIncipientCoresPackage};
 use crate::sub_lib::route::Route;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

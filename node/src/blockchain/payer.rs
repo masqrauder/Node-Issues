@@ -3,7 +3,7 @@ use crate::banned_dao::BAN_CACHE;
 use crate::blockchain::signature::SerializableSignature;
 use crate::sub_lib::wallet::Wallet;
 use ethsign::Signature;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 pub struct Payer {

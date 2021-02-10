@@ -628,10 +628,8 @@ mod tests {
     use crate::test_utils::main_cryptde;
     use masq_lib::test_utils::utils::DEFAULT_CHAIN_ID;
     use rustc_hex::{FromHex, FromHexError};
-    use serde::de;
-    use serde::ser;
+    use serde::{de, ser, Deserialize, Serialize};
     use serde_cbor;
-    use serde_derive::{Deserialize, Serialize};
 
     #[test]
     fn private_key_constructor_works_as_expected() {

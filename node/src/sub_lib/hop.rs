@@ -6,7 +6,7 @@ use crate::sub_lib::cryptde::CryptData;
 use crate::sub_lib::cryptde::PublicKey;
 use crate::sub_lib::cryptde::{decodex, CodexError};
 use crate::sub_lib::dispatcher::Component;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 // This structure is the one that will travel from Node to Node in a CORES package.
 // There may soon be another version that always stays on the Node and is used to
