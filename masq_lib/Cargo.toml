@@ -9,7 +9,7 @@ edition = "2018"
 workspace = "../node"
 
 [dependencies]
-actix = "0.7.9"
+actix = "0.10.0"
 clap = "2.33.1"
 crossbeam-channel = "0.4"
 itertools = "0.10.0"
