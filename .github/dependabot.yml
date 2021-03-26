@@ -1,0 +1,30 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/node"
+  schedule:
+    interval: daily
+    time: "03:00"
+    timezone: America/New_York
+  open-pull-requests-limit: 10
+- package-ecosystem: cargo
+  directory: "/dns_utility"
+  schedule:
+    interval: daily
+    time: "03:00"
+    timezone: America/New_York
+  open-pull-requests-limit: 10
+- package-ecosystem: cargo
+  directory: "/mock_rest_server"
+  schedule:
+    interval: daily
+    time: "03:00"
+    timezone: America/New_York
+  open-pull-requests-limit: 10
+- package-ecosystem: cargo
+  directory: "/port_exposer"
+  schedule:
+    interval: daily
+    time: "03:00"
+    timezone: America/New_York
+  open-pull-requests-limit: 10
